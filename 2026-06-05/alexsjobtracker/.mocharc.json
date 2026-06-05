@@ -1,0 +1,10 @@
+{
+  "extension": ["js"],
+  "spec": "test/**/*.test.js",
+  "recursive": true,
+  "reporter": "spec",
+  "timeout": 60000,
+  "node-option": [
+    "experimental-specifier-resolution=node"
+  ]
+}
