@@ -11,9 +11,15 @@ curl -fsSL https://ollama.com/install.sh | sh
 ollama pull llama-3.2:latest
 ```
 
+Model options: 
+- llama-3.2: Very lightweight and does well enough with small modules lists but struggles with longer lists
+- glm4: A lot better with longer lists, output format needs tweaking because it returns a markdown codeblock
+
 ## Data Parsing
 
 Run the following script routinely (e.g. nightly with Cron) to digest the applications list into a markdown file.
+
+Note: Replace `llama3.2` in the below with your chosen model.
 
 ```bash
 APPS_LIST="$(module avail 2>&1 |awk '{printf "%s\\n", $0}')"
