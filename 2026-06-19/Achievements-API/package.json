@@ -1,0 +1,21 @@
+{
+   "name": "hpc-achievements-api",
+   "version": "0.1.0",
+   "dependencies": {
+      "dotenv": "^17.4.2",
+      "express": "^5.2.1",
+      "mariadb": "^3.5.3"
+   },
+   "devDependencies": {
+      "@eslint/js": "^10.0.1",
+      "eslint-config-prettier": "^10.1.8",
+      "globals": "^17.6.0",
+      "prettier": "^3.8.4"
+   },
+   "scripts": {
+      "lint": "eslint .",
+      "format": "prettier . --write",
+      "format:check": "prettier . --check",
+      "start": "sudo node app.js"
+   }
+}
