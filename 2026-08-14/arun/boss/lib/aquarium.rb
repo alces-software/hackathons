@@ -73,6 +73,23 @@ class Aquarium
   end
 
   def take_selfie(_fridge, _carpet)
-    puts 'its not been added yet'
+    imgs = ['data/bank/1.jpg', 'data/bank/2.jpg', 'data/bank/3.jpg', 'data/bank/4.jpg']
+    chosen = imgs.sample
+
+    puts 'Finding a good spot...'
+    sleep(3)
+    puts 'Stretching arm out to get the right angle...'
+    sleep(5)
+    puts 'Taking selfie...'
+    sleep(2)
+
+    if Gem::Platform.local.os == 'darwin'
+      `open #{chosen}`
+    else
+      `xdg-open #{chosen}`
+    end
+
+    sleep(3)
+    puts 'Perfect.'
   end
 end

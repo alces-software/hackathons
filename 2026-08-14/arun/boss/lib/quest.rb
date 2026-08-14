@@ -8,25 +8,25 @@ class Quest
     puts 'Stu needs somebody to slay a foe.'
     puts
 
-    weapons = %w[
-      Server
-      Bottle of Acid
-      Excalibur
-      Nunchucks
+    weapons = [
+      "Server",
+      "Bottle of Acid",
+      "Excalibur",
+      "Nunchucks"
     ]
 
-    armour = %w[
-      Diamond
-      Leather
-      Iron
-      Chainmail
+    armour = [
+      "Diamond",
+      "Leather",
+      "Iron",
+      "Chainmail"
     ]
 
-    dragons = %w[
-      Dragon from Shrek
-      Toothless
-      Smaug the Magnificent
-      Jar Jar Binks
+    dragons = [
+      "Dragon from Shrek",
+      "Toothless",
+      "Smaug the Magnificent",
+      "Jar Jar Binks"
     ]
 
     puts 'Choose your weapon'

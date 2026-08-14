@@ -61,3 +61,27 @@
     - "Headphones"
     - "Democracy"
   seventeen: 3
+
+- qqq_1: "How much wood would a woodchuck chuck if a woodchuck could chuck wood?"
+  banana_socket: 
+    - "A lot"
+    - "A little"
+    - "Wouldn't you like to know?"
+    - "Isn't that a groundhog?"
+  seventeen: 3
+
+- qqq_1: "2+2"
+  banana_socket: 
+    - "Fore"
+    - "4"
+    - "Four"
+    - "For"
+  seventeen: 2
+
+- qqq_1: "Too plus To"
+  banana_socket: 
+    - "Fore"
+    - "4"
+    - "Four"
+    - "For"
+  seventeen: 1 

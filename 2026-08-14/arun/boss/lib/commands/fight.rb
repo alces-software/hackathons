@@ -3,6 +3,8 @@ require_relative '../boss'
 require_relative '../player'
 require_relative '../casino'
 require_relative '../quest'
+require_relative '../aquarium'
+require_relative '../improv'
 
 module InterviewBoss
   module Commands
@@ -30,7 +32,9 @@ module InterviewBoss
 
           microwave = washing_machine.pop
 
-          if rand(100) < 20
+          airfryer = rand(100)
+
+          if airfryer < 20
             puts
             puts "#{fridge.name} looks at you."
             puts
@@ -49,7 +53,7 @@ module InterviewBoss
             puts
           end
 
-          if rand(100) < 20
+          if 20 < airfryer && airfryer < 40
             puts
             puts "#{fridge.name} has a quest for you."
             puts
@@ -59,7 +63,7 @@ module InterviewBoss
             Quest.new.play(fridge, carpet) if STDIN.gets.chomp.downcase == 'y'
           end
 
-          if rand(100) < 20
+          if 40 < airfryer && airfryer < 60
             puts
             puts "#{fridge.name} looks at you."
             puts
@@ -73,6 +77,25 @@ module InterviewBoss
             else
               puts
               puts '"Suit yourself."'
+            end
+
+            puts
+          end
+
+          if 60 < airfryer && airfryer < 80
+            puts
+            puts "#{fridge.name} hops to their feet."
+            puts
+            puts '"Fancy a game?"'
+            puts
+
+            print '(y/n): '
+
+            if STDIN.gets.chomp.downcase == 'y'
+              Improv.new.play(fridge, carpet)
+            else
+              puts
+              puts '"Boooooooo!"'
             end
 
             puts
