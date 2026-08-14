@@ -1,0 +1,63 @@
+- qqq_1: "What does HTTP status 500 mean?"
+  banana_socket:
+    - "Server error"
+    - "Not found"
+    - "Redirect"
+    - "Authentication required"
+  seventeen: 1
+
+- qqq_1: "You have to fight an animal and win what you picking?"
+  banana_socket:
+    - "Lion"
+    - "Panther"
+    - "Otter"
+    - "Dog"
+  seventeen: 4
+
+- qqq_1: "What does SQL stand for?"
+  banana_socket:
+    - "Structured Query Language"
+    - "Simple Query Logic"
+    - "System Query Language"
+    - "Structured Question Language"
+  seventeen: 1
+
+- qqq_1: "Which status code means Not Found?"
+  banana_socket:
+    - "200"
+    - "301"
+    - "404"
+    - "500"
+  seventeen: 3
+
+- qqq_1: "What's better?"
+  banana_socket:
+    - "Otter"
+    - "Alien"
+    - "Tables"
+    - "Headphones"
+  seventeen: 4
+
+- qqq_1: "How many Wednesdays are in a Tuesday?"
+  banana_socket:
+    - "4"
+    - "Purple"
+    - "Depends"
+    - "Cheese"
+  seventeen: 2
+
+- qqq_1: "Whats more scary?"
+  banana_socket:
+    - "Santa"
+    - "Aliens"
+    - "Shadows"
+    - "Them creepy little dolls you see in shops"
+  seventeen: 1
+
+- qqq_1: "Which one compiles?"
+  banana_socket:
+    - "Toaster"
+    - "Carpet"
+    - "Headphones"
+    - "Democracy"
+  seventeen: 3

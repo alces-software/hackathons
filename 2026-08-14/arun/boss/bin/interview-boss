@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+
+require_relative "../lib/interview_boss"
+
+Dry::CLI.new(InterviewBoss::CLI).call
+
+
