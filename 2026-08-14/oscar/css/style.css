@@ -155,7 +155,7 @@ header p {
     box-shadow: 0 7px 0 #315b5b;
 }
 
-#upgrades h2 {
+h2 {
     margin: 0 0 25px;
 
     font-family: "Patrick Hand", cursive;
@@ -202,7 +202,7 @@ header p {
     object-fit: contain;
 }
 
-.upgrade-info h3 {
+h3 {
     margin: 0 0 5px;
 
     font-family: "Patrick Hand", cursive;
@@ -252,4 +252,28 @@ header p {
 .upgrade-button:active {
     transform: translateY(3px);
     border-bottom-width: 1px;
+}
+
+#inventory {
+    padding: 30px;
+
+    background: #d9e7df;
+
+    border: 3px solid #315b5b;
+
+    border-radius: 18px;
+
+    box-shadow: 0 7px 0 #315b5b;
+}
+
+.inventory-section {
+    font-size: 2rem;
+    line-height: 1.6;
+    word-break: break-word;     /* safety net for very long runs */
+    margin-top: 20px;
+    padding: 15px;
+
+    background: #f7f2df;
+    border: 2px solid #a8b8aa;
+    border-radius: 12px;
 }
