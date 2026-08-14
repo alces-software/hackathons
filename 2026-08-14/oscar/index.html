@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Otter</title>
+
+    <link rel="stylesheet" href="./css/style.css" />
+  </head>
+
+  <body>
+    <main id="app">
+      <header>
+        <h1>Fish Clicker</h1>
+        <p>Gather fish and build your otter empire.</p>
+      </header>
+      <section id="click-area">
+        <div id="fish-image">
+          <img src="./images/image2.jpg" alt="Food" />
+        </div>
+        <div id="fish-display">
+          <div id="fish">0</div>
+          <div class="fish-label">Fish</div>
+        </div>
+
+        <button id="click-button">Catch Fish</button>
+      </section>
+
+      <section id="upgrades">
+        <h2>Upgrades</h2>
+
+        <div class="upgrade">
+          <div class="upgrade-image">
+            <img src="./images/image.jpg" alt="Otter" />
+          </div>
+
+          <div class="upgrade-info">
+            <h3>Hire an Otter</h3>
+
+            <p>Your otter fishes for you, generating 1 fish every 5 seconds.</p>
+
+            <p>
+              Otters:
+              <span id="otter-count">0</span>
+            </p>
+          </div>
+
+          <button id="hire-otter" class="upgrade-button">
+            Hire — <span id="otter-cost">25</span> Fish
+          </button>
+        </div>
+
+        <div class="upgrade">
+          <div class="upgrade-image">
+            <img src="./images/image3.jpg" alt="Fishing Rod" />
+          </div>
+
+          <div class="upgrade-info">
+            <h3>Upgrade Fishing Rod</h3>
+
+            <p>Increase the amount of fish you can catch</p>
+
+            <p>
+              Fishing rod level:
+              <span id="rod-level">1</span>
+            </p>
+          </div>
+
+          <button id="upgrade-rod" class="upgrade-button">
+            Upgrade — <span id="rod-price">100</span> Fish
+          </button>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="./js/main.js"></script>
+  </body>
+</html>
