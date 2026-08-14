@@ -6,7 +6,6 @@ import pygame
 pygame.mixer.init()
 
 
-
 SOUNDS = {
     "C4": pygame.mixer.Sound("sounds/c4.mp3"),
     "D4": pygame.mixer.Sound("sounds/d4.mp3"),
@@ -19,10 +18,7 @@ SOUNDS = {
 }
 
 
-
-
 Y = 500
-
 NH = 40
 FALL_SPEED = 200
 
@@ -49,8 +45,6 @@ K_M = {
 }
 
 
-
-# FINISH THE SONG
 SONG = [
     {"note": "C4", "time": 2.0},
     {"note": "D4", "time": 3.0},
@@ -61,7 +55,7 @@ SONG = [
     {"note": "C4", "time": 6},
     {"note": "E4", "time": 7},
 
-{"note": "D4", "time": 9.0},
+    {"note": "D4", "time": 9.0},
     {"note": "E4", "time": 10.25},
     {"note": "F4", "time": 10.5},
     {"note": "F4", "time": 11},
@@ -70,8 +64,100 @@ SONG = [
 
     {"note": "F4", "time": 12.5},
     {"note": "E4", "time": 15.5},
+]
+
+
+LEVEL_1_SONG = [
+
+    {"note": "E4", "time": 2.0},
+    {"note": "E4", "time": 2.5},
+    {"note": "E4", "time": 3.0},
+
+    {"note": "E4", "time": 4.0},
+    {"note": "E4", "time": 4.5},
+    {"note": "E4", "time": 5.0},
+
+    {"note": "E4", "time": 6.0},
+    {"note": "G4", "time": 6.5},
+    {"note": "C4", "time": 7.0},
+    {"note": "D4", "time": 7.5},
+    {"note": "E4", "time": 8.0},
+
+    {"note": "F4", "time": 9.5},
+    {"note": "F4", "time": 10.0},
+    {"note": "F4", "time": 10.5},
+
+    {"note": "F4", "time": 11.5},
+    {"note": "F4", "time": 12.0},
+
+    {"note": "E4", "time": 12.5},
+    {"note": "E4", "time": 13.0},
+
+    {"note": "E4", "time": 13.5},
+    {"note": "E4", "time": 14.0},
+
+    {"note": "D4", "time": 15.0},
+    {"note": "D4", "time": 15.5},
+
+    {"note": "E4", "time": 16.0},
+
+    {"note": "D4", "time": 17.0},
+    {"note": "G4", "time": 18.0},
+]
+
+LEVEL_2_SONG = [
+
+    {"note": "C4", "time": 2.0},
+    {"note": "C4", "time": 2.5},
+    {"note": "G4", "time": 3.0},
+    {"note": "G4", "time": 3.5},
+    {"note": "A4", "time": 4.0},
+    {"note": "A4", "time": 4.5},
+    {"note": "G4", "time": 5.5},
+
+    {"note": "F4", "time": 6.5},
+    {"note": "F4", "time": 7.0},
+    {"note": "E4", "time": 7.5},
+    {"note": "E4", "time": 8.0},
+    {"note": "D4", "time": 8.5},
+    {"note": "D4", "time": 9.0},
+    {"note": "C4", "time": 10.0},
+
+    {"note": "G4", "time": 11.0},
+    {"note": "G4", "time": 11.5},
+    {"note": "F4", "time": 12.0},
+    {"note": "F4", "time": 12.5},
+    {"note": "E4", "time": 13.0},
+    {"note": "E4", "time": 13.5},
+    {"note": "D4", "time": 14.5},
+
+    {"note": "G4", "time": 15.5},
+    {"note": "G4", "time": 16.0},
+    {"note": "F4", "time": 16.5},
+    {"note": "F4", "time": 17.0},
+    {"note": "E4", "time": 17.5},
+    {"note": "E4", "time": 18.0},
+    {"note": "D4", "time": 19.0},
+
+    {"note": "C4", "time": 20.0},
+    {"note": "C4", "time": 20.5},
+    {"note": "G4", "time": 21.0},
+    {"note": "G4", "time": 21.5},
+    {"note": "A4", "time": 22.0},
+    {"note": "A4", "time": 22.5},
+    {"note": "G4", "time": 23.5},
+
+    {"note": "F4", "time": 24.5},
+    {"note": "F4", "time": 25.0},
+    {"note": "E4", "time": 25.5},
+    {"note": "E4", "time": 26.0},
+    {"note": "D4", "time": 26.5},
+    {"note": "D4", "time": 27.0},
+    {"note": "C4", "time": 28.0},
 
 ]
+
+
 
 
 
@@ -90,16 +176,18 @@ prometheus = tk.Canvas(
 prometheus.pack()
 
 
-
 song_start_time = None
 
 falling_notes = []
 
 score = 0
-
 combo = 0
+lives = 3
+
+current_level = 0
 
 game_running = False
+game_over = False
 
 
 score_text = prometheus.create_text(
@@ -128,6 +216,20 @@ message_text = prometheus.create_text(
     font=("Arial", 24, "bold")
 )
 
+
+heart_icons = []
+
+for i in range(3):
+
+    heart = prometheus.create_text(
+        770 - (i * 35),
+        30,
+        text="♥",
+        fill="#ef4444",
+        font=("Arial", 26, "bold")
+    )
+
+    heart_icons.append(heart)
 
 
 key_width = 800 / len(NOTES)
@@ -169,6 +271,7 @@ for i, note in enumerate(NOTES):
 
     piano_keys[note] = rectangle
 
+
 prometheus.create_line(
     0,
     Y,
@@ -177,6 +280,17 @@ prometheus.create_line(
     fill="#38bdf8",
     width=5
 )
+
+
+def get_current_song():
+
+    if current_level == 0:
+        return SONG
+    elif current_level == 1:
+        return LEVEL_1_SONG
+    elif current_level == 2:
+        return LEVEL_2_SONG
+
 
 def setup_song():
 
@@ -187,7 +301,7 @@ def setup_song():
 
     falling_notes = []
 
-    for song_note in SONG:
+    for song_note in get_current_song():
 
         note_name = song_note["note"]
 
@@ -214,19 +328,34 @@ def setup_song():
         })
 
 
+def reset_hearts():
+
+    for heart in heart_icons:
+
+        prometheus.itemconfig(
+            heart,
+            fill="#ef4444"
+        )
+
 
 def start_game(event=None):
 
     global song_start_time
     global score
     global combo
+    global lives
     global game_running
+    global game_over
+    global FALL_SPEED
+    global current_level
 
     if game_running:
         return
 
     score = 0
     combo = 0
+    lives = 3
+    game_over = False
 
     prometheus.itemconfig(
         score_text,
@@ -243,6 +372,19 @@ def start_game(event=None):
         text=""
     )
 
+    reset_hearts()
+
+    if current_level == 0:
+        FALL_SPEED = 200
+    elif current_level == 1:
+        FALL_SPEED = 230
+    elif current_level == 2:
+        FALL_SPEED = 170
+    elif current_level == 3:
+        FALL_SPEED = 250
+
+    
+
     setup_song()
 
     song_start_time = time.perf_counter()
@@ -252,11 +394,26 @@ def start_game(event=None):
     game_loop()
 
 
+def end_game():
+
+    global game_running
+    global game_over
+
+    game_running = False
+    game_over = True
+
+    prometheus.itemconfig(
+        message_text,
+        text="GAME OVER\nPress SPACE to retry"
+    )
+
 
 def game_loop():
 
     global combo
+    global lives
     global game_running
+    global current_level
 
     if not game_running:
         return
@@ -298,8 +455,8 @@ def game_loop():
         if current_time > note["time"] + 0.25:
 
             note["missed"] = True
-
             combo = 0
+            lives -= 1
 
             prometheus.itemconfig(
                 combo_text,
@@ -311,6 +468,13 @@ def game_loop():
                 fill="#ef4444"
             )
 
+            if lives >= 0:
+
+                prometheus.itemconfig(
+                    heart_icons[lives],
+                    fill="#374151"
+                )
+
             show_message("MISS")
 
             gaia.after(
@@ -318,6 +482,12 @@ def game_loop():
                 lambda item=note["prometheus_id"]:
                 prometheus.delete(item)
             )
+
+            if lives <= 0:
+
+                end_game()
+
+                return
 
     if unfinished_notes:
 
@@ -330,12 +500,44 @@ def game_loop():
 
         game_running = False
 
-        show_message(
-            f"Finished! Score: {score}",
-            duration=2000
-        )
+        if current_level == 0:
 
+            current_level = 1
 
+            prometheus.itemconfig(
+                message_text,
+                text=(
+                    f"TUTORIAL COMPLETE!\n"
+                    f"Score: {score}\n\n"
+                    f"LEVEL 1\n"
+                    f"Press SPACE to begin"
+                )
+            )
+
+        elif current_level == 1:
+
+            current_level = 2
+
+            prometheus.itemconfig(
+                message_text,
+                text=(
+                    f"LEVEL 1 COMPLETE!\n"
+                    f"Score: {score}\n\n"
+                    f"LEVEL 2\n"
+                    f"Press SPACE to begin"
+                )
+            )
+
+        elif current_level == 2:
+
+            prometheus.itemconfig(
+                message_text,
+                text=(
+                    f"LEVEL 2 COMPLETE!\n"
+                    f"Score: {score}\n"
+                    f"Press SPACE to replay"
+                )
+            )
 
 def play_note(event):
 
@@ -349,11 +551,7 @@ def play_note(event):
 
     played_note = K_M[key]
 
-
-
     SOUNDS[played_note].play()
-
-
 
     piano_key = piano_keys[played_note]
 
@@ -380,6 +578,7 @@ def play_note(event):
     )
 
     best_note = None
+
     best_difference = float("inf")
 
     for note in falling_notes:
@@ -398,6 +597,7 @@ def play_note(event):
         if difference < best_difference:
 
             best_difference = difference
+
             best_note = note
 
     if best_note is None:
@@ -445,6 +645,7 @@ def play_note(event):
     )
 
     show_message(result)
+
 
 message_version = 0
 
