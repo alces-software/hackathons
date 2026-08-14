@@ -1,0 +1,52 @@
+# Requires: jq
+
+asdf=$(curl -q -s $(echo 'aHR0cHM6Ly90YXJvdGFwaS5kZXYvYXBpL3YxL2NhcmRzL3JhbmRvbT9uPTEK' |base64 -d))
+
+cat << PAWS
+1) Help me
+2) Roast me
+3) Enamour me
+PAWS
+
+four() {
+cat << 'MEOW'
+What's your problem?
+MEOW
+echo -n '> '
+read AAHHHHHHHH
+
+echo 
+
+bits=$(echo "$asdf" |jq -r "$(echo 'LmNhcmRzW10udHlwZQo=' |base64 -d)")
+bytes=$(echo "$asdf" |jq -r "$(echo 'LmNhcmRzW10ubmFtZQo=' |base64 -d)")
+
+bobs=("my dude" "big boy" "little one" "girlie" "prime minister")
+
+cat << MIAOW
+Sounds like a $(tput bold)$bits$(tput sgr0) problem $(tput smul)${bobs[ $RANDOM % ${#bobs[@]} ]}$(tput sgr0).
+
+You drew $bytes.
+
+ORACLE SPEAKS...
+MIAOW
+
+thoughts='eyJtb2RlbCI6ICJncHQtb3NzOjIwYi1sMCIsInByb21wdCI6ICJUaGUgdXNlciBhc2tlZCB0YXJvdCBmb3IgaGVscCB3aXRoIGlzc3VlIF9fU1VOX18sIHdlIGRyZXcgdGhlIHRhb3IgY2FyZDogX19NT09OX18uIFByb3ZpZGUgb25lIGxpbmUgb2YgYWR2aWNlIGZvciB0aGVpciBwcm9ibGVtIHVzaW5nIHRoaXMuIiwic3RyZWFtIjpmYWxzZSB9Cg=='
+patterns="$(echo "$thoughts" |base64 -d |sed "s/__SUN__/$AAHHHHHHHH/g;s/__MOON__/$bytes/g")"
+pqwoeif=$(curl -s http://10.151.17.36:11434/api/generate -d "$patterns" |jq -r '.response')
+
+echo $pqwoeif
+}
+
+until [[ $ABookAboutSelfHelpAndTakeNoneOfItIn == 1 ]] ; do
+    echo -n 'Choice: '
+    read ABookAboutSelfHelpAndTakeNoneOfItIn
+
+    case $ABookAboutSelfHelpAndTakeNoneOfItIn in
+        1)
+            four
+            ;;
+        *)
+            echo "What are you on about?"
+            ;;
+    esac
+done
