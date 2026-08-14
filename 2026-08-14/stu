@@ -11,6 +11,9 @@ cat << PAWS
 1) Help me
 2) Roast me
 3) Enamour me
+4) Life lesson
+5) Gamble on Horses
+6) Short Bedtime Story
 PAWS
 
 four() {
@@ -47,6 +50,176 @@ echo "$(tput setaf 1)$pqwoeif$(tput sgr0)"
 say -v Whisper "$pqwoeif"
 }
 
+life_lesson() {
+    lessons=(
+        "The World is not full of rainbows and unicorns"
+        "If the WiFi works, stop touching things."
+        "Never buy a kebab from a place with no menu"
+        "A meeting without biscuits is just an argument."
+        "If you don't have pizza on Friday because your trying to be healthy you should get a grip"
+        "Never challenge a pigeon. They have nothing to lose."
+        "If somebody says quick question, it's not a quick question"
+        "All tables are standing tables if you are small enough"
+        "A free sandwich always has consequences."
+        "If the terminal works, do not customise it."
+        "You do not need colors in any cli tools you make tell the user to use their imagination"
+    )
+
+    prophecy=${lessons[$RANDOM % ${#lessons[@]}]}
+
+    echo
+    echo "$(tput bold)$(tput setaf 1)THE ORACLE OFFERS WISDOM$(tput sgr0)"
+    echo
+    echo "$prophecy"
+    echo
+
+    say -v Whisper "$prophecy"
+}
+
+gamble_on_horses() {
+
+    horses=(
+        "Cognition"
+        "Sam from Lord of the Rings"
+        "Racing Stripes"
+        "Rory the RaceCar Driver"
+        "Horse"
+    )
+
+    echo
+    echo "$(tput bold)$(tput setaf 1)WELCOME TO THE ORACLE GRAND NATIONAL$(tput sgr0)"
+    echo
+    echo "Choose your horse:"
+    echo
+    say -v Whisper "Choose your horse"
+
+    for i in "${!horses[@]}"; do
+        echo "$((i + 1))) ${horses[$i]}"
+    done
+
+    echo
+    echo -n "Your horse: "
+    read horse_choice
+    if ! [[ "$horse_choice" =~ ^[1-5]$ ]]; then
+        echo
+        echo "The Oracle rejects your wager."
+        return
+
+    fi
+
+    chosen_horse=$((horse_choice - 1))
+
+    echo
+    echo "You have chosen: ${horses[$chosen_horse]}"
+    say -v Whisper "You have chosen ${horses[chosen_horse]}"
+    echo
+    echo "The horses approach the starting line..."
+    echo
+
+    say -v Organ "The horses approach the starting line"
+    sleep 1
+    echo "3..."
+    sleep 1
+    echo "2..."
+    sleep 1
+    echo "1..."
+    sleep 1
+
+    say -v Wobble "Go"
+
+    positions=(0 0 0 0 0)
+
+    winner=-1
+
+    while [[ $winner -eq -1 ]]; do
+
+        clear
+        echo
+        echo "$(tput bold)$(tput setaf 1)THE ORACLE GRAND NATIONAL$(tput sgr0)"
+        echo
+
+        for i in "${!horses[@]}"; do
+
+            move=$((RANDOM % 4 + 1))
+            positions[$i]=$((positions[$i] + move))
+            printf "%-22s " "${horses[$i]}"
+            for ((j=0; j<${positions[$i]}; j++)); do
+                printf "="
+            done
+
+            echo "🐎"
+
+            if [[ ${positions[$i]} -ge 40 && $winner -eq -1 ]]; then
+
+                winner=$i
+
+            fi
+
+        done
+
+        sleep 0.15
+
+    done
+
+    echo
+    echo "========================================"
+    echo
+    echo "${horses[$winner]} WINS!"
+    echo
+
+    say -v Organ "${horses[$winner]} wins"
+
+    if [[ $winner -eq $chosen_horse ]]; then
+        echo "$(tput bold)$(tput setaf 2)YOU WON YOUR BET.$(tput sgr0)"
+        echo
+        echo "The Oracle begrudgingly respects you."
+        say -v Whisper "You have beaten destiny."
+
+    else
+        echo "$(tput bold)$(tput setaf 1)YOU LOST.$(tput sgr0)"
+        echo
+        echo "The Oracle has taken your imaginary money."
+        say -v Whisper "Fool. You cannot gamble against fate."
+    fi
+
+    echo
+
+}
+
+bananabread() {
+    stories=(
+        "I woke up to the sound of someone knocking on my bedroom door. My wife was asleep next to me, so I quietly got out of bed. As I reached for the handle, my phone lit up. It was a message from my wife. She said: Don't open the door. I'm downstairs."
+        "A daughter was in her room upstairs, doing her homework, when suddenly she heard her mother call to come down for dinner. She jumped onto her feet and began making her way towards the stairs, but before even took a step, hands grabbed her and pulled her into the laundry room besides the staircase. She panicked before realizing it was her mother, her real mother, eyes watery and bloodshot. 'Don't go down there honey i heard it too'"
+        "My daughter complained that someone kept whispering her name from underneath her bed. I checked and found nothing. As I stood back up, my daughter called me from the hallway. Then something underneath the bed whispered: Don't listen to her."
+        "The security camera kept sending me alerts that somebody was standing at my front door. Every time I checked, nobody was there. Eventually I opened the live feed and zoomed in. The camera wasn't pointing at the front door anymore. It was pointing at me."
+        "My flatmate texted me asking why I'd left the front door open. I replied that I was still at work. Three dots appeared. Then he replied: Then who just walked into your bedroom?"
+    )
+
+    story=${stories[$RANDOM % ${#stories[@]}]}
+
+    clear
+
+    echo "$(tput bold)$(tput setaf 1)THE ORACLE HAS A STORY FOR YOU$(tput sgr0)"
+    echo
+    say -v Whisper "The Oracle has a story for you child"
+
+    sleep 2
+    echo "$story"
+    say -v Whisper "$story"
+    sleep 1
+
+    echo 
+    echo "$(tput setaf 1)Sweet dreams.$(tput sgr0)"
+    echo
+
+    say -v Whisper "Sweet dreams little one."
+
+
+}
+
+
+
+
 until [[ $ABookAboutSelfHelpAndTakeNoneOfItIn == 1 ]] ; do
 echo
     echo -n "$(tput setaf 4)Choice: $(tput sgr0)"
@@ -64,8 +237,24 @@ echo
 
         3)
         echo "2 and 3 not working yet lol!"
-
         ;;
+
+        4)
+
+            life_lesson
+            ;;
+
+        5) 
+
+            gamble_on_horses
+            ;;
+
+        6) 
+
+            bananabread
+            ;;
+
+        
         *)
             echo "What are you on about?"
             
