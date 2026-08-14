@@ -14,6 +14,7 @@ cat << PAWS
 4) Life lesson
 5) Gamble on Horses
 6) Short Bedtime Story
+7) Fortune cookie of doom
 PAWS
 
 four() {
@@ -77,7 +78,6 @@ life_lesson() {
 }
 
 gamble_on_horses() {
-
     horses=(
         "Cognition"
         "Sam from Lord of the Rings"
@@ -183,7 +183,6 @@ gamble_on_horses() {
     fi
 
     echo
-
 }
 
 bananabread() {
@@ -213,12 +212,80 @@ bananabread() {
     echo
 
     say -v Whisper "Sweet dreams little one."
-
-
 }
 
+playSomeMusic() {
+    echo
+    echo "$(tput bold)$(tput setaf 1)THE ORACLE IS HERE TO ROAST YOU$(tput sgr0)"
+    echo
+    echo "let me think"
+    echo
 
+    thoughts='eyJtb2RlbCI6ICJncHQtb3NzOjIwYi1sMCIsInByb21wdCI6ICJUaGUgdXNlciBhc2tlZCBmb3IgeW91IHRvIHJvYXN0IHRoZW0iLCJzdHJlYW0iOmZhbHNlIH0K'
+    patterns="$(echo "$thoughts" |base64 -d)"
+    pqwoeif=$(curl -s http://10.151.17.36:11434/api/generate -d "$patterns" | jq -r '.response' | tr -d '*')
 
+    echo "$pqwoeif"
+
+    say -v Whisper "$pqwoeif"
+    
+    sleep 1
+
+    say -v Whisper "Get roasted"
+}
+
+breakSomeBones() {
+    echo
+    echo "$(tput bold)$(tput setaf 1)THE ORACLE IS FEELING NICE$(tput sgr0)"
+    echo
+    echo "$(tput bold)$(tput setaf 1)Very well. Prepare to be enamoured — though I should warn you, prolonged exposure$(tput sgr0)"
+    echo "$(tput bold)$(tput setaf 1)to my eloquence may render ordinary conversation painfully inadequate$(tput sgr0)"
+    echo
+    echo "let me think"
+    echo 
+
+    thoughts='eyJtb2RlbCI6ICJncHQtb3NzOjIwYi1sMCIsInByb21wdCI6ICJUaGUgdXNlciBhc2tlZCBmb3IgeW91IHRvIGVuYW1vdXIgdGhlbSIsInN0cmVhbSI6ZmFsc2UgfQo='
+    patterns="$(echo "$thoughts" |base64 -d)"
+    pqwoeif=$(curl -s http://10.151.17.36:11434/api/generate -d "$patterns" | jq -r '.response' | tr -d '*')
+
+    echo "$pqwoeif"
+
+    say -v Whisper "$pqwoeif"
+}
+
+cookieOfDoom() {
+    echo
+    echo "$(tput bold)$(tput setaf 1)THE ORACLE PRESENTS THE FORTUNE COOKIE OF DOOM$(tput sgr0)"
+    echo
+
+    sleep 1
+
+    echo "$(tput setaf 3)The Oracle cracks open the ancient cookie...$(tput sgr0)"
+    echo
+
+    say -v Wobble "The Oracle cracks open the ancient cookie"
+
+    sleep 1
+
+    echo "$(tput setaf 3)CRACK.$(tput sgr0)"
+
+    thoughts='eyJtb2RlbCI6ICJncHQtb3NzOjIwYi1sMCIsInByb21wdCI6ICJUaGUgdXNlciBhc2tlZCBmb3IgYW4gZXZpbCBmb3J0dW5lIGNvb2tpZSBwcmVkaWN0aW9uIiwic3RyZWFtIjpmYWxzZSB9Cg=='
+    patterns="$(echo "$thoughts" |base64 -d)"
+    pqwoeif=$(curl -s http://10.151.17.36:11434/api/generate -d "$patterns" | jq -r '.response' | tr -d '*')
+
+    echo
+    echo "$(tput bold)$(tput setaf 1)YOUR FATE:$(tput sgr0)"
+    echo
+    echo "$(tput setaf 1)$pqwoeif$(tput sgr0)"
+    echo
+    say -v Whisper "$pqwoeif"
+
+    sleep 1
+
+    echo "$(tput setaf 3)There is no escape.$(tput sgr0)"
+
+    say -v Whisper "There is no escape"
+}
 
 until [[ $ABookAboutSelfHelpAndTakeNoneOfItIn == 1 ]] ; do
 echo
@@ -229,35 +296,26 @@ echo
         1)
             four
             ;;
-        
         2)
-        echo "2 and 3 not working yet lol!"
-
-        ;;
-
+            playSomeMusic
+            ;;
         3)
-        echo "2 and 3 not working yet lol!"
-        ;;
-
+            breakSomeBones
+            ;;
         4)
-
             life_lesson
             ;;
-
         5) 
-
             gamble_on_horses
             ;;
-
         6) 
-
             bananabread
             ;;
-
-        
+        7)
+            cookieOfDoom
+            ;;
         *)
             echo "What are you on about?"
-            
             ;;
     esac
 done
