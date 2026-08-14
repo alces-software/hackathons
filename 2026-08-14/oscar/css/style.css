@@ -4,6 +4,7 @@
     box-sizing: border-box;
 }
 
+
 body {
     margin: 0;
     min-height: 100vh;
@@ -88,6 +89,9 @@ header p {
     object-fit: cover;
 }
 
+
+
+
 #fish-display {
     text-align: center;
 
@@ -141,6 +145,32 @@ header p {
 
 #click-button:active {
     transform: translateY(4px);
+}
+
+#start-fishing-button {
+    padding: 13px 34px;
+    margin-bottom: 18px;
+
+    border: 0;
+    border-bottom: 5px solid #254747;
+    border-radius: 14px;
+
+    background: #315b5b;
+    color: #fff8e8;
+
+    font-family: "Patrick Hand", cursive;
+    font-size: 1.7rem;
+
+    cursor: pointer;
+}
+
+#start-fishing-button:hover {
+    background: #3d7070;
+}
+
+#start-fishing-button:disabled {
+    opacity: 0.7;
+    cursor: default;
 }
 
 #upgrades {
@@ -276,4 +306,63 @@ h3 {
     background: #f7f2df;
     border: 2px solid #a8b8aa;
     border-radius: 12px;
+}
+
+
+#pond {
+    position: relative;
+    width: 760px;
+    height: 360px;
+    max-width: 100%;
+    margin-bottom: 20px;
+    overflow: hidden;
+
+    background:
+        radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.35), transparent 18%),
+        linear-gradient(160deg, #4adbff, #2f7f94);
+
+    border: 6px solid #315b5b;
+    border-radius: 45% 55% 50% 50% / 55% 45% 55% 45%;
+}
+
+#pond.is-hidden {
+    display: none;
+}
+
+
+.pond-fish {
+    position: absolute;
+    z-index: 2;
+    padding: 0;
+
+    border: 0;
+    background: transparent;
+
+    font-size: 4rem;
+    cursor: pointer;
+
+    transform: translate(-50%, -50%);
+    transition:
+        left 1.2s,
+        top 1.2s,
+        transform 0.15s;
+}
+
+.pond-fish:hover {
+    transform: translate(-50%, -50%) scale(1.2);
+}
+
+
+
+#fishing-rod {
+    position: absolute;
+    z-index: 5;
+    left: 0;
+    top: 0;
+
+    font-size: 3rem;
+    pointer-events: none;
+
+    transform: translate(-20%, -10%) rotate(-25deg);
+    will-change: transform;
 }

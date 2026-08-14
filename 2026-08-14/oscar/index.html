@@ -17,15 +17,20 @@
         <button id="reset-button" type="button">Reset</button>
       </header>
       <section id="click-area">
-        <div id="fish-image">
-          <img src="./images/image2.jpg" alt="Food" />
+        <button id="start-fishing-button" type="button">Let's go fishing</button>
+        <audio id="pond-music" src="./sounds/music.mp3" loop preload="auto"></audio>
+
+        <div id="pond" class="is-hidden">
+          <div id="fishing-rod">🎣</div>
+
+          <button class="pond-fish" type="button">🐟</button>
+          <button class="pond-fish" type="button">🐠</button>
+          <button class="pond-fish" type="button">🐡</button>
         </div>
         <div id="fish-display">
           <div id="fish">0</div>
           <div class="fish-label">Fish</div>
         </div>
-
-        <button id="click-button">Catch Fish</button>
       </section>
 
       <section id="upgrades">
