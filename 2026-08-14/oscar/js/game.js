@@ -50,3 +50,22 @@ export function collectPretty(otterState) {
 
   return true;
 }
+export function hireCrab(otterState) {
+  if (otterState.crabActive) {
+    return false;
+  }
+
+  if (otterState.kelpCoins < otterState.crabCost){
+    return false;
+  }
+
+  otterState.kelpCoins -= otterState.crabCost;
+  otterState.crabActive = true;
+  otterState.crabEndTime = Date.now() + 60000;
+
+  otterState.inventory.push("🦀");
+  return true;
+}
+export function crabSplash(otterState){
+  otterState.kelpCoins += otterState.pebbles
+}

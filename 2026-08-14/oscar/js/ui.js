@@ -28,6 +28,10 @@ export function refreshOtterBoard(otterState) {
   document.querySelector("#fish-inventory").textContent = renderFishInventory(otterState.kelpCoins);
   document.querySelector("#purchases-inventory").textContent = otterState.inventory.join(" ");
 
+  document.querySelector("#crab-cost").textContent = otterState.crabCost;
+  document.querySelector("#crab-status").textContent =
+    otterState.crabActive ? "Fishing 🦀" : "Inactive";
+
   try {
     localStorage.setItem(SAVED_KEY, JSON.stringify(otterState));
   } catch {

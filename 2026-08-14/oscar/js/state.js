@@ -17,6 +17,10 @@ const defaults = {
   prettyToll: 150,
   happiness: 1,
 
+  crabCost: 300,
+  crabActive: false,
+  crabEndTime: 0,
+
   inventory: [],
 };
 

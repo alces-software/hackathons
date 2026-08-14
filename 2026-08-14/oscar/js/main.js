@@ -1,21 +1,26 @@
 import { otterState, SAVED_KEY } from "./state.js";
-import { splashClick, hirePaddler, gatherSplash, polishWand, collectPretty } from "./game.js";
+import { splashClick, hirePaddler, gatherSplash, polishWand, collectPretty, hireCrab, crabSplash } from "./game.js";
 import { refreshOtterBoard } from "./ui.js";
 
 // const pawButton = document.querySelector("#click-button");
 const buddyButton = document.querySelector("#hire-otter");
 const wandButton = document.querySelector("#upgrade-rod");
 const prettyButton = document.querySelector("#collect-rock");
+const crabButton = document.querySelector("#hire-crab");
 const resetButton = document.querySelector("#reset-button");
 const startFishingButton = document.querySelector("#start-fishing-button");
 const pondMusic = document.querySelector("#pond-music");
 const pond = document.querySelector("#pond");
 const pondFish = document.querySelectorAll(".pond-fish");
 
+
+
 resetButton.addEventListener("click", () => {
   localStorage.removeItem(SAVED_KEY);
   location.reload();
 });
+
+
 
 // pawButton.addEventListener("click", () => {
 //   splashClick(otterState);
@@ -40,6 +45,14 @@ wandButton.addEventListener("click", () => {
 
 prettyButton.addEventListener("click", () => {
   const snappedUp = collectPretty(otterState);
+
+  if (snappedUp) {
+    refreshOtterBoard(otterState);
+  }
+});
+
+crabButton.addEventListener("click", () => {
+  const snappedUp = hireCrab(otterState);
 
   if (snappedUp) {
     refreshOtterBoard(otterState);
@@ -89,6 +102,21 @@ function startOtterProduction() {
 }
 
 startOtterProduction();
+
+setInterval(() => {
+  if (!otterState.crabActive) {
+    return;
+  }
+
+  if (Date.now() >= otterState.crabEndTime) {
+    otterState.crabActive = false;
+    refreshOtterBoard(otterState);
+    return;
+  }
+
+  crabSplash(otterState);
+  refreshOtterBoard(otterState);
+}, 2000);
 
 refreshOtterBoard(otterState);
 
