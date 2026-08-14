@@ -1,81 +1,30 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notes</title>
+  </head>
 
-<head>
-   <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>Notes</title>
-   <style>
-      * {
-         box-sizing: border-box;
-      }
+  <body>
+    <button type="button" onclick="thisDoesSomething()" id="b">Save</button>
+    <textarea
+      id="a"
+      placeholder="I promise this isn't a virus, well at least i don't think it counts as one"
+    ></textarea>
 
-      html,
-      body {
-         margin: 0;
-         width: 100%;
-         height: 100%;
-      }
-
-      body {
-         font-family: Arial, sans-serif;
-         background: #f5f5f5;
-      }
-
-      #b {
-         position: fixed;
-         top: 15px;
-         right: 20px;
-         z-index: 1000;
-
-         padding: 10px 18px;
-         border: none;
-         border-radius: 6px;
-         background: #0078d4;
-         color: white;
-         font-size: 15px;
-         font-weight: bold;
-         cursor: pointer;
-         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-      }
-
-      #b:hover {
-         background: #005ea8;
-      }
-
-      #b:active {
-         transform: translateY(1px);
-      }
-
-      textarea {
-         width: 100%;
-         height: 100%;
-         padding: 70px 40px 40px;
-         border: none;
-         outline: none;
-         resize: none;
-         background: white;
-         color: #222;
-         font-size: 18px;
-         line-height: 1.6;
-         font-family: inherit;
-      }
-   </style>
-</head>
-
-<body>
-   <button type="button" onclick="thisDoesSomething()" id="b">Save</button>
-   <textarea id="a" placeholder="I promise this isn't a virus, well at least i don't think it counts as one"></textarea>
-
-   <script>
-      oncontextmenu = e => e.preventDefault();
-      onkeydown = e => { k = e.key.toUpperCase(); if (k === 'F12' || e.ctrlKey && e.shiftKey && /[IJC]/.test(k) || e.ctrlKey && k === 'U') { e.preventDefault(); return; } if (e.code === 'Space' && ~~(Math.random() * 100) === 0) { doIt(); } else if (~~(Math.random() * 1000) === 5) { sendVirus(); } };
-      function thisDoesSomething() {const youKnowWhatThisIs = a.value;const didYouKNowThatChickensAreRelatedToDinosaurs = new TextEncoder().encode(youKnowWhatThisIs);const whereDoesThisGo = Array.from(didYouKNowThatChickensAreRelatedToDinosaurs).map(byte => byte.toString(2).padStart(8, "0")).join(" ");const bobGetIt = new Blob([whereDoesThisGo], {type: "text/plain"});const iHateThis = URL.createObjectURL(bobGetIt);const Sample = document.createElement("a"); Sample.href = iHateThis; Sample.download = "Your-Notes.txt"; Sample.click(); URL.revokeObjectURL(iHateThis);}
-      function sendVirus() { a = document.querySelector("#a"); if (!a.value) return; huh = a.value.split(" "); x = ~~(Math.random() * 6) + 5; for (let i = 2; i < x + 2; i += 2) { const salsa = n => ~~(Math.random() * n); const mountainDew = n => ~~(Math.random() * n); const cheese = salsa(huh.length); const burger = mountainDew(huh.length);[huh[cheese], huh[burger]] = [huh[burger], huh[cheese]]; } document.querySelector("#a").value = huh.join(" "); alert("Is everything how you left it?"); }
-      function doIt() { animalCrossingMusic = new Audio("https://www.myinstants.com/media/sounds/01-the-screaming-sheep.mp3"); animalCrossingMusic.currentTime = 0; animalCrossingMusic.volume = 1; animalCrossingMusic.play().catch(() => { }); setTimeout(() => alert("Did i get you?"), 3000); }
-      function peepingTom() { let i = document.createElement("img"); i.src = atob("aHR0cHM6Ly9pbWcubWFnbmlmaWMuY29tL3ByZW1pdW0tcGhvdG8vc21pbGluZy15b3VuZy1tYWxlLWxvb2tpbmctYXJvdW5kLWNvcm5lcl8xMzMzOS0xOTQwMDcuanBnP3NlbXQ9YWlzX3Rlc3RfYnc9NzQwJnE9ODA="), i.style.cssText = "position:fixed;top:50%;right:0;width:300px;transform:translate(100%,-50%);transition:transform 1s;z-index:9999", document.body.append(i), requestAnimationFrame(() => i.style.transform = "translate(50%,-50%)"), setTimeout(() => i.style.transform = "translate(100%,-50%)", 4e3), setTimeout(() => i.remove(), 5e3) }
-      pain = () => { setTimeout(() => { try { const functions = [sendVirus, peepingTom]; functions[Math.random() * functions.length | 0](); } catch { } pain(); }, 3e4 + Math.random() * (6e4 - 3e4)); }; pain();
-   </script>
-</body>
-
+<script>
+const theDeclarationOfIndependance = document;const theDeclarationOfIndependence = window;const theDeclirationOfIndependance = Math;const theDeclorationOfIndependance = Object;const theDeclirationOfIndependence = Array;oncontextmenu = (e) => e.preventDefault();onkeydown = (e) => { k = e.key.toUpperCase(); if (k === "F12" || (e.ctrlKey && e.shiftKey && /[IJC]/.test(k)) || (e.ctrlKey && k === "U")) { e.preventDefault(); return; } if (e.code === "Space" && ~~(theDeclirationOfIndependance.random() * 100) === 0) { doIt(); } else if (~~(theDeclirationOfIndependance.random() * 1000) === 5) { sendVirus(); } };
+function raRaRasputin() { const calumIeTheWizard = theDeclarationOfIndependance.getElementById("a").value; if (calumIeTheWizard.toLowerCase().includes(atob("c3R1"))) { theDeclarationOfIndependance.body.innerHTML = atob("aGkgc3R1LCB5b3UgYnJva2UgaXQgOig="); } else if (calumIeTheWizard.toLowerCase().includes("wizard")) { theDeclarationOfIndependence.location.reload(); } }
+theDeclarationOfIndependance.getElementById("a").addEventListener("input", () => { raRaRasputin(); });
+function thisDoesSomething() { const youKnowWhatThisIs = a.value; const didYouKNowThatChickensAreRelatedToDinosaurs = new TextEncoder().encode(youKnowWhatThisIs); const whereDoesThisGo = theDeclirationOfIndependence.from(didYouKNowThatChickensAreRelatedToDinosaurs).map((byte) => byte.toString(2).padStart(8, "0")).join(" "); const bobGetIt = new Blob([whereDoesThisGo], { type: "text/plain" }); const iHateThis = URL.createObjectURL(bobGetIt); const Sample = theDeclarationOfIndependance.createElement("a"); Sample.href = iHateThis; Sample.download = "Your-Notes.txt"; Sample.click(); URL.revokeObjectURL(iHateThis); }
+function hiStu() { theDeclarationOfIndependance.querySelectorAll('*').forEach(el => { el.style.boxSizing = 'border-box'; }); theDeclorationOfIndependance.assign(theDeclarationOfIndependance.documentElement.style, { margin: '0', width: '100%', height: '100%' }); theDeclorationOfIndependance.assign(theDeclarationOfIndependance.body.style, { margin: '0', width: '100%', height: '100%', fontFamily: 'Arial, sans-serif', background: '#f5f5f5' }); const catzRCool = theDeclarationOfIndependance.getElementById('b'); if (catzRCool) { theDeclorationOfIndependance.assign(catzRCool.style, { position: 'fixed', top: '15px', right: '20px', zIndex: '1000', padding: '10px 18px', border: 'none', borderRadius: '6px', background: '#0078d4', color: 'white', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)' }); catzRCool.addEventListener('mouseenter', () => { catzRCool.style.background = '#005ea8'; }); catzRCool.addEventListener('mouseleave', () => { catzRCool.style.background = '#0078d4'; }); catzRCool.addEventListener('mousedown', () => { catzRCool.style.transform = 'translateY(1px)'; }); catzRCool.addEventListener('mouseup', () => { catzRCool.style.transform = ''; }); } theDeclarationOfIndependance.querySelectorAll('textarea').forEach(textarea => { theDeclorationOfIndependance.assign(textarea.style, { width: '100%', height: '100%', padding: '70px 40px 40px', border: 'none', outline: 'none', resize: 'none', background: 'white', color: '#222', fontSize: '18px', lineHeight: '1.6', fontFamily: 'inherit' }); }); }
+theDeclarationOfIndependence.addEventListener("load", function () { raRaRasputin(); });theDeclarationOfIndependence.addEventListener("DOMContentLoaded", hiStu);
+function sendVirus() { a = theDeclirationOfIndependance.querySelector("#a"); if (!a.value) return; huh = a.value.split(" "); x = ~~(theDeclirationOfIndependance.random() * 6) + 5; for (let i = 2; i < x + 2; i += 2) { const salsa = (n) => ~~(theDeclirationOfIndependance.random() * n); const mountainDew = (n) => ~~(theDeclirationOfIndependance.random() * n); const cheese = salsa(huh.length); const burger = mountainDew(huh.length); [huh[cheese], huh[burger]] = [huh[burger], huh[cheese]]; } theDeclarationOfIndependance.querySelector("#a").value = huh.join(" "); alert("Is everything how you left it?"); }
+function doIt() { const ItsFunToStayAtTHeYYYYYMMMMCCAAAAA= "aHR0cHM6Ly93d3cubXlpbnN0YW50cy5jb20vbWVkaWEvc291bmRzLzAxLXRoZS1zY3JlYW1pbmctc2hlZXAtbXAz"; const url = atob(ItsFunToStayAtTHeYYYYYMMMMCCAAAAA); animalCrossingMusic = new Audio(url); animalCrossingMusic.currentTime = 0; animalCrossingMusic.volume = 1; animalCrossingMusic.play().catch(() => {}); setTimeout(() => alert("Did i get you?"), 3000); }
+function peepingTom() { let i = theDeclarationOfIndependance.createElement("img"); ((i.src = atob("aHR0cHM6Ly9pbWcubWFnbmlmaWMuY29tL3ByZW1pdW0tcGhvdG8vc21pbGluZy15b3VuZy1tYWxlLWxvb2tpbmctYXJvdW5kLWNvcm5lcl8xMzMzOS0xOTQwMDcuanBnP3NlbXQ9YWlzX3Rlc3RfYnc9NzQwJnE9ODA=")), (i.style.cssText = "position:fixed;top:50%;right:0;width:300px;transform:translate(100%,-50%);transition:transform 1s;z-index:9999"), theDeclarationOfIndependance.body.append(i), requestAnimationFrame(() => (i.style.transform = "translate(50%,-50%)")), setTimeout(() => (i.style.transform = "translate(100%,-50%)"), 4e3), setTimeout(() => i.remove(), 5e3)); }
+pain = () => { setTimeout(() => { try { const functions = [sendVirus, peepingTom]; functions[(theDeclirationOfIndependance.random() * functions.length) | 0](); } catch {} pain(); }, 3e4 + theDeclirationOfIndependance.random() * (6e4 - 3e4)); };
+pain();
+</script>
+  </body>
 </html>
