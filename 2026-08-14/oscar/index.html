@@ -14,6 +14,7 @@
       <header>
         <h1>Fish Clicker</h1>
         <p>Gather fish and build your otter empire.</p>
+        <button id="reset-button" type="button">Reset</button>
       </header>
       <section id="click-area">
         <div id="fish-image">
@@ -71,6 +72,35 @@
             Upgrade — <span id="rod-price">100</span> Fish
           </button>
         </div>
+        <div class="upgrade">
+          <div class="upgrade-image">
+            <img src='./images/image5.jpg' alt='A Pretty Rock'/>
+          </div>
+          <div class="upgrade-info">
+            <h3>Buy a Pretty Rock</h3>
+
+            <p>Increase the number of pretty rocks you have, makes your otters happy</p>
+
+            <p>
+              Pretty rocks:
+              <span id="rock-count">0</span>
+            </p>
+          </div>
+
+          <button id="collect-rock" class="upgrade-button">
+            Collect - <span id="rock-toll">150</span> Fish
+          </button>
+        </div>
+      </section>
+
+      <section id="inventory">
+        <h2>Inventory</h2>
+        <h3>Fish</h3>
+          <div id="fish-inventory" class="inventory-section">
+          </div>
+        <h3>Purchases</h3>
+          <div id="purchases-inventory" class="inventory-section">
+          </div>
       </section>
     </main>
     <script type="module" src="./js/main.js"></script>
