@@ -1,6 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    colorize (1.1.0)
     dry-cli (1.4.1)
 
 PLATFORMS
@@ -8,9 +9,11 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  colorize
   dry-cli
 
 CHECKSUMS
+  colorize (1.1.0) sha256=30b5237f0603f6662ab8d1fc2bd4a96142b806c6415d79e45ef5fdc6a0cfc837
   dry-cli (1.4.1) sha256=b8015bb76c708aa8705a36faf694973e75eeeffca39b89c8e172dc6f66a7d874
 
 BUNDLED WITH

@@ -120,7 +120,7 @@ module InterviewBoss
           puts '        BOSS DEFEATED'
           puts '=============================='
           puts
-          puts 'You got the job.'
+          puts 'Stu fell off of his scooter in Hamburg'
 
         elsif carpet.health <= 0
 

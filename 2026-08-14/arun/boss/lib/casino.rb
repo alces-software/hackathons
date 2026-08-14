@@ -1,3 +1,5 @@
+require_relative './poker'
+
 class Casino
   def play(fridge, carpet)
     loop do
@@ -24,9 +26,19 @@ class Casino
         roulette(fridge, carpet)
 
       when '3'
+        result = Poker.new.main
+
+        if result
+          fridge.take_damage(20)
+        else
+          carpet.take_damage(20)
+        end
+
         puts
-        puts 'Poker is coming soon. (Im not adding poker i dont know how it works)'
+        puts 'Stu escorts you back to the interview...'
         puts
+
+        break
 
       when '4'
         puts
