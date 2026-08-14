@@ -190,6 +190,87 @@ LEVEL_3_SONG = [
     {"note": "C4", "time": 33.0},
 ]
 
+LEVEL_4_SONG = [
+    {"note": "E4", "time": 2.0},
+    {"note": "E4", "time": 2.5},
+    {"note": "F4", "time": 3.0},
+    {"note": "G4", "time": 3.5},
+
+    {"note": "G4", "time": 4.0},
+    {"note": "F4", "time": 4.5},
+    {"note": "E4", "time": 5.0},
+    {"note": "D4", "time": 5.5},
+
+    {"note": "C4", "time": 6.0},
+    {"note": "C4", "time": 6.5},
+    {"note": "D4", "time": 7.0},
+    {"note": "E4", "time": 7.5},
+
+    {"note": "E4", "time": 8.0},
+    {"note": "D4", "time": 8.75},
+    {"note": "D4", "time": 9.0},
+
+    {"note": "E4", "time": 10.0},
+    {"note": "E4", "time": 10.5},
+    {"note": "F4", "time": 11.0},
+    {"note": "G4", "time": 11.5},
+
+    {"note": "G4", "time": 12.0},
+    {"note": "F4", "time": 12.5},
+    {"note": "E4", "time": 13.0},
+    {"note": "D4", "time": 13.5},
+
+    {"note": "C4", "time": 14.0},
+    {"note": "C4", "time": 14.5},
+    {"note": "D4", "time": 15.0},
+    {"note": "E4", "time": 15.5},
+
+    {"note": "D4", "time": 16.0},
+    {"note": "C4", "time": 16.75},
+    {"note": "C4", "time": 17.0},
+]
+
+LEVEL_5_SONG = [
+    {"note": "C4", "time": 2.0},
+    {"note": "E4", "time": 2.5},
+    {"note": "F4", "time": 2.75},
+    {"note": "G4", "time": 3.25},
+
+    {"note": "C4", "time": 4.25},
+    {"note": "E4", "time": 4.75},
+    {"note": "F4", "time": 5.0},
+    {"note": "G4", "time": 5.5},
+
+    {"note": "C4", "time": 6.5},
+    {"note": "E4", "time": 7.0},
+    {"note": "F4", "time": 7.25},
+    {"note": "G4", "time": 7.75},
+
+    {"note": "E4", "time": 8.75},
+    {"note": "C4", "time": 9.5},
+    {"note": "E4", "time": 10.25},
+    {"note": "D4", "time": 11.0},
+
+    {"note": "E4", "time": 12.5},
+    {"note": "E4", "time": 13.0},
+    {"note": "D4", "time": 13.5},
+    {"note": "C4", "time": 14.0},
+
+    {"note": "E4", "time": 15.0},
+    {"note": "G4", "time": 15.5},
+    {"note": "G4", "time": 16.25},
+    {"note": "F4", "time": 16.75},
+
+    {"note": "C4", "time": 18.0},
+    {"note": "E4", "time": 18.5},
+    {"note": "F4", "time": 18.75},
+    {"note": "G4", "time": 19.25},
+
+    {"note": "E4", "time": 20.25},
+    {"note": "C4", "time": 21.0},
+    {"note": "D4", "time": 21.75},
+    {"note": "C4", "time": 22.5},
+]
 gaia = tk.Tk()
 
 gaia.title("Austria")
@@ -210,6 +291,9 @@ totalScore = 0
 combo = 0
 lives = 3
 
+menu_active = True
+selected_level = 0
+
 current_level = 0
 
 game_running = False
@@ -218,26 +302,43 @@ game_over = False
 message_version = 0
 
 score_text = prometheus.create_text(
-    20, 50, anchor="nw", text="Score: 0", fill="white", font=("Arial", 18, "bold")
+    20,
+    50,
+    anchor="nw",
+    text="Score: 0",
+    fill="white",
+    font=("Arial", 18, "bold"),
+    tags="game"
 )
-
 combo_text = prometheus.create_text(
-    20, 80, anchor="nw", text="Combo: 0", fill="white", font=("Arial", 16)
+    20,
+    80,
+    anchor="nw",
+    text="Combo: 0",
+    fill="white",
+    font=("Arial", 16),
+    tags="game"
 )
 
 message_text = prometheus.create_text(
     800 / 2,
     260,
-    text="Press SPACE to start tutorial",
+    text="",
     fill="white",
     font=("Arial", 24, "bold"),
+    tags="game"
 )
 
 heart_icons = []
 
 for i in range(3):
     heart = prometheus.create_text(
-        770 - (i * 35), 30, text="♥", fill="#ef4444", font=("Arial", 26, "bold")
+        770 - (i * 35),
+        30,
+        text="♥",
+        fill="#ef4444",
+        font=("Arial", 26, "bold"),
+        tags="game"
     )
 
     heart_icons.append(heart)
@@ -251,7 +352,14 @@ for i, note in enumerate(NOTES):
     x2 = x1 + key_width
 
     rectangle = prometheus.create_rectangle(
-        x1, Y, x2, 650, fill="white", outline="black", width=2
+        x1,
+        Y,
+        x2,
+        650,
+        fill="white",
+        outline="black",
+        width=2,
+        tags="game"
     )
 
     keyboard_letter = list(K_M.keys())[i].upper()
@@ -262,6 +370,7 @@ for i, note in enumerate(NOTES):
         text=note,
         fill="black",
         font=("Arial", 15, "bold"),
+        tags="game"
     )
 
     prometheus.create_text(
@@ -270,11 +379,20 @@ for i, note in enumerate(NOTES):
         text=keyboard_letter,
         fill="#555555",
         font=("Arial", 15, "bold"),
+        tags="game"
     )
 
     piano_keys[note] = rectangle
 
-prometheus.create_line(0, Y, 800, Y, fill="#38bdf8", width=5)
+prometheus.create_line(
+    0,
+    Y,
+    800,
+    Y,
+    fill="#38bdf8",
+    width=5,
+    tags="game"
+)
 
 
 def get_current_song():
@@ -286,7 +404,125 @@ def get_current_song():
         return LEVEL_2_SONG
     elif current_level == 3:
         return LEVEL_3_SONG
+    elif current_level == 4:
+        return LEVEL_4_SONG
+    elif current_level == 5:
+        return LEVEL_5_SONG
 
+def show_level_select():
+    global menu_active
+
+    menu_active = True
+
+    prometheus.itemconfig("game", state="hidden")
+
+    prometheus.delete("menu")
+
+    prometheus.create_text(
+        400,
+        100,
+        text="Not Piano Tiles",
+        fill="white",
+        font=("Arial", 36, "bold"),
+        tags="menu"
+    )
+
+    prometheus.create_text(
+        400,
+        160,
+        text="SELECT LEVEL",
+        fill="#38bdf8",
+        font=("Arial", 22, "bold"),
+        tags="menu"
+    )
+
+    for i in range(6):
+
+        if i == 0:
+            name = "TUTORIAL"
+        else:
+            name = f"LEVEL {i}"
+
+        prometheus.create_text(
+            400,
+            220 + i * 50,
+            text=name,
+            fill="white",
+            font=("Arial", 24, "bold"),
+            tags=("menu", f"level_{i}")
+        )
+
+    prometheus.create_text(
+        400,
+        550,
+        text="Use ↑ ↓ to select   •   ENTER to play",
+        fill="#9ca3af",
+        font=("Arial", 14),
+        tags="menu"
+    )
+
+    highlight_level()
+
+def start_selected_level():
+    global menu_active
+
+    menu_active = False
+
+    prometheus.itemconfig("menu", state="hidden")
+
+    prometheus.itemconfig("game", state="normal")
+
+    start_game()
+
+def highlight_level():
+
+    for i in range(6):
+
+        if i == selected_level:
+            prometheus.itemconfig(
+                f"level_{i}",
+                fill="#38bdf8"
+            )
+        else:
+            prometheus.itemconfig(
+                f"level_{i}",
+                fill="white"
+            )
+
+def menu_key(event):
+    global selected_level
+    global current_level
+    global menu_active
+
+    if not menu_active:
+        return
+
+    if event.keysym == "Up":
+        selected_level -= 1
+
+        if selected_level < 0:
+            selected_level = 5
+
+        highlight_level()
+
+    elif event.keysym == "Down":
+        selected_level += 1
+
+        if selected_level > 5:
+            selected_level = 0
+
+        highlight_level()
+
+    elif event.keysym == "Return":
+        current_level = selected_level
+        start_selected_level()
+
+def space_key(event):
+    if menu_active:
+        return
+
+    if game_over:
+        start_game()
 
 def setup_song():
 
@@ -307,7 +543,13 @@ def setup_song():
         x2 = x1 + key_width - 14
 
         rectangle = prometheus.create_rectangle(
-            x1, -100, x2, -100 + NH, fill="#38bdf8", outline=""
+            x1,
+            -100,
+            x2,
+            -100 + NH,
+            fill="#38bdf8",
+            outline="",
+            tags="game"
         )
 
         falling_notes.append(
@@ -362,6 +604,10 @@ def start_game(event=None):
         FALL_SPEED = 170
     elif current_level == 3:
         FALL_SPEED = 250
+    elif current_level == 4:
+        FALL_SPEED = 260
+    elif current_level == 5:
+        FALL_SPEED = 280
 
     setup_song()
 
@@ -370,6 +616,22 @@ def start_game(event=None):
     game_running = True
 
     game_loop()
+
+def level_complete():
+    global game_running
+
+    game_running = False
+
+    show_level_select()
+
+    prometheus.create_text(
+        400,
+        590,
+        text=f"LEVEL COMPLETE!  Score: {score}",
+        fill="#22c55e",
+        font=("Arial", 18, "bold"),
+        tags="menu"
+    )
 
 
 def end_game():
@@ -439,49 +701,7 @@ def game_loop():
     if unfinished_notes:
         gaia.after(16, game_loop)
     else:
-        game_running = False
-        if current_level == 0:
-            current_level = 1
-            show_message(
-                (
-                    f"TUTORIAL COMPLETE!\n"
-                    f"Score: {score}\n\n"
-                    f"LEVEL 1\n"
-                    f"Press SPACE to begin"
-                ),
-                duration=0,
-                persistent=True,
-            )
-        elif current_level == 1:
-            current_level = 2
-            show_message(
-                (
-                    f"LEVEL 1 COMPLETE!\n"
-                    f"Score: {score}\n\n"
-                    f"LEVEL 2\n"
-                    f"Press SPACE to begin"
-                ),
-                duration=0,
-                persistent=True,
-            )
-        elif current_level == 2:
-            current_level = 3
-            show_message(
-                (
-                    f"LEVEL 2 COMPLETE!\n"
-                    f"Score: {score}\n\n"
-                    f"LEVEL 3\n"
-                    f"Press SPACE to begin"
-                ),
-                duration=0,
-                persistent=True,
-            )
-        elif current_level == 3:
-            show_message(
-                f"LEVEL £ COMPLETE!\nScore: {score}\nPress SPACE to replay",
-                duration=0,
-                persistent=True,
-            )
+        level_complete()
 
 
 def play_note(event):
@@ -587,7 +807,11 @@ def show_message(message, duration=900, persistent=False):
         gaia.after(duration, clear_message)
 
 
-gaia.bind("<space>", start_game)
+gaia.bind("<space>", space_key)
 gaia.bind("<KeyPress>", play_note)
+gaia.bind("<Up>", menu_key)
+gaia.bind("<Down>", menu_key)
+gaia.bind("<Return>", menu_key)
+show_level_select()
 gaia.mainloop()
 pygame.mixer.quit()
