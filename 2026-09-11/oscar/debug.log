@@ -1,0 +1,661 @@
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (0, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (1, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (2, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (0, 3)
+getCell returned: Cell
+cell is bomb: true
+current count: 0
+checking neighbor: (2, 3)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (0, 4)
+getCell returned: null
+no cell, skipping
+checking neighbor: (1, 4)
+getCell returned: null
+no cell, skipping
+checking neighbor: (2, 4)
+getCell returned: null
+no cell, skipping
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (-1, -1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (0, -1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (1, -1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (-1, 0)
+getCell returned: null
+no cell, skipping
+checking neighbor: (1, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (-1, 1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (0, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (1, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (0, -1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (1, -1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (2, -1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (0, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (2, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (0, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (1, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (2, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (0, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (1, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (2, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (0, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (2, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (0, 2)
+getCell returned: Cell
+cell is bomb: true
+current count: 0
+checking neighbor: (1, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (2, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (-1, 0)
+getCell returned: null
+no cell, skipping
+checking neighbor: (0, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (1, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (-1, 1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (1, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (-1, 2)
+getCell returned: null
+no cell, skipping
+checking neighbor: (0, 2)
+getCell returned: Cell
+cell is bomb: true
+current count: 0
+checking neighbor: (1, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (1, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (2, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (3, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (1, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (3, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (1, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (2, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (3, 2)
+getCell returned: Cell
+cell is bomb: true
+current count: 0
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (1, -1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (2, -1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (3, -1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (1, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (3, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (1, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (2, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (3, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (2, -1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (3, -1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (4, -1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (2, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (4, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (2, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (3, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (4, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (2, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (3, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (4, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (2, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (4, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (2, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (3, 2)
+getCell returned: Cell
+cell is bomb: true
+current count: 0
+checking neighbor: (4, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (3, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (4, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (5, 0)
+getCell returned: null
+no cell, skipping
+checking neighbor: (3, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (5, 1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (3, 2)
+getCell returned: Cell
+cell is bomb: true
+current count: 0
+checking neighbor: (4, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (5, 2)
+getCell returned: null
+no cell, skipping
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (3, -1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (4, -1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (5, -1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (3, 0)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (5, 0)
+getCell returned: null
+no cell, skipping
+checking neighbor: (3, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (4, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (5, 1)
+getCell returned: null
+no cell, skipping
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (1, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (2, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (3, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (1, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (3, 2)
+getCell returned: Cell
+cell is bomb: true
+current count: 0
+checking neighbor: (1, 3)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (2, 3)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (3, 3)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (1, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (2, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (3, 2)
+getCell returned: Cell
+cell is bomb: true
+current count: 0
+checking neighbor: (1, 3)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (3, 3)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (1, 4)
+getCell returned: null
+no cell, skipping
+checking neighbor: (2, 4)
+getCell returned: null
+no cell, skipping
+checking neighbor: (3, 4)
+getCell returned: null
+no cell, skipping
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (0, 2)
+getCell returned: Cell
+cell is bomb: true
+current count: 0
+checking neighbor: (1, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (2, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (0, 3)
+getCell returned: Cell
+cell is bomb: true
+current count: 1
+checking neighbor: (2, 3)
+getCell returned: Cell
+cell is bomb: false
+current count: 2
+checking neighbor: (0, 4)
+getCell returned: null
+no cell, skipping
+checking neighbor: (1, 4)
+getCell returned: null
+no cell, skipping
+checking neighbor: (2, 4)
+getCell returned: null
+no cell, skipping
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (2, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (3, 2)
+getCell returned: Cell
+cell is bomb: true
+current count: 0
+checking neighbor: (4, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (2, 3)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (4, 3)
+getCell returned: Cell
+cell is bomb: true
+current count: 1
+checking neighbor: (2, 4)
+getCell returned: null
+no cell, skipping
+checking neighbor: (3, 4)
+getCell returned: null
+no cell, skipping
+checking neighbor: (4, 4)
+getCell returned: null
+no cell, skipping
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (-1, 1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (0, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (1, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (-1, 2)
+getCell returned: null
+no cell, skipping
+checking neighbor: (1, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (-1, 3)
+getCell returned: null
+no cell, skipping
+checking neighbor: (0, 3)
+getCell returned: Cell
+cell is bomb: true
+current count: 0
+checking neighbor: (1, 3)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (0, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (1, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (2, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (0, 2)
+getCell returned: Cell
+cell is bomb: true
+current count: 0
+checking neighbor: (2, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (0, 3)
+getCell returned: Cell
+cell is bomb: true
+current count: 1
+checking neighbor: (1, 3)
+getCell returned: Cell
+cell is bomb: false
+current count: 2
+checking neighbor: (2, 3)
+getCell returned: Cell
+cell is bomb: false
+current count: 2
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (3, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (4, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (5, 1)
+getCell returned: null
+no cell, skipping
+checking neighbor: (3, 2)
+getCell returned: Cell
+cell is bomb: true
+current count: 0
+checking neighbor: (5, 2)
+getCell returned: null
+no cell, skipping
+checking neighbor: (3, 3)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (4, 3)
+getCell returned: Cell
+cell is bomb: true
+current count: 1
+checking neighbor: (5, 3)
+getCell returned: null
+no cell, skipping
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (3, 2)
+getCell returned: Cell
+cell is bomb: true
+current count: 0
+checking neighbor: (4, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (5, 2)
+getCell returned: null
+no cell, skipping
+checking neighbor: (3, 3)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (5, 3)
+getCell returned: null
+no cell, skipping
+checking neighbor: (3, 4)
+getCell returned: null
+no cell, skipping
+checking neighbor: (4, 4)
+getCell returned: null
+no cell, skipping
+checking neighbor: (5, 4)
+getCell returned: null
+no cell, skipping
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (2, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (3, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (4, 1)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (2, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (4, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (2, 3)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (3, 3)
+getCell returned: Cell
+cell is bomb: false
+current count: 0
+checking neighbor: (4, 3)
+getCell returned: Cell
+cell is bomb: true
+current count: 0
+calculateDanger: start
+calculateDanger: 8 neighbors
+checking neighbor: (-1, 2)
+getCell returned: null
+no cell, skipping
+checking neighbor: (0, 2)
+getCell returned: Cell
+cell is bomb: true
+current count: 0
+checking neighbor: (1, 2)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (-1, 3)
+getCell returned: null
+no cell, skipping
+checking neighbor: (1, 3)
+getCell returned: Cell
+cell is bomb: false
+current count: 1
+checking neighbor: (-1, 4)
+getCell returned: null
+no cell, skipping
+checking neighbor: (0, 4)
+getCell returned: null
+no cell, skipping
+checking neighbor: (1, 4)
+getCell returned: null
+no cell, skipping
