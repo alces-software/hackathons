@@ -1,0 +1,19 @@
+{
+  "name": "my-tui",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/three": "^0.177.0"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "dependencies": {
+    "@opentui/core": "^0.5.11",
+    "@opentui/three": "0.5.11",
+    "jimp": "^1.6.1",
+    "three": "0.177.0"
+  }
+}
