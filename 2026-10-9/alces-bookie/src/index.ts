@@ -33,7 +33,7 @@ hono.get('/api/v1/openapi.json', (c) => {
       v1.getOpenAPI31Document({
          openapi: '3.1.0',
          info: {
-            title: 'Alces Blueprint Logical Core',
+            title: 'Alces Bookie',
             version: '1.0.0'
          },
          servers: [

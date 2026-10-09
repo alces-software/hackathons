@@ -2,10 +2,6 @@
    "name": "alces-bookie",
    "version": "1.0.0",
    "description": "Alces bookie",
-   "repository": {
-      "type": "git",
-      "url": "https://gitlab.dmz.alces.network/acegoal07/alces-blueprint-logical.git"
-   },
    "engines": {
       "node": ">=24"
    },
