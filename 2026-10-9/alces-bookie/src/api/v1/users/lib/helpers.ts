@@ -1,6 +1,6 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from '@prisma/client';
 
-import APIError, { APIErrorCode } from "../../../../lib/errors/apiError";
+import APIError, { APIErrorCode } from '../../../../lib/errors/apiError';
 
 /**
  * Try's to get the account from the database
@@ -43,7 +43,7 @@ export async function ensureAccountExists<T extends Prisma.AccountsInclude | und
  * @param username The username from the account
  * @param tx The prisma transaction
  */
-export async function ensureAssetDoesntExist(
+export async function ensureAccountDoesntExist(
    username: string,
    tx: Prisma.TransactionClient
 ): Promise<void> {
@@ -54,7 +54,7 @@ export async function ensureAssetDoesntExist(
       .then((account) => {
          if (account) {
             throw new APIError(APIErrorCode.Conflict, {
-               account: `A account with the username ${username} already exists`
+               message: `A account with the username ${username} already exists`
             });
          }
       });
