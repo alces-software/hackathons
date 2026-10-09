@@ -8,7 +8,6 @@ import {
    UnauthorisedErrorSchema
 } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
-import { publish } from '../../../../lib/publisher';
 import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
 import { UsernameParamSchema } from '../../../../lib/schema/param';
 import { ensureAccountCredentialsMatch, ensureAccountExists } from '../../users/lib/helpers';
@@ -17,8 +16,8 @@ export default new OpenAPIHono().openapi(
    createRoute({
       method: 'post',
       path: '/',
-      description: 'Transfer from one user to another',
-      tags: ['Transactions'],
+      description: 'Performs a transfer using a custom service',
+      tags: ['Transactions', 'Services'],
       request: {
          params: z.object({
             ...UsernameParamSchema
@@ -28,6 +27,10 @@ export default new OpenAPIHono().openapi(
                'application/json': {
                   schema: z.object({
                      ...JSONUsernameAndPasswordSchema,
+                     serviceToken: z
+                        .string({ error: 'Service token must be a string' })
+                        .trim()
+                        .min(1, { error: 'Service token cannot be empty' }),
                      amount: z
                         .number({ error: 'Amount must be a number' })
                         .min(1, { error: 'Amount must be more than 0' })
@@ -59,7 +62,7 @@ export default new OpenAPIHono().openapi(
          await ensureAccountCredentialsMatch(body.username, body.password, tx);
 
          // Make sure the send has enough in their account
-         if (sender.balance.toNumber() - body.amount < 0) {
+         if (sender.balance.minus(body.amount).lessThan(0)) {
             throw new APIError(APIErrorCode.BadRequest, {
                message: `${body.username} does not have enough to send to ${username}`
             });
@@ -75,11 +78,6 @@ export default new OpenAPIHono().openapi(
             }
          });
 
-         // Calculate banks take
-         const banksCut = Number(
-            (body.amount * Number(process.env.TRANSACTION_FEE ?? 0)).toFixed(2)
-         );
-
          // Ensure destination user exists
          const receiver = await ensureAccountExists(username, tx, {});
 
@@ -89,36 +87,26 @@ export default new OpenAPIHono().openapi(
                username: receiver.username
             },
             data: {
-               balance: receiver.balance.plus(body.amount - banksCut)
-            }
-         });
-
-         // Get the bank information
-         const bank = await ensureAccountExists(process.env.BANK_USERNAME ?? 'bank', tx, {});
-
-         // Update the bank
-         await tx.accounts.update({
-            where: {
-               username: bank.username
-            },
-            data: {
-               balance: bank.balance.plus(banksCut)
+               balance: receiver.balance.plus(body.amount)
             }
          });
 
          // Get service information
-         const service = await tx.services.findUnique({
-            where: {
-               name: 'transfer'
-            }, select: {
-               id: true
-            }
-         }).then((service) => {
-            if (!service) {
-               throw new APIError(APIErrorCode.InternalServerError);
-            }
-            return service
-         });
+         const service = await tx.services
+            .findUnique({
+               where: {
+                  token: body.serviceToken
+               },
+               select: {
+                  id: true
+               }
+            })
+            .then((service) => {
+               if (!service) {
+                  throw new APIError(APIErrorCode.InternalServerError);
+               }
+               return service;
+            });
 
          // Add sender ledger
          await tx.ledger.create({
@@ -137,17 +125,10 @@ export default new OpenAPIHono().openapi(
                username: receiver.username,
                service: service?.id,
                beforeBalance: receiver.balance,
-               afterBalance: receiver.balance.plus(body.amount - banksCut),
+               afterBalance: receiver.balance.plus(body.amount),
                timestamp: new Date()
             }
-         })
-      });
-
-      // Everyone watching the book should see the new entries.
-      publish({
-         type: 'content.created',
-         id: 'transactions',
-         timestamp: new Date().toISOString()
+         });
       });
 
       return c.body(null, 204);
