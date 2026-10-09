@@ -59,7 +59,7 @@ hono.get(
 import handleErrors from './lib/errors/errorHandler';
 hono.onError((error, c) => handleErrors(c, error));
 hono.notFound((c) => {
-   return c.body(`Looks like have no money, LOL.`, 404);
+   return c.body(`Looks like you have no money, LOL.`, 404);
 });
 
 // START UP SERVER
