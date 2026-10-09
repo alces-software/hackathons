@@ -20,10 +20,10 @@ export default new OpenAPIHono().openapi(
       responses: {
          204: {
             description: 'Deleted a user successfully'
-         }
-      },
-      ...NotFoundErrorSchema,
-      ...InternalServerErrorSchema
+         },
+         ...NotFoundErrorSchema,
+         ...InternalServerErrorSchema
+      }
    }),
    async (c) => {
       const { username } = c.req.valid('param');

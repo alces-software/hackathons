@@ -25,10 +25,10 @@ export default new OpenAPIHono().openapi(
       responses: {
          201: {
             description: 'Created a user successfully'
-         }
-      },
-      ...ConflictErrorSchema,
-      ...InternalServerErrorSchema
+         },
+         ...ConflictErrorSchema,
+         ...InternalServerErrorSchema
+      }
    }),
    async (c) => {
       const body = c.req.valid('json');

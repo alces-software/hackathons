@@ -18,7 +18,10 @@ export async function ensureAccountExists<T extends Prisma.AccountsInclude | und
 > {
    return await tx.accounts
       .findUnique({
-         where: { username },
+         where: {
+            username,
+            mode: 'insensitive'
+         },
          ...(include === undefined && {
             select: { username: true }
          }),
@@ -48,8 +51,10 @@ export async function ensureAccountDoesntExist(
    tx: Prisma.TransactionClient
 ): Promise<void> {
    await tx.accounts
-      .findUnique({
-         where: { username }
+      .findFirst({
+         where: {
+            username
+         }
       })
       .then((account) => {
          if (account) {
@@ -72,8 +77,11 @@ export async function ensureAccountCredentialsMatch(
    tx: Prisma.TransactionClient
 ): Promise<void> {
    await tx.accounts
-      .findUnique({
-         where: { username, password }
+      .findFirst({
+         where: {
+            username,
+            password
+         }
       })
       .then((account) => {
          if (!account) {

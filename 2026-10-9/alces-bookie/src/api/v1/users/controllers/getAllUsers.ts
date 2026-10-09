@@ -30,10 +30,10 @@ export default new OpenAPIHono().openapi(
                   schema: PaginationResponseSchema(UserReturnSchema)
                }
             }
-         }
-      },
-      ...NotFoundErrorSchema,
-      ...InternalServerErrorSchema
+         },
+         ...NotFoundErrorSchema,
+         ...InternalServerErrorSchema
+      }
    }),
    async (c) => {
       const query = c.req.valid('query');
