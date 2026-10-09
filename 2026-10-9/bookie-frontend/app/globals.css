@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #f4f1e8;
+  --color-paper-2: #eceadb;
+  --color-ink: #1e1c17;
+  --color-muted: #79735f;
+  --color-rule: #d8d2bf;
+  --color-debit: #a23d2b;
+  --color-credit: #2f6141;
+
+  --font-sans: var(--font-sans-src);
+  --font-serif: var(--font-serif-src);
+  --font-mono: var(--font-mono-src);
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+::selection {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+@layer components {
+  /* small-caps label, used for section titles and table headers */
+  .sc {
+    @apply text-[0.68rem] font-medium tracking-[0.16em] uppercase;
+  }
+
+  /* amount cell: keeps figures aligned */
+  .amt {
+    @apply font-mono tabular-nums;
+  }
+}
