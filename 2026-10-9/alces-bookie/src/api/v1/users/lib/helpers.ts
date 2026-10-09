@@ -26,13 +26,13 @@ export async function ensureAccountExists<T extends Prisma.AccountsInclude | und
             include
          })
       })
-      .then((asset) => {
-         if (!asset) {
+      .then((account) => {
+         if (!account) {
             throw new APIError(APIErrorCode.NotFound, {
                message: `No account with the username ${username} exists`
             });
          }
-         return asset as Prisma.AccountsGetPayload<
+         return account as Prisma.AccountsGetPayload<
             T extends undefined ? { select: { username: true } } : { include: T }
          >;
       });
@@ -51,10 +51,10 @@ export async function ensureAssetDoesntExist(
       .findUnique({
          where: { username }
       })
-      .then((asset) => {
-         if (asset) {
+      .then((account) => {
+         if (account) {
             throw new APIError(APIErrorCode.Conflict, {
-               message: `A account with the username ${username} already exists`
+               account: `A account with the username ${username} already exists`
             });
          }
       });
