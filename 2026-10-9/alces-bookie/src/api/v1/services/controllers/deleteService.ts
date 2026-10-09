@@ -1,12 +1,14 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 
-import { ConflictErrorSchema, InternalServerErrorSchema } from '../../../../lib/errors/schemas';
+import { InternalServerErrorSchema, NotFoundErrorSchema } from '../../../../lib/errors/schemas';
+import { prisma } from '../../../../lib/prisma';
+import { ensureServiceExists } from '../lib/helpers';
 
 export default new OpenAPIHono().openapi(
    createRoute({
-      method: 'post',
+      method: 'delete',
       path: '/',
-      description: 'Create a service',
+      description: 'Delete a service',
       tags: ['Services'],
       request: {
          params: z.object({
@@ -16,12 +18,24 @@ export default new OpenAPIHono().openapi(
       responses: {
          204: {
             description: 'Deleted a service successfully'
-         }
-      },
-      ...ConflictErrorSchema,
-      ...InternalServerErrorSchema
+         },
+         ...NotFoundErrorSchema,
+         ...InternalServerErrorSchema
+      }
    }),
    async (c) => {
+      const { name } = c.req.valid('param');
+
+      await prisma.$transaction(async (tx) => {
+         // Make sure the service exists
+         await ensureServiceExists(name, tx);
+
+         // Delete the service
+         await tx.services.delete({
+            where: { name }
+         });
+      });
+
       return c.body(null, 204);
    }
 );
