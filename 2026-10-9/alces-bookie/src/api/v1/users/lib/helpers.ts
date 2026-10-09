@@ -19,8 +19,7 @@ export async function ensureAccountExists<T extends Prisma.AccountsInclude | und
    return await tx.accounts
       .findUnique({
          where: {
-            username,
-            mode: 'insensitive'
+            username
          },
          ...(include === undefined && {
             select: { username: true }

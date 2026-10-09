@@ -19,7 +19,7 @@ export default new OpenAPIHono().openapi(
       },
       responses: {
          204: {
-            description: 'Deleted a user successfully'
+            description: 'Retired a user successfully'
          },
          ...NotFoundErrorSchema,
          ...InternalServerErrorSchema

@@ -24,7 +24,7 @@ export default new OpenAPIHono().openapi(
       },
       responses: {
          200: {
-            description: 'Deleted a user successfully',
+            description: 'Retired all users successfully',
             content: {
                'application/json': {
                   schema: PaginationResponseSchema(UserReturnSchema)
@@ -51,6 +51,7 @@ export default new OpenAPIHono().openapi(
             await tx.accounts.count({ where })
          ];
       });
+
       return c.json(
          {
             data: users.map(serializeUser),
