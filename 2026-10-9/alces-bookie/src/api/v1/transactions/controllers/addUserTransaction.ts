@@ -77,7 +77,7 @@ export default new OpenAPIHono().openapi(
 
          // Calculate banks take
          const banksCut = Number(
-            (body.amount * Number(process.env.TRANSACTION_FEE ?? 0)).toFixed(2)
+            (body.amount * Number(process.env.USER_TRANSACTION_FEE ?? 0)).toFixed(2)
          );
 
          // Ensure destination user exists
