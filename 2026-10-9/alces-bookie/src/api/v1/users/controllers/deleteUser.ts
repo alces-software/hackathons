@@ -6,6 +6,7 @@ import {
    UnauthorisedErrorSchema
 } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
+import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
 import { ensureAccountCredentialsMatch } from '../lib/helpers';
 
 export default new OpenAPIHono().openapi(
@@ -19,8 +20,7 @@ export default new OpenAPIHono().openapi(
             content: {
                'application/json': {
                   schema: z.object({
-                     username: z.string().trim(),
-                     password: z.hash('sha256').trim()
+                     ...JSONUsernameAndPasswordSchema
                   })
                }
             }
