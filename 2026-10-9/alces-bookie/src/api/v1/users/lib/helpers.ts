@@ -1,6 +1,6 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from '@prisma/client';
 
-import APIError, { APIErrorCode } from "../../../../lib/errors/apiError";
+import APIError, { APIErrorCode } from '../../../../lib/errors/apiError';
 
 /**
  * Try's to get the account from the database
@@ -26,13 +26,13 @@ export async function ensureAccountExists<T extends Prisma.AccountsInclude | und
             include
          })
       })
-      .then((asset) => {
-         if (!asset) {
+      .then((account) => {
+         if (!account) {
             throw new APIError(APIErrorCode.NotFound, {
                message: `No account with the username ${username} exists`
             });
          }
-         return asset as Prisma.AccountsGetPayload<
+         return account as Prisma.AccountsGetPayload<
             T extends undefined ? { select: { username: true } } : { include: T }
          >;
       });
@@ -43,7 +43,7 @@ export async function ensureAccountExists<T extends Prisma.AccountsInclude | und
  * @param username The username from the account
  * @param tx The prisma transaction
  */
-export async function ensureAssetDoesntExist(
+export async function ensureAccountDoesntExist(
    username: string,
    tx: Prisma.TransactionClient
 ): Promise<void> {
@@ -51,8 +51,8 @@ export async function ensureAssetDoesntExist(
       .findUnique({
          where: { username }
       })
-      .then((asset) => {
-         if (asset) {
+      .then((account) => {
+         if (account) {
             throw new APIError(APIErrorCode.Conflict, {
                message: `A account with the username ${username} already exists`
             });
