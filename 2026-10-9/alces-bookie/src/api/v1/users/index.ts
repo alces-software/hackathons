@@ -1,3 +1,6 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 
-export default new OpenAPIHono();
+import addUser from './controllers/addUser';
+import deleteUser from './controllers/deleteUser';
+
+export default new OpenAPIHono().route('/', addUser).route('/', deleteUser);

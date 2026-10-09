@@ -9,9 +9,16 @@ export default new OpenAPIHono().openapi(
       description: 'Delete a user',
       tags: ['Users'],
       request: {
-         params: z.object({
-            username: z.string().trim()
-         })
+         body: {
+            content: {
+               'application/json': {
+                  schema: z.object({
+                     username: z.string().trim(),
+                     password: z.hash('sha256').trim()
+                  })
+               }
+            }
+         }
       },
       responses: {
          204: {
@@ -22,7 +29,7 @@ export default new OpenAPIHono().openapi(
       ...InternalServerErrorSchema
    }),
    async (c) => {
-      const { username } = c.req.valid('param');
+      const body = c.req.valid('json');
 
       return c.body(null, 204);
    }
