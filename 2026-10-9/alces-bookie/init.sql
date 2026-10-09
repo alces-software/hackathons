@@ -24,3 +24,6 @@ CREATE TABLE Ledger(
 );
 INSERT INTO Accounts (username, password, balance)
 VALUES ('bank', 'password', 10000);
+
+INSERT INTO Services (name, token)
+VALUES ('transfer', '1')

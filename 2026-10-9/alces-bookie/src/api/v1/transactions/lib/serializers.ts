@@ -15,8 +15,8 @@ export function serializeTransaction(
    return {
       username: transaction.username,
       timestamp: transaction.timestamp,
-      before: transaction.beforeBalance,
-      after: transaction.afterBalance,
+      before: transaction.beforeBalance.toNumber(),
+      after: transaction.afterBalance.toNumber(),
       service: {
          id: transaction.id,
          name: transaction.Services.name

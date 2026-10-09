@@ -58,7 +58,7 @@ export default new OpenAPIHono().openapi(
          await ensureAccountCredentialsMatch(body.username, body.password, tx);
 
          // Make sure the send has enough in their account
-         if (sender.balance - body.amount < 0) {
+         if (sender.balance.toNumber() - body.amount < 0) {
             throw new APIError(APIErrorCode.BadRequest, {
                message: `${body.username} does not have enough to send to ${username}`
             });
@@ -70,7 +70,7 @@ export default new OpenAPIHono().openapi(
                username: sender.username
             },
             data: {
-               balance: sender.balance - body.amount
+               balance: sender.balance.minus(body.amount)
             }
          });
 
@@ -88,7 +88,7 @@ export default new OpenAPIHono().openapi(
                username: receiver.username
             },
             data: {
-               balance: receiver.balance + (body.amount - banksCut)
+               balance: receiver.balance.plus(body.amount - banksCut)
             }
          });
 
@@ -101,9 +101,45 @@ export default new OpenAPIHono().openapi(
                username: bank.username
             },
             data: {
-               balance: bank.balance + banksCut
+               balance: bank.balance.plus(banksCut)
             }
          });
+
+         // Get service information
+         const service = await tx.services.findUnique({
+            where: {
+               name: 'transfer'
+            }, select: {
+               id: true
+            }
+         }).then((service) => {
+            if (!service) {
+               throw new APIError(APIErrorCode.InternalServerError);
+            }
+            return service
+         });
+
+         // Add sender ledger
+         await tx.ledger.create({
+            data: {
+               username: sender.username,
+               service: service?.id,
+               beforeBalance: sender.balance,
+               afterBalance: sender.balance.minus(body.amount),
+               timestamp: new Date()
+            }
+         });
+
+         // Add receiver ledger
+         await tx.ledger.create({
+            data: {
+               username: receiver.username,
+               service: service?.id,
+               beforeBalance: receiver.balance,
+               afterBalance: receiver.balance.plus(body.amount - banksCut),
+               timestamp: new Date()
+            }
+         })
       });
 
       return c.body(null, 204);
