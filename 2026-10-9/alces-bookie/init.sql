@@ -5,7 +5,7 @@ USE bank;
 CREATE TABLE Accounts(
    username VARCHAR(255) PRIMARY KEY,
    password VARCHAR(255) NOT NULL,
-   balance FLOAT NOT NULL DEFAULT 500
+   balance DECIMAL(65, 2) NOT NULL DEFAULT 500
 );
 CREATE TABLE Services(
    id INT AUTO_INCREMENT PRIMARY KEY,
@@ -16,8 +16,8 @@ CREATE TABLE Ledger(
    id INT AUTO_INCREMENT PRIMARY KEY,
    username VARCHAR(255) NOT NULL,
    service INT NOT NULL,
-   beforeBalance FLOAT NOT NULL,
-   afterBalance FLOAT NOT NULL,
+   beforeBalance DECIMAL(65, 2) NOT NULL,
+   afterBalance DECIMAL(65, 2) NOT NULL,
    timestamp DATE NOT NULL,
    CONSTRAINT fk_ledger_username_username FOREIGN KEY (username) REFERENCES Accounts(username),
    CONSTRAINT fk_ledger_service_id FOREIGN KEY (service) REFERENCES Services(id)
