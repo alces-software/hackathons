@@ -1,9 +1,0 @@
-.next
-node_modules
-.git
-.gitignore
-Dockerfile
-docker-compose.yml
-*.log
-.env*
-README.md
