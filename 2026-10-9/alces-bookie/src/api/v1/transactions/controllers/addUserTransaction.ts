@@ -8,6 +8,7 @@ import {
    UnauthorisedErrorSchema
 } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
+import { publish } from '../../../../lib/publisher';
 import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
 import { UsernameParamSchema } from '../../../../lib/schema/param';
 import { ensureAccountCredentialsMatch, ensureAccountExists } from '../../users/lib/helpers';
@@ -143,6 +144,13 @@ export default new OpenAPIHono().openapi(
                timestamp: new Date()
             }
          });
+      });
+
+      // Everyone watching the book should see the new entries.
+      publish({
+         type: 'content.created',
+         id: 'transactions',
+         timestamp: new Date().toISOString()
       });
 
       return c.body(null, 204);

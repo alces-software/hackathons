@@ -1,0 +1,805 @@
+openapi: 3.1.0
+info:
+  title: Alces Blueprint Logical Core
+  version: 1.0.0
+servers:
+  - url: /api/v1
+components:
+  schemas: {}
+  parameters: {}
+paths:
+  /services/{name}:
+    get:
+      description: Get a service
+      tags:
+        - Services
+      parameters:
+        - schema:
+            type: string
+            minLength: 4
+            maxLength: 25
+          required: true
+          name: name
+          in: path
+      responses:
+        "200":
+          description: Retrieved a service successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                required:
+                  - id
+                  - name
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - NOT_FOUND
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The requested resource does not exist
+                      - type: string
+                required:
+                  - error
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
+  /services:
+    post:
+      description: Create a service
+      tags:
+        - Services
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 4
+                  maxLength: 25
+              required:
+                - name
+      responses:
+        "201":
+          description: Created a service successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  token:
+                    type: string
+                required:
+                  - id
+                  - name
+                  - token
+        "409":
+          description: Resource already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - CONFLICTING_RESOURCE
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - There is already a resource in the database
+                      - type: string
+                required:
+                  - error
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
+    delete:
+      description: Delete a service
+      tags:
+        - Services
+      parameters:
+        - schema:
+            type: string
+            minLength: 4
+            maxLength: 25
+          required: true
+          name: name
+          in: path
+      responses:
+        "204":
+          description: Deleted a service successfully
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - NOT_FOUND
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The requested resource does not exist
+                      - type: string
+                required:
+                  - error
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
+    get:
+      description: Get all services
+      tags:
+        - Services
+      parameters:
+        - schema:
+            type: integer
+            minimum: 1
+            default: 1
+            description: The page number for the pagination
+            example: "1"
+          required: false
+          description: The page number for the pagination
+          name: page
+          in: query
+        - schema:
+            type: integer
+            exclusiveMinimum: 0
+            maximum: 100
+            default: 25
+            description: How many items to retrieve
+            example: "40"
+          required: false
+          description: How many items to retrieve
+          name: limit
+          in: query
+      responses:
+        "200":
+          description: Retrieved all services successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                      required:
+                        - id
+                        - name
+                    description: The paginated data from the API
+                  currentPage:
+                    type: number
+                    description: The current page of the pagination
+                  totalPages:
+                    type: number
+                    description: The total number of pages that are available
+                  limit:
+                    type: number
+                    description: How many items will be returned by the get
+                  itemCount:
+                    type: number
+                    description: How many items have been returned by this page
+                  itemTotal:
+                    type: number
+                    description: How many there are to be displayed
+                required:
+                  - data
+                  - currentPage
+                  - totalPages
+                  - limit
+                  - itemCount
+                  - itemTotal
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
+  /transactions/{id}:
+    get:
+      description: Get a transaction
+      tags:
+        - Transaction
+      parameters:
+        - schema:
+            type: integer
+            minimum: 1
+          required: true
+          name: id
+          in: path
+      responses:
+        "200":
+          description: Retired a transaction successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+                  before:
+                    type: number
+                  after:
+                    type: number
+                  service:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      name:
+                        type: string
+                    required:
+                      - id
+                      - name
+                required:
+                  - username
+                  - timestamp
+                  - before
+                  - after
+                  - service
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - NOT_FOUND
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The requested resource does not exist
+                      - type: string
+                required:
+                  - error
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
+  /transactions:
+    get:
+      description: Get all transactions
+      tags:
+        - Transactions
+      parameters:
+        - schema:
+            type: integer
+            minimum: 1
+            default: 1
+            description: The page number for the pagination
+            example: "1"
+          required: false
+          description: The page number for the pagination
+          name: page
+          in: query
+        - schema:
+            type: integer
+            exclusiveMinimum: 0
+            maximum: 100
+            default: 25
+            description: How many items to retrieve
+            example: "40"
+          required: false
+          description: How many items to retrieve
+          name: limit
+          in: query
+      responses:
+        "200":
+          description: Retired all transactions successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        username:
+                          type: string
+                        timestamp:
+                          type: string
+                          format: date-time
+                        before:
+                          type: number
+                        after:
+                          type: number
+                        service:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            name:
+                              type: string
+                          required:
+                            - id
+                            - name
+                      required:
+                        - username
+                        - timestamp
+                        - before
+                        - after
+                        - service
+                    description: The paginated data from the API
+                  currentPage:
+                    type: number
+                    description: The current page of the pagination
+                  totalPages:
+                    type: number
+                    description: The total number of pages that are available
+                  limit:
+                    type: number
+                    description: How many items will be returned by the get
+                  itemCount:
+                    type: number
+                    description: How many items have been returned by this page
+                  itemTotal:
+                    type: number
+                    description: How many there are to be displayed
+                required:
+                  - data
+                  - currentPage
+                  - totalPages
+                  - limit
+                  - itemCount
+                  - itemTotal
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - NOT_FOUND
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The requested resource does not exist
+                      - type: string
+                required:
+                  - error
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
+  /users/{username}:
+    get:
+      description: Get a user
+      tags:
+        - Users
+      parameters:
+        - schema:
+            type: string
+            minLength: 4
+            maxLength: 25
+          required: true
+          name: username
+          in: path
+      responses:
+        "204":
+          description: Retired a user successfully
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - NOT_FOUND
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The requested resource does not exist
+                      - type: string
+                required:
+                  - error
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
+  /users:
+    post:
+      description: Create a user
+      tags:
+        - Users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  minLength: 4
+                  maxLength: 25
+                password:
+                  type: string
+                  minLength: 4
+                  maxLength: 30
+              required:
+                - username
+                - password
+      responses:
+        "201":
+          description: Created a user successfully
+        "409":
+          description: Resource already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - CONFLICTING_RESOURCE
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - There is already a resource in the database
+                      - type: string
+                required:
+                  - error
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
+    delete:
+      description: Delete a user
+      tags:
+        - Users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  minLength: 4
+                  maxLength: 25
+                password:
+                  type: string
+                  minLength: 4
+                  maxLength: 30
+              required:
+                - username
+                - password
+      responses:
+        "204":
+          description: Deleted a user successfully
+        "401":
+          description: Unauthorised
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - UNAUTHORISED
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The request credentials are incorrect
+                      - type: string
+                required:
+                  - error
+                  - message
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - NOT_FOUND
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The requested resource does not exist
+                      - type: string
+                required:
+                  - error
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
+    get:
+      description: Get all users
+      tags:
+        - Users
+      parameters:
+        - schema:
+            type: integer
+            minimum: 1
+            default: 1
+            description: The page number for the pagination
+            example: "1"
+          required: false
+          description: The page number for the pagination
+          name: page
+          in: query
+        - schema:
+            type: integer
+            exclusiveMinimum: 0
+            maximum: 100
+            default: 25
+            description: How many items to retrieve
+            example: "40"
+          required: false
+          description: How many items to retrieve
+          name: limit
+          in: query
+      responses:
+        "200":
+          description: Retired all users successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        username:
+                          type: string
+                        balance:
+                          type: number
+                      required:
+                        - username
+                        - balance
+                    description: The paginated data from the API
+                  currentPage:
+                    type: number
+                    description: The current page of the pagination
+                  totalPages:
+                    type: number
+                    description: The total number of pages that are available
+                  limit:
+                    type: number
+                    description: How many items will be returned by the get
+                  itemCount:
+                    type: number
+                    description: How many items have been returned by this page
+                  itemTotal:
+                    type: number
+                    description: How many there are to be displayed
+                required:
+                  - data
+                  - currentPage
+                  - totalPages
+                  - limit
+                  - itemCount
+                  - itemTotal
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - NOT_FOUND
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The requested resource does not exist
+                      - type: string
+                required:
+                  - error
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
+webhooks: {}
