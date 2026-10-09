@@ -4,9 +4,9 @@ import { InternalServerErrorSchema, NotFoundErrorSchema } from '../../../../lib/
 
 export default new OpenAPIHono().openapi(
    createRoute({
-      method: 'delete',
+      method: 'get',
       path: '/',
-      description: 'Delete a user',
+      description: 'Get all users',
       tags: ['Users'],
       request: {
          body: {
