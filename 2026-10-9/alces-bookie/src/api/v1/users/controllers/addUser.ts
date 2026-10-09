@@ -21,7 +21,7 @@ export default new OpenAPIHono().openapi(
          }
       },
       responses: {
-         204: {
+         201: {
             description: 'Created a user successfully'
          }
       },
