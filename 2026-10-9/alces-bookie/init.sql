@@ -9,7 +9,7 @@ CREATE TABLE Accounts(
 );
 CREATE TABLE Services(
    id INT AUTO_INCREMENT PRIMARY KEY,
-   name VARCHAR(255) UNIQUE,
+   name VARCHAR(255) UNIQUE NOT NULL,
    token VARCHAR(255) NOT NULL
 );
 CREATE TABLE Ledger(
@@ -22,3 +22,5 @@ CREATE TABLE Ledger(
    CONSTRAINT fk_ledger_username_username FOREIGN KEY (username) REFERENCES Accounts(username),
    CONSTRAINT fk_ledger_service_id FOREIGN KEY (service) REFERENCES Services(id)
 );
+INSERT INTO Accounts (username, password, balance)
+VALUES ('bank', 'password', 10000);
