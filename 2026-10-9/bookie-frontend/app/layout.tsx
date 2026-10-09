@@ -57,6 +57,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                 <Link href="/ledger" className={link}>
                   The ledger
                 </Link>
+                <Link href="/exchange" className={link}>
+                  The exchange
+                </Link>
                 <Link href="/me" className={link}>
                   Your account
                 </Link>

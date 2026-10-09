@@ -1,0 +1,63 @@
+# Bring the whole stack up from this directory:  docker compose up --build -d
+#
+#   bank_database  — MariaDB, seeded from ../alces-bookie/init.sql
+#   bank_api       — the alces-bookie core, published on :3000
+#   frontend       — this app, published on :3001 (open http://<vm>:3001)
+#
+# The core still mounts its source straight out of ../alces-bookie, exactly as
+# its own docker-compose.yml does, so that directory must come along with this
+# one when you pull everything onto the VM. Run  docker compose up  here only —
+# don't also run the compose in ../alces-bookie, or the ports will clash.
+#
+# If the VM's address isn't localhost (opening the site from another machine),
+# set the websocket the browser should use before building, e.g. in .env:
+#   NEXT_PUBLIC_WS_URL=ws://<vm-address>:3000/api/v1/ws
+
+name: bookie
+
+services:
+  bank_database:
+    container_name: bank_database
+    image: mariadb:latest
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpassword
+      MARIADB_DATABASE: bank
+      MARIADB_USER: banker
+      MARIADB_PASSWORD: mypassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - database_data:/var/lib/mysql
+      - ../alces-bookie/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  bank_api:
+    container_name: bank
+    image: node:24-bookworm
+    restart: unless-stopped
+    working_dir: /app/src
+    volumes:
+      - ../alces-bookie:/app/src
+    depends_on:
+      - bank_database
+    ports:
+      - "3000:3000"
+    command: ./run.sh
+
+  frontend:
+    container_name: bookie_frontend
+    restart: unless-stopped
+    depends_on:
+      - bank_api
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:3000/api/v1/ws}
+    environment:
+      # Server-side reads go to the core over the compose network
+      API_URL: http://bank:3000/api/v1
+    ports:
+      - "3001:3000"
+
+volumes:
+  database_data:
