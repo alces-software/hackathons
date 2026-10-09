@@ -12,7 +12,7 @@ export default new OpenAPIHono().openapi(
       method: 'get',
       path: '/',
       description: 'Get a transaction',
-      tags: ['Transaction'],
+      tags: ['Transactions'],
       request: {
          params: z.object({
             id: z

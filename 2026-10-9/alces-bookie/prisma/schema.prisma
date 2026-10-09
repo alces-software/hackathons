@@ -9,7 +9,7 @@ datasource db {
 model Accounts {
   username String   @id @db.VarChar(255)
   password String   @db.VarChar(255)
-  balance  Int      @default(500)
+  balance  Float    @default(500) @db.Float
   Ledger   Ledger[]
 }
 
@@ -17,8 +17,8 @@ model Ledger {
   id            Int      @id @default(autoincrement())
   username      String   @db.VarChar(255)
   service       Int
-  beforeBalance Int
-  afterBalance  Int
+  beforeBalance Float    @db.Float
+  afterBalance  Float    @db.Float
   timestamp     DateTime @db.Date
   Services      Services @relation(fields: [service], references: [id], onUpdate: Restrict, map: "fk_ledger_service_id")
   Accounts      Accounts @relation(fields: [username], references: [username], onUpdate: Restrict, map: "fk_ledger_username_username")
@@ -29,7 +29,7 @@ model Ledger {
 
 model Services {
   id     Int      @id @default(autoincrement())
-  name   String  @unique(map: "name") @db.VarChar(255)
+  name   String   @unique(map: "name") @db.VarChar(255)
   token  String   @db.VarChar(255)
   Ledger Ledger[]
 }
