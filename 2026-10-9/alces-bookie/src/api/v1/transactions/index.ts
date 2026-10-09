@@ -6,7 +6,7 @@ import getAllTransactions from './controllers/getAllTransactions';
 import getTransaction from './controllers/getTransaction';
 
 export default new OpenAPIHono()
-   .route('/service/:user', addServiceTransaction)
+   .route('/service/:username', addServiceTransaction)
    .route('/:username', addUserTransaction)
    .route('/:id', getTransaction)
    .route('/', getAllTransactions);
