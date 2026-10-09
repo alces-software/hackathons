@@ -17,6 +17,22 @@ export function badRequestErrorResponse(c: Context, message?: string) {
 }
 
 /**
+ * Responds with a unauthorised error
+ * @param {Context} c The hono context
+ * @param {string} message The error message to go with the unauthorised
+ * @returns The response function
+ */
+export function unauthorisedErrorResponse(c: Context, message?: string) {
+   return c.json(
+      {
+         error: 'UNAUTHORISED' as const,
+         message: message || ('The request credentials are incorrect' as const)
+      },
+      400
+   );
+}
+
+/**
  * Responds with a not found error response
  * @param {Context} c The hono context
  * @param {string} message The error message to go with the not found

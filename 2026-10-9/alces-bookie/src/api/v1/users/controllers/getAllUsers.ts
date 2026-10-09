@@ -1,6 +1,15 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { Prisma } from '@prisma/client';
 
 import { InternalServerErrorSchema, NotFoundErrorSchema } from '../../../../lib/errors/schemas';
+import {
+   PaginationParamsSchema,
+   PaginationResponseSchema
+} from '../../../../lib/pagination/schemas';
+import { paginationOptions, serializePagination } from '../../../../lib/pagination/serializers';
+import { prisma } from '../../../../lib/prisma';
+import { UserReturnSchema } from '../lib/schemas';
+import { serializeUser } from '../lib/serializers';
 
 export default new OpenAPIHono().openapi(
    createRoute({
@@ -9,28 +18,45 @@ export default new OpenAPIHono().openapi(
       description: 'Get all users',
       tags: ['Users'],
       request: {
-         body: {
-            content: {
-               'application/json': {
-                  schema: z.object({
-                     username: z.string().trim(),
-                     password: z.hash('sha256').trim()
-                  })
-               }
-            }
-         }
+         query: z.object({
+            ...PaginationParamsSchema
+         })
       },
       responses: {
-         204: {
-            description: 'Deleted a user successfully'
+         200: {
+            description: 'Deleted a user successfully',
+            content: {
+               'application/json': {
+                  schema: PaginationResponseSchema(UserReturnSchema)
+               }
+            }
          }
       },
       ...NotFoundErrorSchema,
       ...InternalServerErrorSchema
    }),
    async (c) => {
-      const body = c.req.valid('json');
+      const query = c.req.valid('query');
 
-      return c.body(null, 204);
+      const [users, usersCount] = await prisma.$transaction(async (tx) => {
+         // create the where statement
+         const where: Prisma.AccountsWhereInput = {};
+
+         // Get all the users and a total count
+         return [
+            await tx.accounts.findMany({
+               where,
+               ...paginationOptions(query.page, query.limit)
+            }),
+            await tx.accounts.count({ where })
+         ];
+      });
+      return c.json(
+         {
+            data: users.map(serializeUser),
+            ...serializePagination(query.page, query.limit, users.length, usersCount)
+         },
+         200
+      );
    }
 );

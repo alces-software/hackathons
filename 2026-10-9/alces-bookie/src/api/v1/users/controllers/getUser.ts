@@ -1,6 +1,10 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 
 import { InternalServerErrorSchema, NotFoundErrorSchema } from '../../../../lib/errors/schemas';
+import { prisma } from '../../../../lib/prisma';
+import { UsernameParamSchema } from '../../../../lib/schema/param';
+import { ensureAccountExists } from '../lib/helpers';
+import { serializeUser } from '../lib/serializers';
 
 export default new OpenAPIHono().openapi(
    createRoute({
@@ -10,7 +14,7 @@ export default new OpenAPIHono().openapi(
       tags: ['Users'],
       request: {
          params: z.object({
-            username: z.string().trim()
+            ...UsernameParamSchema
          })
       },
       responses: {
@@ -24,6 +28,11 @@ export default new OpenAPIHono().openapi(
    async (c) => {
       const { username } = c.req.valid('param');
 
-      return c.body(null, 204);
+      // Get the user information
+      const user = await prisma.$transaction(async (tx) => {
+         return await ensureAccountExists(username, tx, {});
+      });
+
+      return c.json(serializeUser(user), 200);
    }
 );

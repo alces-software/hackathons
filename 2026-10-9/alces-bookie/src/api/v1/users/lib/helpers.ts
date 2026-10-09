@@ -59,3 +59,25 @@ export async function ensureAccountDoesntExist(
          }
       });
 }
+
+/**
+ * Checks to make sure the users credentials match the database
+ * @param username The username from the account
+ * @param password The password from the account
+ * @param tx The prisma transaction
+ */
+export async function ensureAccountCredentialsMatch(
+   username: string,
+   password: string,
+   tx: Prisma.TransactionClient
+): Promise<void> {
+   await tx.accounts
+      .findUnique({
+         where: { username, password }
+      })
+      .then((account) => {
+         if (!account) {
+            throw new APIError(APIErrorCode.Unauthorised);
+         }
+      });
+}

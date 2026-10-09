@@ -3,6 +3,7 @@
  */
 export enum APIErrorCode {
    BadRequest = 400,
+   Unauthorised = 401,
    NotFound = 404,
    Conflict = 409,
    InternalServerError = 500

@@ -9,7 +9,7 @@ datasource db {
 model Accounts {
   username String   @id @db.VarChar(255)
   password String   @db.VarChar(255)
-  balance  Int
+  balance  Int      @default(500)
   Ledger   Ledger[]
 }
 

@@ -1,7 +1,7 @@
 import { z } from '@hono/zod-openapi';
 
 /**
- * Not found error schema for open API docs
+ * Bad request error schema for open API docs
  */
 export const BadRequestErrorSchema = {
    400: {
@@ -11,6 +11,23 @@ export const BadRequestErrorSchema = {
             schema: z.object({
                error: z.literal('BAD_REQUEST'),
                message: z.union([z.literal('The request was malformed'), z.string()])
+            })
+         }
+      }
+   }
+};
+
+/**
+ * Unauthorised error schema for open API docs
+ */
+export const UnauthorisedErrorSchema = {
+   401: {
+      description: 'Unauthorised',
+      content: {
+         'application/json': {
+            schema: z.object({
+               error: z.literal('UNAUTHORISED'),
+               message: z.union([z.literal('The request credentials are incorrect'), z.string()])
             })
          }
       }

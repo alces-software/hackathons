@@ -5,7 +5,7 @@ USE bank;
 CREATE TABLE Accounts(
    username VARCHAR(255) PRIMARY KEY,
    password VARCHAR(255) NOT NULL,
-   balance INT NOT NULL
+   balance INT NOT NULL DEFAULT 500
 );
 CREATE TABLE Services(
    id INT AUTO_INCREMENT PRIMARY KEY,

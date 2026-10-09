@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 
 import { ConflictErrorSchema, InternalServerErrorSchema } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
+import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
 import { ensureAccountDoesntExist } from '../lib/helpers';
 
 export default new OpenAPIHono().openapi(
@@ -15,8 +16,7 @@ export default new OpenAPIHono().openapi(
             content: {
                'application/json': {
                   schema: z.object({
-                     username: z.string().trim(),
-                     password: z.hash('sha256').trim()
+                     ...JSONUsernameAndPasswordSchema
                   })
                }
             }
@@ -36,6 +36,14 @@ export default new OpenAPIHono().openapi(
       await prisma.$transaction(async (tx) => {
          // Make sure an account with the username doesnt already exist
          await ensureAccountDoesntExist(body.username, tx);
+
+         // Create the user in the database
+         await tx.accounts.create({
+            data: {
+               username: body.username,
+               password: body.password
+            }
+         });
       });
 
       return c.body(null, 204);

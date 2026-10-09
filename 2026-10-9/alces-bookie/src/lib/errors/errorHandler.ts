@@ -6,7 +6,8 @@ import {
    badRequestErrorResponse,
    conflictErrorResponse,
    internalServerErrorResponse,
-   notFoundErrorResponse
+   notFoundErrorResponse,
+   unauthorisedErrorResponse
 } from './responses';
 
 /**
@@ -20,6 +21,8 @@ export default function handleErrors(c: Context, error: unknown) {
       switch (error.status) {
          case 400:
             return badRequestErrorResponse(c, error.message);
+         case 401:
+            return unauthorisedErrorResponse(c, error.message);
          case 404:
             return notFoundErrorResponse(c, error.message);
          case 409:
@@ -33,6 +36,11 @@ export default function handleErrors(c: Context, error: unknown) {
       switch (error.code) {
          case APIErrorCode.BadRequest:
             return badRequestErrorResponse(
+               c,
+               `${error.message}${error.context ? `\nContext: ${error.context}` : ''}`
+            );
+         case APIErrorCode.Unauthorised:
+            return unauthorisedErrorResponse(
                c,
                `${error.message}${error.context ? `\nContext: ${error.context}` : ''}`
             );

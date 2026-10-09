@@ -1,6 +1,12 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 
-import { InternalServerErrorSchema, NotFoundErrorSchema } from '../../../../lib/errors/schemas';
+import {
+   InternalServerErrorSchema,
+   NotFoundErrorSchema,
+   UnauthorisedErrorSchema
+} from '../../../../lib/errors/schemas';
+import { prisma } from '../../../../lib/prisma';
+import { ensureAccountCredentialsMatch } from '../lib/helpers';
 
 export default new OpenAPIHono().openapi(
    createRoute({
@@ -26,10 +32,21 @@ export default new OpenAPIHono().openapi(
          }
       },
       ...NotFoundErrorSchema,
+      ...UnauthorisedErrorSchema,
       ...InternalServerErrorSchema
    }),
    async (c) => {
       const body = c.req.valid('json');
+
+      await prisma.$transaction(async (tx) => {
+         // Make sure the user exists and user credentials match
+         await ensureAccountCredentialsMatch(body.username, body.password, tx);
+
+         // Delete the account
+         await tx.accounts.delete({
+            where: { username: body.username }
+         });
+      });
 
       return c.body(null, 204);
    }
