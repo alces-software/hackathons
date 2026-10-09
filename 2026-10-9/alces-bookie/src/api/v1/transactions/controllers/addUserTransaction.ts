@@ -58,7 +58,7 @@ export default new OpenAPIHono().openapi(
          await ensureAccountCredentialsMatch(body.username, body.password, tx);
 
          // Make sure the send has enough in their account
-         if (sender.balance.toNumber() - body.amount < 0) {
+         if (sender.balance.minus(body.amount).lessThan(0)) {
             throw new APIError(APIErrorCode.BadRequest, {
                message: `${body.username} does not have enough to send to ${username}`
             });
@@ -106,18 +106,21 @@ export default new OpenAPIHono().openapi(
          });
 
          // Get service information
-         const service = await tx.services.findUnique({
-            where: {
-               name: 'transfer'
-            }, select: {
-               id: true
-            }
-         }).then((service) => {
-            if (!service) {
-               throw new APIError(APIErrorCode.InternalServerError);
-            }
-            return service
-         });
+         const service = await tx.services
+            .findUnique({
+               where: {
+                  name: 'transfer'
+               },
+               select: {
+                  id: true
+               }
+            })
+            .then((service) => {
+               if (!service) {
+                  throw new APIError(APIErrorCode.InternalServerError);
+               }
+               return service;
+            });
 
          // Add sender ledger
          await tx.ledger.create({
@@ -139,7 +142,7 @@ export default new OpenAPIHono().openapi(
                afterBalance: receiver.balance.plus(body.amount - banksCut),
                timestamp: new Date()
             }
-         })
+         });
       });
 
       return c.body(null, 204);

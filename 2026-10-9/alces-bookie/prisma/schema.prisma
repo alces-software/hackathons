@@ -30,6 +30,6 @@ model Ledger {
 model Services {
   id     Int      @id @default(autoincrement())
   name   String   @unique(map: "name") @db.VarChar(255)
-  token  String   @db.VarChar(255)
+  token  String   @unique(map: "token") @db.VarChar(255)
   Ledger Ledger[]
 }
