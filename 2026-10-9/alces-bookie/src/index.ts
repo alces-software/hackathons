@@ -55,6 +55,21 @@ hono.get(
    })
 );
 
+hono.get(
+   '/api/v1/ws',
+   upgradeWebSocket(() => ({
+      onOpen(_event, ws) {
+         addClient(ws);
+      },
+      onClose(_event, ws) {
+         removeClient(ws);
+      },
+      onError(_event, ws) {
+         removeClient(ws);
+      }
+   }))
+);
+
 // HANDLE ERRORS
 import handleErrors from './lib/errors/errorHandler';
 hono.onError((error, c) => handleErrors(c, error));
@@ -63,7 +78,9 @@ hono.notFound((c) => {
 });
 
 // START UP SERVER
-import { serve } from '@hono/node-server';
+import { serve, upgradeWebSocket } from '@hono/node-server';
+
+import { addClient, removeClient } from './lib/publisher';
 serve({
    fetch: hono.fetch,
    port: Number(process.env.PORT) || 3000
