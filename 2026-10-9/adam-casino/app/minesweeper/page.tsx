@@ -10,7 +10,7 @@ type Round = { id: number; phase: Phase; mines: Set<number>; picked: Set<number>
 
 const gridSizes = [5, 6, 7, 8];
 const densities = [0.4, 0.48, 0.56, 0.68, 0.8];
-const MIN_MINES = 13;
+const MIN_MINES = 10;
 const RETURN_TO_PLAYER = 0.97;
 const MAX_MULTIPLIER = 20;
 const iconSize: Record<number, number> = { 5: 34, 6: 30, 7: 26, 8: 22 };

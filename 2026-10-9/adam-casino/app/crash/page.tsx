@@ -12,13 +12,13 @@ const MOOSE_FACES_LEFT = true;
 const GROWTH = 0.15;
 const OFFSET = 0.125 / GROWTH;
 const HOUSE_RETURN = 0.90;
-const MIN_CASHOUT_SECONDS = 2;
-const multiplierAt = (seconds: number) => (1 + OFFSET) * Math.exp(GROWTH * seconds) - OFFSET;
-const timeToReach = (point: number) => Math.log((point + OFFSET) / (1 + OFFSET)) / GROWTH;
+const START_MULTIPLIER = 0.5;
+const multiplierAt = (seconds: number) => (START_MULTIPLIER + OFFSET) * Math.exp(GROWTH * seconds) - OFFSET;
+const timeToReach = (point: number) => Math.log((point + OFFSET) / (START_MULTIPLIER + OFFSET)) / GROWTH;
 
 function getCrashPoint() {
   const roll = Math.random();
-  return Math.max(1.01, Math.min(20, Number((HOUSE_RETURN / (1 - roll)).toFixed(2))));
+  return Math.max(0.51, Math.min(20, Number((HOUSE_RETURN / (1 - roll)).toFixed(2))));
 }
 
 const LEFT = 56;
@@ -161,10 +161,6 @@ export default function Crash() {
     const current = round.current;
     if (status !== "running" || !current) return;
     const seconds = (performance.now() - current.start) / 1000;
-    if (seconds < MIN_CASHOUT_SECONDS) {
-      setMessage(`Cash out unlocks in ${(MIN_CASHOUT_SECONDS - seconds).toFixed(1)} seconds.`);
-      return;
-    }
     if (seconds >= current.crashTime) return;
     cancelAnimationFrame(raf.current);
     raf.current = 0;
@@ -198,32 +194,30 @@ export default function Crash() {
     setMessage("Place a bet and send the moose out.");
   }
 
-  const multiplier = status === "running" ? Math.max(1, Math.floor(multiplierAt(elapsed) * 100) / 100) : status === "crashed" ? crashPoint ?? 1 : status === "cashed-out" ? cashMultiplier ?? 1 : 1;
+  const multiplier = status === "running" ? Math.max(START_MULTIPLIER, Math.floor(multiplierAt(elapsed) * 100) / 100) : status === "crashed" ? crashPoint ?? START_MULTIPLIER : status === "cashed-out" ? cashMultiplier ?? START_MULTIPLIER : START_MULTIPLIER;
   const tip = multiplierAt(elapsed);
   const tMax = Math.max(7, elapsed * 1.08);
-  const mMax = Math.max(2, tip * 1.12);
+  const mMax = Math.max(START_MULTIPLIER + 1, tip * 1.12);
   const px = (t: number) => LEFT + (t / tMax) * (RIGHT - LEFT);
-  const py = (value: number) => GROUND - ((value - 1) / (mMax - 1)) * (GROUND - TOP);
+  const py = (value: number) => GROUND - ((value - START_MULTIPLIER) / (mMax - START_MULTIPLIER)) * (GROUND - TOP);
 
   const curve = elapsed > 0 ? Array.from({ length: 61 }, (_, i) => { const t = (elapsed * i) / 60; return `${px(t).toFixed(1)} ${py(multiplierAt(t)).toFixed(1)}`; }) : [];
   const linePath = curve.length ? `M${curve.join("L")}` : "";
   const areaPath = curve.length ? `${linePath}L${px(elapsed).toFixed(1)} ${GROUND}L${LEFT} ${GROUND}Z` : "";
   const mooseX = px(elapsed);
   const mooseY = py(tip) - 16;
-  const slope = ((GROWTH * (tip + OFFSET)) / (mMax - 1)) * (GROUND - TOP) / ((RIGHT - LEFT) / tMax);
+  const slope = ((GROWTH * (tip + OFFSET)) / (mMax - START_MULTIPLIER)) * (GROUND - TOP) / ((RIGHT - LEFT) / tMax);
   const angle = status === "ready" ? 0 : Math.round(-Math.min(40, (Math.atan(slope) * 180) / Math.PI) * 10) / 10;
 
-  const range = mMax - 1;
+  const range = mMax - START_MULTIPLIER;
   const step = [0.25, 0.5, 1, 2, 5, 10, 20].find((candidate) => range / candidate <= 5) ?? 20;
   const ticks: number[] = [];
-  for (let v = Math.ceil(1.0001 / step) * step; v < mMax; v += step) if (v > 1.0001) ticks.push(v);
+  for (let v = Math.ceil((START_MULTIPLIER + 0.0001) / step) * step; v < mMax; v += step) if (v > START_MULTIPLIER + 0.0001) ticks.push(v);
 
   const stroke = status === "crashed" ? "#fb7185" : status === "cashed-out" ? "#34d399" : "#38bdf8";
   const areaFill = status === "crashed" ? "url(#bm-area-lose)" : status === "cashed-out" ? "url(#bm-area-win)" : "url(#bm-area-run)";
   const dropPx = GROUND + 6 - mooseY;
   const ended = status === "crashed" || status === "cashed-out";
-  const cashoutLocked = status === "running" && elapsed < MIN_CASHOUT_SECONDS;
-  const cashoutWait = Math.max(0, MIN_CASHOUT_SECONDS - elapsed);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#071426] text-white">
@@ -311,7 +305,7 @@ export default function Crash() {
             </div>
             <div className="space-y-4">
               <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4"><label htmlFor="crash-bet" className="text-xs font-bold uppercase tracking-wider text-sky-100/65">Bet amount</label><div className="mt-2 flex items-center gap-2">              <input id="crash-bet" type="number" min="1" max={MAX_BET} value={bet || ""} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setBet(Number(event.target.value) || 0)} disabled={status === "running"} className="w-full rounded-lg border border-sky-200/20 bg-slate-900 px-3 py-2 text-lg font-bold text-white outline-none focus:border-sky-400" /><span className="text-sm text-sky-100/65">moose bucks</span></div><p className="mt-2 text-xs text-sky-100/45">Table limit: {MAX_BET} moose bucks</p></div>
-              <button onClick={status === "running" ? cashOut : startRound} disabled={cashoutLocked} className={`w-full rounded-xl px-4 py-3 text-sm font-bold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${status === "running" ? "bm-btn-glow bg-emerald-400 text-[#071426] hover:bg-emerald-300" : "bg-sky-400 text-[#071426] hover:bg-sky-300"}`}>{status === "running" ? cashoutLocked ? `Cash out in ${cashoutWait.toFixed(1)}s` : `Hop off at ${multiplier.toFixed(2)}×` : status === "crashed" || status === "cashed-out" ? "Another run" : "Send the moose"}</button>
+              <button onClick={status === "running" ? cashOut : startRound} className={`w-full rounded-xl px-4 py-3 text-sm font-bold transition active:scale-95 ${status === "running" ? "bm-btn-glow bg-emerald-400 text-[#071426] hover:bg-emerald-300" : "bg-sky-400 text-[#071426] hover:bg-sky-300"}`}>{status === "running" ? `Hop off at ${multiplier.toFixed(2)}×` : status === "crashed" || status === "cashed-out" ? "Another run" : "Send the moose"}</button>
               {status !== "ready" && status !== "running" && <button onClick={resetRound} className="w-full text-xs text-sky-100/65 hover:text-white">Reset round</button>}
               <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4"><p className="text-xs font-bold uppercase tracking-wider text-sky-100/55">How payouts work</p><p className="mt-2 text-sm leading-6 text-sky-100/65">Your stake is deducted when the moose sets off. Hopping off returns your stake multiplied by the current multiplier. If it crashes first, the stake is lost. The crash curve targets a 90% return to player.</p></div>
             </div>
