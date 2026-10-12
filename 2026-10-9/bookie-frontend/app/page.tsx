@@ -1,24 +1,38 @@
 import Link from "next/link";
-import { getTransactions, getUsers, ApiError, type Txn, type User } from "@/lib/api";
+import {
+  getTransactions,
+  getUsers,
+  ApiError,
+  type Txn,
+  type User,
+} from "@/lib/api";
 import { fmtAmount } from "@/lib/format";
 import { TxnTable } from "@/components/txn-table";
+import { PageNav } from "@/components/pagination";
 
-export default async function HomePage() {
-  let recent: Txn[] | null = null;
+type Props = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function HomePage({ searchParams }: Props) {
+  const sp = await searchParams;
+  const raw = Array.isArray(sp.page) ? sp.page[0] : sp.page;
+  const accountsPage = Math.max(1, Number.parseInt(raw ?? "1", 10) || 1);
+
+  let latest: Txn[] | null = null;
   let users: User[] | null = null;
   let userTotal = 0;
+  let userPages = 1;
 
   try {
-    const [t, u] = await Promise.all([
-      getTransactions(1, 8),
-      getUsers(1, 12),
-    ]);
-    recent = t.data;
+    const [t, u] = await Promise.all([loadLatestEntries(), getUsers(accountsPage, 12)]);
+    latest = t;
     users = u.data;
     userTotal = u.itemTotal;
+    userPages = u.totalPages;
   } catch (e) {
     if (!(e instanceof ApiError)) throw e;
-    recent = null;
+    latest = null;
     users = null;
   }
 
@@ -44,7 +58,8 @@ export default async function HomePage() {
         </div>
         <div className="mt-4">
           <TxnTable
-            rows={recent}
+            rows={latest}
+            newestFirst
             emptyMessage="The book is blank — no service has made an entry yet."
           />
         </div>
@@ -54,9 +69,7 @@ export default async function HomePage() {
         <div className="flex items-baseline gap-4">
           <h2 className="sc">Accounts</h2>
           <span className="text-xs text-muted">
-            {users !== null
-              ? `${userTotal} on the book`
-              : "—"}
+            {users !== null ? `${userTotal} on the book` : "—"}
           </span>
         </div>
         {users === null ? (
@@ -64,27 +77,51 @@ export default async function HomePage() {
             Names and balances can’t be read right now.
           </p>
         ) : users.length === 0 ? (
-          <p className="mt-4 text-sm text-muted">
-            Nobody has signed the book yet.{" "}
-            <Link href="/signup" className="underline underline-offset-4">
-              Open the first account
-            </Link>
-            .
-          </p>
+          accountsPage > 1 ? (
+            <p className="mt-4 text-sm text-muted">
+              Nothing on this page — turn back.
+            </p>
+          ) : (
+            <p className="mt-4 text-sm text-muted">
+              Nobody has signed the book yet.{" "}
+              <Link href="/signup" className="underline underline-offset-4">
+                Open the first account
+              </Link>
+              .
+            </p>
+          )
         ) : (
-          <ul className="mt-4 divide-y divide-rule/70 border-t border-b border-rule/70">
-            {users.map((u) => (
-              <li
-                key={u.username}
-                className="flex items-baseline justify-between gap-4 py-1.5"
-              >
-                <span className="text-sm font-medium">{u.username}</span>
-                <span className="amt text-sm">{fmtAmount(u.balance)}</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="mt-4 divide-y divide-rule/70 border-t border-b border-rule/70">
+              {users.map((u) => (
+                <li
+                  key={u.username}
+                  className="flex items-baseline justify-between gap-4 py-1.5"
+                >
+                  <span className="text-sm font-medium">{u.username}</span>
+                  <span className="amt text-sm">{fmtAmount(u.balance)}</span>
+                </li>
+              ))}
+            </ul>
+            <PageNav
+              page={accountsPage}
+              totalPages={userPages}
+              itemTotal={userTotal}
+              basePath="/"
+              noun="account"
+            />
+          </>
         )}
       </section>
     </div>
   );
+}
+
+/** The core paginates oldest-first, so the freshest entries sit on the last
+ *  page. Peek at page one to learn where the end of the book is, then read it. */
+async function loadLatestEntries(): Promise<Txn[]> {
+  const head = await getTransactions(1, 8);
+  if (head.totalPages <= 1) return head.data;
+  const tail = await getTransactions(head.totalPages, 8);
+  return tail.data;
 }

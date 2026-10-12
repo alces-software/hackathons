@@ -1,12 +1,14 @@
 import type { Txn } from "@/lib/api";
-import { byTimestampDesc, fmtAmount, fmtTimestamp } from "@/lib/format";
+import { byTimestampAsc, fmtAmount, fmtTimestamp } from "@/lib/format";
 
 type Props = {
   rows: Txn[] | null;
   emptyMessage?: string;
+  /** Teaser only — the ledger itself always reads oldest first. */
+  newestFirst?: boolean;
 };
 
-export function TxnTable({ rows, emptyMessage }: Props) {
+export function TxnTable({ rows, emptyMessage, newestFirst }: Props) {
   if (rows === null) {
     return (
       <div className="border border-rule bg-paper-2 px-4 py-6 text-sm text-muted">
@@ -18,7 +20,8 @@ export function TxnTable({ rows, emptyMessage }: Props) {
     );
   }
 
-  const txns = [...rows].sort(byTimestampDesc);
+  const txns = [...rows].sort(byTimestampAsc);
+  if (newestFirst) txns.reverse();
 
   if (txns.length === 0) {
     return (

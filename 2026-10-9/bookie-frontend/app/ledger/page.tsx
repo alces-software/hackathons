@@ -35,7 +35,7 @@ export default async function LedgerPage({ searchParams }: Props) {
     <div>
       <LiveLedger />
       <h1 className="font-serif text-3xl">The ledger</h1>
-      <p className="sc mt-1 text-muted">every entry, newest first</p>
+      <p className="sc mt-1 text-muted">every entry, in the order it was written</p>
 
       <div className="mt-8">
         <TxnTable

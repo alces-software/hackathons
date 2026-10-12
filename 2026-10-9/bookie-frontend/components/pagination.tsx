@@ -5,7 +5,14 @@ type Props = {
   totalPages: number;
   itemTotal: number;
   basePath: string;
+  /** What one item is called — defaults to "entry" (pluralised with an s). */
+  noun?: string;
 };
+
+function countLabel(itemTotal: number, noun?: string): string {
+  const word = itemTotal === 1 ? noun ?? "entry" : `${noun ?? "entry"}s`;
+  return `${itemTotal} ${word}`;
+}
 
 function pageHref(basePath: string, p: number) {
   return p === 1 ? basePath : `${basePath}?page=${p}`;
@@ -28,11 +35,11 @@ function windowPages(current: number, total: number): (number | "…")[] {
   return out;
 }
 
-export function PageNav({ page, totalPages, itemTotal, basePath }: Props) {
+export function PageNav({ page, totalPages, itemTotal, basePath, noun }: Props) {
   if (totalPages <= 1) {
     return (
       <p className="sc mt-4 text-muted">
-        {itemTotal} {itemTotal === 1 ? "entry" : "entries"} in the book
+        {countLabel(itemTotal, noun)} in the book
       </p>
     );
   }
@@ -40,7 +47,7 @@ export function PageNav({ page, totalPages, itemTotal, basePath }: Props) {
   return (
     <nav className="mt-5 flex items-center justify-between border-t border-rule pt-3">
       <p className="sc text-muted">
-        Page {page} of {totalPages} · {itemTotal} entries
+        Page {page} of {totalPages} · {countLabel(itemTotal, noun)}
       </p>
       <div className="flex items-center gap-1 text-sm">
         {page > 1 && (

@@ -32,7 +32,16 @@ export function fmtTimestamp(iso: string): string {
   return dateFmt.format(d);
 }
 
-/** Newest first, used for every table we render. */
+/** Oldest first — the order the book was written in. Equal timestamps keep
+ *  the order the core handed over, so a transfer's two entries stay paired. */
+export function byTimestampAsc(
+  a: { timestamp: string },
+  b: { timestamp: string },
+): number {
+  return Date.parse(a.timestamp) - Date.parse(b.timestamp);
+}
+
+/** Newest first, for "latest" teasers only — never for the ledger itself. */
 export function byTimestampDesc(
   a: { timestamp: string },
   b: { timestamp: string },
