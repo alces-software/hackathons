@@ -1,0 +1,79 @@
+import { NextResponse } from "next/server";
+
+type TransferRequest = {
+  username?: string;
+  password?: string;
+  amount?: number;
+  maximumPayout?: number;
+  game?: "roulette" | "crash" | "minesweeper" | "plinko" | "uno" | "blackjack";
+  direction?: "stake" | "payout";
+};
+
+const bankingApiUrl = process.env.BANKING_API_URL ?? "http://10.151.0.85:3000/api/v1";
+
+function errorResponse(message: string, status: number) {
+  return NextResponse.json({ error: message }, { status });
+}
+
+export async function POST(request: Request) {
+  let body: TransferRequest;
+  try {
+    body = await request.json() as TransferRequest;
+  } catch {
+    return errorResponse("The transfer request must be valid JSON.", 400);
+  }
+
+  const { direction } = body;
+  const username = typeof body.username === "string" ? body.username.trim() : "";
+  const password = typeof body.password === "string" ? body.password : "";
+  const amount = typeof body.amount === "number" ? body.amount : NaN;
+  const maximumPayout = typeof body.maximumPayout === "number" ? body.maximumPayout : amount;
+  const game = body.game;
+  if (!username || !password || !Number.isFinite(amount) || amount <= 0 || !Number.isFinite(maximumPayout) || maximumPayout < amount || !direction) {
+    return errorResponse("Username, password, a positive amount, and direction are required.", 400);
+  }
+
+  const serviceToken = process.env.BANKING_SERVICE_TOKEN;
+  const casinoUsername = process.env.CASINO_USERNAME;
+  const casinoPassword = process.env.CASINO_PASSWORD;
+  if (!serviceToken || !casinoUsername || !casinoPassword) {
+    return errorResponse("Banking service credentials are not configured.", 503);
+  }
+
+  const transferUsername = direction === "stake" ? casinoUsername : username;
+  const credentials = direction === "stake"
+    ? { username, password }
+    : { username: casinoUsername, password: casinoPassword };
+
+  try {
+    if (direction === "stake") {
+      if (!game) return errorResponse("The game must be identified before placing a bet.", 400);
+      const payoutMultipliers = { roulette: 36, crash: 20, minesweeper: 20, plinko: 16, uno: 1.95, blackjack: 2.5 };
+      const maximumGamePayout = amount * payoutMultipliers[game];
+      const balanceResponse = await fetch(`${bankingApiUrl}/users/${encodeURIComponent(casinoUsername)}`, { cache: "no-store" });
+      if (!balanceResponse.ok) return errorResponse("The casino balance could not be verified, so this bet cannot be accepted.", 503);
+      const balanceBody = await balanceResponse.json() as { balance?: number | string };
+      const casinoBalance = typeof balanceBody.balance === "number" ? balanceBody.balance : Number(balanceBody.balance);
+      if (!Number.isFinite(casinoBalance) || casinoBalance + amount < maximumGamePayout) {
+        return errorResponse("The casino cannot currently cover the maximum payout for this bet.", 409);
+      }
+    }
+    const response = await fetch(`${bankingApiUrl}/transactions/service/${encodeURIComponent(transferUsername)}`, {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ ...credentials, serviceToken, amount }),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      const details = await response.text();
+      if (response.status === 401) {
+        return errorResponse("The connected banking account credentials were rejected. Disconnect and reconnect with the correct password.", 401);
+      }
+      return errorResponse(details || `Banking transfer failed with status ${response.status}.`, response.status >= 500 ? 502 : response.status);
+    }
+    return new Response(null, { status: 204 });
+  } catch {
+    return errorResponse("The banking service could not be reached.", 502);
+  }
+}

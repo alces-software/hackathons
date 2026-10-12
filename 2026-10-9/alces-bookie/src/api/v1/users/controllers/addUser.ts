@@ -46,6 +46,6 @@ export default new OpenAPIHono().openapi(
          });
       });
 
-      return c.body(null, 204);
+      return c.body(null, 201);
    }
 );

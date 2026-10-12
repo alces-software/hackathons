@@ -78,6 +78,11 @@ export default new OpenAPIHono().openapi(
             }
          });
 
+         // Calculate banks take
+         const banksCut = Number(
+            (body.amount * Number(process.env.SERVICE_TRANSACTION_FEE ?? 0)).toFixed(2)
+         );
+
          // Ensure destination user exists
          const receiver = await ensureAccountExists(username, tx, {});
 
@@ -87,7 +92,20 @@ export default new OpenAPIHono().openapi(
                username: receiver.username
             },
             data: {
-               balance: receiver.balance.plus(body.amount)
+               balance: receiver.balance.plus(body.amount - banksCut)
+            }
+         });
+
+         // Get the bank information
+         const bank = await ensureAccountExists(process.env.BANK_USERNAME ?? 'bank', tx, {});
+
+         // Update the bank
+         await tx.accounts.update({
+            where: {
+               username: bank.username
+            },
+            data: {
+               balance: bank.balance.plus(banksCut)
             }
          });
 
