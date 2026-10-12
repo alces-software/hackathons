@@ -28,7 +28,7 @@ export function unauthorisedErrorResponse(c: Context, message?: string) {
          error: 'UNAUTHORISED' as const,
          message: message || ('The request credentials are incorrect' as const)
       },
-      400
+      401
    );
 }
 
