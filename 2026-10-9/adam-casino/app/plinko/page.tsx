@@ -101,7 +101,8 @@ export default function Plinko() {
         const returned = ball.stake * multiplier;
         const profit = returned - ball.stake;
         hit.current = { slot: ball.slot, time: now };
-        bankingPayout(returned).then(() => syncBankingBalance(setBalance)).then(() => {
+        const settle = returned > 0 ? bankingPayout(returned).then(() => syncBankingBalance(setBalance)) : Promise.resolve();
+        settle.then(() => {
           setNet((current) => current + profit);
           setHistory((current) => [{ id: ball.id, multiplier }, ...current].slice(0, 12));
           setMessage(multiplier >= 1
