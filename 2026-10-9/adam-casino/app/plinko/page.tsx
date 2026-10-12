@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { bankingPayout, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
 
 
-const multipliers = [16, 6, 2.5, 1.2, 0.6, 0.2, 0.6, 1.2, 2.5, 6, 16];
+const multipliers = [10, 5, 2, 1, 0.5, 0, 0.5, 1, 2, 5, 10];
 const ROWS = 10;
 
 
@@ -77,7 +77,7 @@ function slotStyle(multiplier: number) {
 }
 
 export default function Plinko() {
-  const MAX_BET = 250;
+  const MAX_BET = 100;
   const [balance, setBalance] = useBankingBalance();
   const [bet, setBet] = useState(25);
   const [message, setMessage] = useState("Choose a stake and drop a chip.");
@@ -216,7 +216,7 @@ export default function Plinko() {
                 <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3"><p className="text-xs uppercase tracking-wider text-sky-100/55">In play</p><p className="mt-1 text-xl font-bold text-sky-200">{inPlay}</p></div>
                 <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3"><p className="text-xs uppercase tracking-wider text-sky-100/55">Session</p><p className={`mt-1 text-xl font-bold ${net > 0 ? "text-emerald-300" : net < 0 ? "text-rose-300" : "text-sky-200"}`}>{net > 0 ? "+" : ""}{net.toFixed(2)}</p></div>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4"><p className="text-xs font-bold uppercase tracking-wider text-sky-100/55">Payouts</p><p className="mt-2 text-sm leading-6 text-sky-100/65">Every peg sends a chip left or right, so the middle slots come up most often and the edges rarely. The 16× edge slots pay your stake plus 15× profit. Expected return is about {(returnToPlayer * 100).toFixed(1)}%.</p></div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4"><p className="text-xs font-bold uppercase tracking-wider text-sky-100/55">Payouts</p><p className="mt-2 text-sm leading-6 text-sky-100/65">Every peg sends a chip left or right, so the middle slots come up most often and the edges rarely. The 10× edge slots pay your stake plus 9× profit; the centre slot pays 0×. Expected return is about {(returnToPlayer * 100).toFixed(1)}%.</p></div>
             </div>
           </div>
         </section>

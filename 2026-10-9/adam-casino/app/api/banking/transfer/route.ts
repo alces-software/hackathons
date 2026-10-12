@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   try {
     if (direction === "stake") {
       if (!game) return errorResponse("The game must be identified before placing a bet.", 400);
-      const payoutMultipliers = { roulette: 36, crash: 20, minesweeper: 20, plinko: 16, uno: 1.95, blackjack: 2.5 };
+      const payoutMultipliers = { roulette: 36, crash: 20, minesweeper: 20, plinko: 10, uno: 1.95, blackjack: 2.5 };
       const maximumGamePayout = amount * payoutMultipliers[game];
       const balanceResponse = await fetch(`${bankingApiUrl}/users/${encodeURIComponent(casinoUsername)}`, { cache: "no-store" });
       if (!balanceResponse.ok) return errorResponse("The casino balance could not be verified, so this bet cannot be accepted.", 503);
