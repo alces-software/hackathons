@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 export type BankingCredentials = { username: string; password: string };
+export type CasinoGame = "roulette" | "crash" | "minesweeper" | "plinko" | "uno" | "blackjack";
 
 const credentialsKey = "alces-banking-credentials";
 
@@ -36,11 +37,11 @@ export function useBankingBalance() {
   return [balance, setBalance] as const;
 }
 
-export async function bankingTransfer(credentials: BankingCredentials, amount: number, direction: "stake" | "payout") {
+export async function bankingTransfer(credentials: BankingCredentials, amount: number, direction: "stake" | "payout", maximumPayout?: number, game?: CasinoGame) {
   const response = await fetch("/api/banking/transfer", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...credentials, amount, direction }),
+    body: JSON.stringify({ ...credentials, amount, direction, maximumPayout, game }),
   });
   if (!response.ok) {
     const body = await response.json().catch(() => null) as { error?: string } | null;
@@ -48,10 +49,10 @@ export async function bankingTransfer(credentials: BankingCredentials, amount: n
   }
 }
 
-export async function bankingStake(amount: number) {
+export async function bankingStake(amount: number, game: CasinoGame) {
   const credentials = getStoredBankingCredentials();
   if (!credentials) throw new Error("Connect a banking account before placing a bet.");
-  await bankingTransfer(credentials, amount, "stake");
+  await bankingTransfer(credentials, amount, "stake", undefined, game);
 }
 
 export async function bankingPayout(amount: number) {

@@ -217,7 +217,7 @@ export default function Uno() {
       return;
     }
     try {
-      await bankingStake(bet);
+      await bankingStake(bet, "uno");
       await syncBankingBalance(setBalance);
     } catch (error) {
       setG((current) => ({ ...current, message: error instanceof Error ? error.message : "Could not place the stake." }));

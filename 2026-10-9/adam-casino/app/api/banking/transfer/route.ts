@@ -4,6 +4,8 @@ type TransferRequest = {
   username?: string;
   password?: string;
   amount?: number;
+  maximumPayout?: number;
+  game?: "roulette" | "crash" | "minesweeper" | "plinko" | "uno" | "blackjack";
   direction?: "stake" | "payout";
 };
 
@@ -25,7 +27,9 @@ export async function POST(request: Request) {
   const username = typeof body.username === "string" ? body.username.trim() : "";
   const password = typeof body.password === "string" ? body.password : "";
   const amount = typeof body.amount === "number" ? body.amount : NaN;
-  if (!username || !password || !Number.isFinite(amount) || amount <= 0 || !direction) {
+  const maximumPayout = typeof body.maximumPayout === "number" ? body.maximumPayout : amount;
+  const game = body.game;
+  if (!username || !password || !Number.isFinite(amount) || amount <= 0 || !Number.isFinite(maximumPayout) || maximumPayout < amount || !direction) {
     return errorResponse("Username, password, a positive amount, and direction are required.", 400);
   }
 
@@ -42,6 +46,18 @@ export async function POST(request: Request) {
     : { username: casinoUsername, password: casinoPassword };
 
   try {
+    if (direction === "stake") {
+      if (!game) return errorResponse("The game must be identified before placing a bet.", 400);
+      const payoutMultipliers = { roulette: 36, crash: 20, minesweeper: 20, plinko: 16, uno: 1.95, blackjack: 2.5 };
+      const maximumGamePayout = amount * payoutMultipliers[game];
+      const balanceResponse = await fetch(`${bankingApiUrl}/users/${encodeURIComponent(casinoUsername)}`, { cache: "no-store" });
+      if (!balanceResponse.ok) return errorResponse("The casino balance could not be verified, so this bet cannot be accepted.", 503);
+      const balanceBody = await balanceResponse.json() as { balance?: number | string };
+      const casinoBalance = typeof balanceBody.balance === "number" ? balanceBody.balance : Number(balanceBody.balance);
+      if (!Number.isFinite(casinoBalance) || casinoBalance + amount < maximumGamePayout) {
+        return errorResponse("The casino cannot currently cover the maximum payout for this bet.", 409);
+      }
+    }
     const response = await fetch(`${bankingApiUrl}/transactions/service/${encodeURIComponent(transferUsername)}`, {
       method: "POST",
       headers: { Accept: "application/json", "Content-Type": "application/json" },
@@ -51,6 +67,9 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const details = await response.text();
+      if (response.status === 401) {
+        return errorResponse("The connected banking account credentials were rejected. Disconnect and reconnect with the correct password.", 401);
+      }
       return errorResponse(details || `Banking transfer failed with status ${response.status}.`, response.status >= 500 ? 502 : response.status);
     }
     return new Response(null, { status: 204 });

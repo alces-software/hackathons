@@ -67,7 +67,7 @@ export default function Roulette() {
     }
     setSpinning(true);
     try {
-      await bankingStake(bet);
+      await bankingStake(bet, "roulette");
       await syncBankingBalance(setBalance);
     } catch (error) {
       setSpinning(false);

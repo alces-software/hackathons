@@ -123,7 +123,7 @@ export default function Plinko() {
     try {
       let placed = 0;
       try {
-        for (; placed < count; placed += 1) await bankingStake(bet);
+        for (; placed < count; placed += 1) await bankingStake(bet, "plinko");
       } catch (error) {
         if (placed > 0) await bankingPayout(bet * placed);
         throw error;

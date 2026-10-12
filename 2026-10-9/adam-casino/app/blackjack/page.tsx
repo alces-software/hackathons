@@ -88,7 +88,7 @@ export default function Blackjack() {
   async function deal() {
     if (bet < 1 || bet > MAX_BET || bet > balance) { setMessage(`Choose a bet between 1 and ${MAX_BET} moose bucks within your available balance.`); return; }
     try {
-      await bankingStake(bet);
+      await bankingStake(bet, "blackjack");
       await syncBankingBalance(setBalance);
       const deck = shoe.length < 20 ? makeShoe() : shoe;
       const [p1, r1] = draw(deck); const [d1, r2] = draw(r1); const [p2, r3] = draw(r2); const [d2, nextShoe] = draw(r3);
@@ -148,7 +148,7 @@ export default function Blackjack() {
     if (bet * 2 > MAX_BET) { setMessage(`The table limit is ${MAX_BET} moose bucks.`); return; }
     if (balance < bet) { setMessage("You need enough balance to double your bet."); return; }
     try {
-      await bankingStake(bet);
+      await bankingStake(bet, "blackjack");
       await syncBankingBalance(setBalance);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not place the additional stake.");

@@ -11,7 +11,8 @@ const MOOSE_FACES_LEFT = true;
 
 const GROWTH = 0.15;
 const OFFSET = 0.125 / GROWTH;
-const HOUSE_RETURN = 0.97;
+const HOUSE_RETURN = 0.90;
+const MIN_CASHOUT_SECONDS = 2;
 const multiplierAt = (seconds: number) => (1 + OFFSET) * Math.exp(GROWTH * seconds) - OFFSET;
 const timeToReach = (point: number) => Math.log((point + OFFSET) / (1 + OFFSET)) / GROWTH;
 
@@ -138,7 +139,7 @@ export default function Crash() {
       return;
     }
     try {
-      await bankingStake(bet);
+      await bankingStake(bet, "crash");
       await syncBankingBalance(setBalance);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not place the stake.");
@@ -160,7 +161,11 @@ export default function Crash() {
     const current = round.current;
     if (status !== "running" || !current) return;
     const seconds = (performance.now() - current.start) / 1000;
-    if (seconds >= current.crashTime) return; 
+    if (seconds < MIN_CASHOUT_SECONDS) {
+      setMessage(`Cash out unlocks in ${(MIN_CASHOUT_SECONDS - seconds).toFixed(1)} seconds.`);
+      return;
+    }
+    if (seconds >= current.crashTime) return;
     cancelAnimationFrame(raf.current);
     raf.current = 0;
     const multiplier = Math.floor(multiplierAt(seconds) * 100) / 100;
@@ -217,6 +222,8 @@ export default function Crash() {
   const areaFill = status === "crashed" ? "url(#bm-area-lose)" : status === "cashed-out" ? "url(#bm-area-win)" : "url(#bm-area-run)";
   const dropPx = GROUND + 6 - mooseY;
   const ended = status === "crashed" || status === "cashed-out";
+  const cashoutLocked = status === "running" && elapsed < MIN_CASHOUT_SECONDS;
+  const cashoutWait = Math.max(0, MIN_CASHOUT_SECONDS - elapsed);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#071426] text-white">
@@ -304,9 +311,9 @@ export default function Crash() {
             </div>
             <div className="space-y-4">
               <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4"><label htmlFor="crash-bet" className="text-xs font-bold uppercase tracking-wider text-sky-100/65">Bet amount</label><div className="mt-2 flex items-center gap-2">              <input id="crash-bet" type="number" min="1" max={MAX_BET} value={bet || ""} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setBet(Number(event.target.value) || 0)} disabled={status === "running"} className="w-full rounded-lg border border-sky-200/20 bg-slate-900 px-3 py-2 text-lg font-bold text-white outline-none focus:border-sky-400" /><span className="text-sm text-sky-100/65">moose bucks</span></div><p className="mt-2 text-xs text-sky-100/45">Table limit: {MAX_BET} moose bucks</p></div>
-              <button onClick={status === "running" ? cashOut : startRound} className={`w-full rounded-xl px-4 py-3 text-sm font-bold transition active:scale-95 ${status === "running" ? "bm-btn-glow bg-emerald-400 text-[#071426] hover:bg-emerald-300" : "bg-sky-400 text-[#071426] hover:bg-sky-300"}`}>{status === "running" ? `Hop off at ${multiplier.toFixed(2)}×` : status === "crashed" || status === "cashed-out" ? "Another run" : "Send the moose"}</button>
+              <button onClick={status === "running" ? cashOut : startRound} disabled={cashoutLocked} className={`w-full rounded-xl px-4 py-3 text-sm font-bold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${status === "running" ? "bm-btn-glow bg-emerald-400 text-[#071426] hover:bg-emerald-300" : "bg-sky-400 text-[#071426] hover:bg-sky-300"}`}>{status === "running" ? cashoutLocked ? `Cash out in ${cashoutWait.toFixed(1)}s` : `Hop off at ${multiplier.toFixed(2)}×` : status === "crashed" || status === "cashed-out" ? "Another run" : "Send the moose"}</button>
               {status !== "ready" && status !== "running" && <button onClick={resetRound} className="w-full text-xs text-sky-100/65 hover:text-white">Reset round</button>}
-              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4"><p className="text-xs font-bold uppercase tracking-wider text-sky-100/55">How payouts work</p><p className="mt-2 text-sm leading-6 text-sky-100/65">Your stake is deducted when the moose sets off. Hopping off returns your stake multiplied by the current multiplier. If it crashes first, the stake is lost. The crash curve targets a 97% return to player.</p></div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4"><p className="text-xs font-bold uppercase tracking-wider text-sky-100/55">How payouts work</p><p className="mt-2 text-sm leading-6 text-sky-100/65">Your stake is deducted when the moose sets off. Hopping off returns your stake multiplied by the current multiplier. If it crashes first, the stake is lost. The crash curve targets a 90% return to player.</p></div>
             </div>
           </div>
         </section>

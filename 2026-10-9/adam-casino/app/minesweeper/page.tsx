@@ -9,9 +9,10 @@ type Phase = "idle" | "playing" | "lost" | "cashed" | "cleared";
 type Round = { id: number; phase: Phase; mines: Set<number>; picked: Set<number>; exploded: number | null; stake: number };
 
 const gridSizes = [5, 6, 7, 8];
-const densities = [0.2, 0.32, 0.48, 0.64, 0.8]; 
+const densities = [0.4, 0.48, 0.56, 0.68, 0.8];
+const MIN_MINES = 13;
 const RETURN_TO_PLAYER = 0.97;
-const MAX_MULTIPLIER = 1000; 
+const MAX_MULTIPLIER = 20;
 const iconSize: Record<number, number> = { 5: 34, 6: 30, 7: 26, 8: 22 };
 
 const emptyRound: Round = { id: 0, phase: "idle", mines: new Set(), picked: new Set(), exploded: null, stake: 0 };
@@ -70,7 +71,7 @@ function createMines(tiles: number, count: number) {
 
 function mineCountFor(size: number, densityIndex: number) {
   const tiles = size * size;
-  return Math.max(1, Math.min(tiles - 1, Math.round(tiles * densities[densityIndex])));
+  return Math.max(1, Math.min(tiles - 1, Math.max(MIN_MINES, Math.round(tiles * densities[densityIndex]))));
 }
 
 
@@ -126,7 +127,7 @@ export default function Minesweeper() {
       return;
     }
     try {
-      await bankingStake(bet);
+      await bankingStake(bet, "minesweeper");
       await syncBankingBalance(setBalance);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not place the stake.");
