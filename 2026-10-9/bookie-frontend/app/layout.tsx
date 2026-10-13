@@ -42,62 +42,73 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${sans.variable} ${serif.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <header className="border-b-2 border-ink">
-          <div className="mx-auto w-full max-w-3xl px-5 pt-7">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-              <Link href="/" className="font-serif text-4xl leading-none">
-                Bookie
-              </Link>
-              <p className="sc text-muted">
-                a running account of who spent what
-              </p>
+        <header>
+          <div className="mx-auto w-full max-w-3xl px-5 pt-6">
+            <div className="flex items-baseline justify-between text-[0.62rem] tracking-[0.18em] uppercase text-muted">
+              <span>Est. the hackathon</span>
+              <span>The window is open while the lights are on</span>
             </div>
-            <nav className="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-rule py-2 text-sm">
-              <div className="flex gap-5">
-                <Link href="/ledger" className={link}>
-                  The ledger
-                </Link>
-                <Link href="/exchange" className={link}>
-                  The exchange
-                </Link>
-                <Link href="/bank" className={link}>
-                  The bank
-                </Link>
-                <Link href="/transfer" className={link}>
-                  Transfers
-                </Link>
-                <Link href="/me" className={link}>
-                  Your account
-                </Link>
-              </div>
+
+            <Link
+              href="/"
+              className="mt-4 block text-center font-serif text-6xl leading-none"
+            >
+              Bookie
+            </Link>
+            <p className="sc mt-2 text-center text-muted">
+              A book of accounts · kept in ink · open to all
+            </p>
+
+            <div className="rule-double mt-5" />
+            <nav className="sc flex flex-wrap items-baseline justify-center gap-x-6 gap-y-2 border-y border-rule py-2.5 text-sm">
+              <Link href="/ledger" className={link}>
+                The ledger
+              </Link>
+              <Link href="/exchange" className={link}>
+                The exchange
+              </Link>
+              <Link href="/bank" className={link}>
+                The bank
+              </Link>
+              <Link href="/transfer" className={link}>
+                Transfers
+              </Link>
+              <Link href="/me" className={link}>
+                Your account
+              </Link>
+              <span className="text-muted">·</span>
               {user ? (
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-xs text-muted">{user}</span>
+                <span className="inline-flex items-baseline gap-3 text-muted">
+                  at the window:{" "}
+                  <span className="font-mono text-xs normal-case tracking-normal text-ink">
+                    {user}
+                  </span>
                   <SignOutButton />
-                </div>
+                </span>
               ) : (
-                <div className="flex gap-5">
+                <span className="inline-flex items-baseline gap-4 text-muted">
                   <Link href="/login" className={link}>
-                    Sign in
+                    Present yourself
                   </Link>
                   <Link href="/signup" className={link}>
                     Open an account
                   </Link>
-                </div>
+                </span>
               )}
             </nav>
           </div>
         </header>
 
-        <main className="flex-1">
+        <main className="flex-1 border-b border-rule">
           <div className="mx-auto w-full max-w-3xl px-5 py-10">{children}</div>
         </main>
 
-        <footer className="border-t border-rule">
-          <div className="mx-auto flex w-full max-w-3xl flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-5 py-5">
-            <p className="sc text-muted">Bookie</p>
-            <p className="text-xs text-muted">
-              Every line accounted for.
+        <footer>
+          <div className="mx-auto w-full max-w-3xl px-5 py-6 text-center">
+            <p className="sc text-sm">Bookie — the office</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted">
+              Member of no institution · no deposit guaranteed · entries are
+              written in ink and are never struck out
             </p>
           </div>
         </footer>

@@ -180,7 +180,13 @@ export type Fees = {
   serviceTransactionFee: number;
 };
 
-/** What the house skims, per kind of entry. */
+/** What the house skims, per kind of entry. Numbers are coerced; a core
+ *  that answers with something odd leaves NaN, which the callers treat as
+ *  "fee unknown". */
 export async function getFees(): Promise<Fees> {
-  return request<Fees>("/bank/fees");
+  const raw = await request<Partial<Fees>>("/bank/fees");
+  return {
+    userTransactionFee: Number(raw.userTransactionFee),
+    serviceTransactionFee: Number(raw.serviceTransactionFee),
+  };
 }

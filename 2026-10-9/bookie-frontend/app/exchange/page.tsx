@@ -24,24 +24,29 @@ export default function ExchangePage() {
 
   return (
     <div>
-      <h1 className="font-serif text-3xl">The exchange</h1>
-      <p className="sc mt-1 text-muted">moose bucks ⇄ pounds sterling</p>
+      <div className="text-center">
+        <p className="sc text-muted">moose bucks ⇄ pounds sterling · rates set by nobody</p>
+        <h1 className="mt-1 font-serif text-4xl">The exchange</h1>
+      </div>
 
       <div className="mt-8">
         <Exchange />
       </div>
 
       <div className="mt-10">
-        <div className="flex items-baseline justify-between gap-4">
-          <h2 className="sc">The going rate</h2>
-          <span className="text-xs text-muted">£ per Moose Buck, the last 24 hours</span>
+        <div className="flex items-center gap-4">
+          <h2 className="sc whitespace-nowrap">The going rate</h2>
+          <div className="h-px flex-1 bg-rule" />
+          <span className="whitespace-nowrap text-xs text-muted">
+            £ per Moose Buck, the last 24 hours
+          </span>
         </div>
         <div className="mt-4">
           <RateChart points={history} />
         </div>
       </div>
 
-      <p className="mt-8 text-xs text-muted">
+      <p className="mt-8 border-t border-dashed border-rule pt-4 text-center text-xs text-muted">
         The exchange sets its own rate. It is marked anew whenever an amount is
         entered, and the market keeps its own counsel.
       </p>

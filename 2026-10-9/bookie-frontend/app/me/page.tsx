@@ -19,15 +19,13 @@ export default async function MePage() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-        <div>
-          <h1 className="font-serif text-3xl">{me}</h1>
-          <p className="sc mt-1 text-muted">your side of the book</p>
-        </div>
+      <div className="text-center">
+        <p className="sc text-muted">form s-1 · statement of account</p>
+        <h1 className="mt-1 font-serif text-4xl">{me}</h1>
         {standing !== null && (
-          <p className="text-right">
+          <p className="mt-3">
             <span className="sc block text-muted">standing</span>
-            <span className="amt font-serif text-3xl leading-tight">
+            <span className="amt font-serif text-4xl leading-tight">
               {fmtAmount(standing.balance)}
             </span>
             {standing.debt > 0 && (
@@ -40,7 +38,7 @@ export default async function MePage() {
       </div>
 
       {standing !== null && (
-        <dl className="mt-6 grid grid-cols-3 gap-x-6 border-t border-rule pt-3 sm:max-w-md">
+        <dl className="sheet mt-8 grid grid-cols-3 px-4 py-3 sm:px-6">
           <Stat label="winnings" value={standing.winnings} tone="credit" />
           <Stat label="losses" value={standing.loses} tone="debit" />
           <Stat label="bank debt" value={standing.debt} tone="debit" />
@@ -54,33 +52,36 @@ export default async function MePage() {
         />
       </div>
 
-      <section className="mt-8 max-w-sm border-t border-rule pt-6">
-        <h2 className="sc font-serif text-lg">Change your password</h2>
-        <p className="mt-1 text-xs text-muted">
-          The core holds one password per account — this swaps it, once the
-          current one checks out.
-        </p>
+      <section className="sheet mx-auto mt-10 max-w-sm p-5 sm:p-6">
+        <div className="border-b border-dashed border-rule pb-3 text-center">
+          <p className="sc">Change of password</p>
+          <p className="mt-1 font-mono text-[0.65rem] text-muted">
+            form pw-2 · the old one must check out first
+          </p>
+        </div>
         <PasswordForm />
       </section>
 
-      <p className="mt-6 text-xs text-muted">
-        Short of pocket, or flush with it?{" "}
-        <Link href="/bank" className="underline underline-offset-4">
-          The bank
-        </Link>{" "}
-        takes loans and repayments, and{" "}
-        <Link href="/transfer" className="underline underline-offset-4">
-          a transfer
-        </Link>{" "}
-        hands money to another name on the book.
-      </p>
-      <p className="mt-2 text-xs text-muted">
-        Balances are read from the{" "}
-        <Link href="/ledger" className="underline underline-offset-4">
-          whole ledger
-        </Link>{" "}
-        — every account’s book is open.
-      </p>
+      <div className="mt-10 border-t border-dashed border-rule pt-4 text-center text-xs leading-relaxed text-muted">
+        <p>
+          Short of pocket, or flush with it?{" "}
+          <Link href="/bank" className="underline underline-offset-4">
+            The bank
+          </Link>{" "}
+          takes loans and repayments,{" "}
+          <Link href="/transfer" className="underline underline-offset-4">
+            a transfer
+          </Link>{" "}
+          hands money to another name on the book.
+        </p>
+        <p className="mt-2">
+          Every account’s book is open — yours is also on the{" "}
+          <Link href="/ledger" className="underline underline-offset-4">
+            whole ledger
+          </Link>{" "}
+          for anyone to read.
+        </p>
+      </div>
     </div>
   );
 }
@@ -116,7 +117,7 @@ function Stat({
   tone?: "credit" | "debit";
 }) {
   return (
-    <div>
+    <div className="text-center">
       <dt className="sc text-muted">{label}</dt>
       <dd
         className={`amt mt-0.5 ${

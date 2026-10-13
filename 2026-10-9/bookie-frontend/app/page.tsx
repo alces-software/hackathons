@@ -36,22 +36,23 @@ export default async function HomePage({ searchParams }: Props) {
     users = null;
   }
 
+  const hairline = <div className="h-px flex-1 bg-rule" />;
+
   return (
     <div className="space-y-12">
-      <section>
-        <p className="max-w-xl text-[0.95rem] leading-relaxed text-muted">
-          Bookie keeps a single ledger of every payment made through the core.
-          Open an account, put your name on the book, and watch your line of
-          the story accumulate below.
-        </p>
-      </section>
+      <p className="mx-auto max-w-xl text-center font-serif text-xl italic leading-relaxed">
+        Bookie keeps a single ledger of every payment made through the core.
+        Open an account, put your name on the book, and watch your line of the
+        story accumulate below.
+      </p>
 
       <section>
-        <div className="flex items-baseline justify-between gap-4">
-          <h2 className="sc">Latest entries</h2>
+        <div className="flex items-center gap-4">
+          <h2 className="sc whitespace-nowrap">Latest entries</h2>
+          {hairline}
           <Link
             href="/ledger"
-            className="text-xs text-muted underline-offset-4 hover:text-ink hover:underline"
+            className="whitespace-nowrap text-xs text-muted underline-offset-4 hover:text-ink hover:underline"
           >
             the whole ledger →
           </Link>
@@ -66,9 +67,10 @@ export default async function HomePage({ searchParams }: Props) {
       </section>
 
       <section>
-        <div className="flex items-baseline gap-4">
-          <h2 className="sc">Accounts</h2>
-          <span className="text-xs text-muted">
+        <div className="flex items-center gap-4">
+          <h2 className="sc whitespace-nowrap">The register</h2>
+          {hairline}
+          <span className="whitespace-nowrap text-xs text-muted">
             {users !== null ? `${userTotal} on the book` : "—"}
           </span>
         </div>
@@ -92,14 +94,21 @@ export default async function HomePage({ searchParams }: Props) {
           )
         ) : (
           <>
-            <ul className="mt-4 divide-y divide-rule/70 border-t border-b border-rule/70">
-              {users.map((u) => (
+            <ul className="sheet mt-4 divide-y divide-rule px-3 sm:px-4">
+              {users.map((u, i) => (
                 <li
                   key={u.username}
-                  className="flex items-baseline justify-between gap-4 py-1.5"
+                  className="flex items-baseline justify-between gap-4 py-2.5"
                 >
-                  <span className="text-sm font-medium">{u.username}</span>
-                  <span className="flex items-baseline gap-3">
+                  <span className="flex min-w-0 items-baseline gap-4">
+                    <span className="flex-shrink-0 font-mono text-xs text-muted">
+                      № {(accountsPage - 1) * 12 + i + 1}
+                    </span>
+                    <span className="truncate text-sm font-medium">
+                      {u.username}
+                    </span>
+                  </span>
+                  <span className="flex flex-shrink-0 items-baseline gap-3">
                     {u.debt > 0 && (
                       <span className="amt whitespace-nowrap text-xs text-debit">
                         owes {fmtAmount(u.debt)}

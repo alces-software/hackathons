@@ -1,8 +1,9 @@
 # Bookie
 
-A front for the Alces logical core: a public book of accounts. Anyone can
-open an account, follow their own side of the ledger, and read everyone
-else's lines too.
+A front for the Alces logical core: a public book of accounts, dressed as
+old-school bank paperwork — dockets, deeds, registers and rubber stamps.
+Anyone can open an account, follow their own side of the ledger, and read
+everyone else's lines too.
 
 ## Running it
 
@@ -62,7 +63,9 @@ as a copyable template.
 - `/transfer` — hand money to another name on the book, via the core's
   `POST /users/transaction/{username}`, with the house's
   `GET /bank/fees` cut shown up front — editable "you send" and
-  "they receive" fields that fill each other in (sign in required)
+  "they receive" fields that fill each other in, the sum written out in
+  cheque-style words, and a rubber stamp with an official remark on every
+  filed docket (sign in required)
 - `/signup`, `/login` — accounts, backed by POST `/users` and POST
   `/users/login`
 
