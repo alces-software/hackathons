@@ -65,7 +65,10 @@ export default new OpenAPIHono().openapi(
          await ensureUserCredentialsMatch(body.username, body.password, tx);
 
          // Make sure the send has enough in their account
-         if (body.type === 'loss' && user.balance.minus(body.amount).lessThan(0)) {
+         if (
+            (body.type === 'loss' || body.type === 'hold') &&
+            user.balance.minus(body.amount).lessThan(0)
+         ) {
             throw new APIError(APIErrorCode.BadRequest, {
                message: `${user.username} does not have enough to transfer`
             });
@@ -85,7 +88,7 @@ export default new OpenAPIHono().openapi(
                }),
                ...(body.type === 'hold' && {
                   balance: { decrement: body.amount }
-               }),
+               })
             }
          });
 
@@ -94,11 +97,11 @@ export default new OpenAPIHono().openapi(
             where: { token: body.serviceToken },
             data: {
                ...(body.type === 'win' && {
-                  balance: { decrement: body.amount },
+                  balance: { decrement: body.amount }
                }),
                ...((body.type === 'loss' || body.type === 'hold') && {
-                  balance: { increment: body.amount },
-               }),
+                  balance: { increment: body.amount }
+               })
             }
          });
 
