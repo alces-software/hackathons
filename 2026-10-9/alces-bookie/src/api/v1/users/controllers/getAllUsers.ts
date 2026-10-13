@@ -1,7 +1,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { Prisma } from '@prisma/client';
 
-import { InternalServerErrorSchema, NotFoundErrorSchema } from '../../../../lib/errors/schemas';
+import { InternalServerErrorSchema } from '../../../../lib/errors/schemas';
 import {
    PaginationParamsSchema,
    PaginationResponseSchema
@@ -31,7 +31,6 @@ export default new OpenAPIHono().openapi(
                }
             }
          },
-         ...NotFoundErrorSchema,
          ...InternalServerErrorSchema
       }
    }),
@@ -39,16 +38,16 @@ export default new OpenAPIHono().openapi(
       const query = c.req.valid('query');
 
       const [users, usersCount] = await prisma.$transaction(async (tx) => {
-         // create the where statement
-         const where: Prisma.AccountsWhereInput = {};
+         // Create the where statement
+         const where: Prisma.UsersWhereInput = {};
 
          // Get all the users and a total count
          return [
-            await tx.accounts.findMany({
+            await tx.users.findMany({
                where,
                ...paginationOptions(query.page, query.limit)
             }),
-            await tx.accounts.count({ where })
+            await tx.users.count({ where })
          ];
       });
 

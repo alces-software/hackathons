@@ -1,7 +1,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { Prisma } from '@prisma/client';
 
-import { InternalServerErrorSchema, NotFoundErrorSchema } from '../../../../lib/errors/schemas';
+import { InternalServerErrorSchema } from '../../../../lib/errors/schemas';
 import {
    PaginationParamsSchema,
    PaginationResponseSchema
@@ -20,7 +20,8 @@ export default new OpenAPIHono().openapi(
       tags: ['Transactions'],
       request: {
          query: z.object({
-            ...PaginationParamsSchema
+            ...PaginationParamsSchema,
+            order: z.enum(['asc', 'desc']).default('desc')
          })
       },
       responses: {
@@ -32,7 +33,6 @@ export default new OpenAPIHono().openapi(
                }
             }
          },
-         ...NotFoundErrorSchema,
          ...InternalServerErrorSchema
       }
    }),
@@ -47,6 +47,7 @@ export default new OpenAPIHono().openapi(
          return [
             await tx.ledger.findMany({
                where,
+               orderBy: { id: query.order },
                include: transactionInclude,
                ...paginationOptions(query.page, query.limit)
             }),

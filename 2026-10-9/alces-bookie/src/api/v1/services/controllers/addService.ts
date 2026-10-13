@@ -4,7 +4,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 
 import { ConflictErrorSchema, InternalServerErrorSchema } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
-import { ensureAssetDoesntExist } from '../lib/helpers';
+import { ensureServiceDoesntExist } from '../lib/helpers';
 
 export default new OpenAPIHono().openapi(
    createRoute({
@@ -17,7 +17,11 @@ export default new OpenAPIHono().openapi(
             content: {
                'application/json': {
                   schema: z.object({
-                     name: z.string().min(4).max(25).trim()
+                     name: z
+                        .string({ error: 'Name must be a string' })
+                        .trim()
+                        .min(4, { error: 'Name must be more than 4 characters' })
+                        .max(25, { error: 'Name cannot be more than 25 characters' })
                   })
                }
             }
@@ -44,8 +48,10 @@ export default new OpenAPIHono().openapi(
       const body = c.req.valid('json');
 
       const newAsset = await prisma.$transaction(async (tx) => {
-         await ensureAssetDoesntExist(body.name, tx);
+         // Check to make sure the service doesnt already exist
+         await ensureServiceDoesntExist(body.name, tx);
 
+         // Create the service
          return await tx.services.create({
             data: {
                name: body.name,

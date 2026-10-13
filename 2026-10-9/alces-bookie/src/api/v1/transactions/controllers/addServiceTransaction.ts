@@ -8,9 +8,10 @@ import {
    UnauthorisedErrorSchema
 } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
+import { publish } from '../../../../lib/publisher';
 import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
 import { UsernameParamSchema } from '../../../../lib/schema/param';
-import { ensureAccountCredentialsMatch, ensureAccountExists } from '../../users/lib/helpers';
+import { ensureUserCredentialsMatch, ensureUserExists } from '../../users/lib/helpers';
 
 export default new OpenAPIHono().openapi(
    createRoute({
@@ -18,6 +19,7 @@ export default new OpenAPIHono().openapi(
       path: '/',
       description: 'Performs a transfer using a custom service',
       tags: ['Transactions', 'Services'],
+      deprecated: true,
       request: {
          params: z.object({
             ...UsernameParamSchema
@@ -44,9 +46,9 @@ export default new OpenAPIHono().openapi(
          204: {
             description: 'Transaction was successful'
          },
-         ...NotFoundErrorSchema,
-         ...UnauthorisedErrorSchema,
          ...BadRequestErrorSchema,
+         ...UnauthorisedErrorSchema,
+         ...NotFoundErrorSchema,
          ...InternalServerErrorSchema
       }
    }),
@@ -56,10 +58,10 @@ export default new OpenAPIHono().openapi(
 
       await prisma.$transaction(async (tx) => {
          // Ensure sender user exits
-         const sender = await ensureAccountExists(body.username, tx, {});
+         const sender = await ensureUserExists(body.username, tx, {});
 
          // Ensure account credentials are correct
-         await ensureAccountCredentialsMatch(body.username, body.password, tx);
+         await ensureUserCredentialsMatch(body.username, body.password, tx);
 
          // Make sure the send has enough in their account
          if (sender.balance.minus(body.amount).lessThan(0)) {
@@ -69,7 +71,7 @@ export default new OpenAPIHono().openapi(
          }
 
          // Take monet off sender
-         await tx.accounts.update({
+         await tx.users.update({
             where: {
                username: sender.username
             },
@@ -84,10 +86,10 @@ export default new OpenAPIHono().openapi(
          );
 
          // Ensure destination user exists
-         const receiver = await ensureAccountExists(username, tx, {});
+         const receiver = await ensureUserExists(username, tx, {});
 
          // Update the receivers money
-         await tx.accounts.update({
+         await tx.users.update({
             where: {
                username: receiver.username
             },
@@ -97,10 +99,10 @@ export default new OpenAPIHono().openapi(
          });
 
          // Get the bank information
-         const bank = await ensureAccountExists(process.env.BANK_USERNAME ?? 'bank', tx, {});
+         const bank = await ensureUserExists(process.env.BANK_USERNAME ?? 'bank', tx, {});
 
          // Update the bank
-         await tx.accounts.update({
+         await tx.users.update({
             where: {
                username: bank.username
             },
@@ -147,6 +149,13 @@ export default new OpenAPIHono().openapi(
                timestamp: new Date()
             }
          });
+      });
+
+      // Update the websocket
+      publish({
+         type: 'content.created',
+         id: 'transactions',
+         timestamp: new Date().toISOString()
       });
 
       return c.body(null, 204);

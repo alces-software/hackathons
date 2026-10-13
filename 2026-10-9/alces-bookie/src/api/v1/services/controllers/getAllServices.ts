@@ -8,11 +8,8 @@ import {
 } from '../../../../lib/pagination/schemas';
 import { paginationOptions, serializePagination } from '../../../../lib/pagination/serializers';
 import { prisma } from '../../../../lib/prisma';
-
-const ServiceReturnSchema = z.object({
-   id: z.int(),
-   name: z.string()
-});
+import { ServiceReturnSchema } from '../lib/schemas';
+import { serializeService } from '../lib/serializers';
 
 export default new OpenAPIHono().openapi(
    createRoute({
@@ -55,10 +52,7 @@ export default new OpenAPIHono().openapi(
       });
       return c.json(
          {
-            data: services.map((service) => ({
-               id: service.id,
-               name: service.name!
-            })),
+            data: services.map(serializeService),
             ...serializePagination(query.page, query.limit, services.length, servicesCount)
          },
          200

@@ -7,7 +7,7 @@ import {
 } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
 import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
-import { ensureAccountCredentialsMatch } from '../lib/helpers';
+import { ensureUserCredentialsMatch, ensureUserExists } from '../lib/helpers';
 
 export default new OpenAPIHono().openapi(
    createRoute({
@@ -39,11 +39,14 @@ export default new OpenAPIHono().openapi(
       const body = c.req.valid('json');
 
       await prisma.$transaction(async (tx) => {
+         // Ensure the user exists
+         await ensureUserExists(body.username, tx);
+
          // Make sure the user exists and user credentials match
-         await ensureAccountCredentialsMatch(body.username, body.password, tx);
+         await ensureUserCredentialsMatch(body.username, body.password, tx);
 
          // Delete the account
-         await tx.accounts.delete({
+         await tx.users.delete({
             where: { username: body.username }
          });
       });

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { bankingPayout, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
+import { bankingLoss, bankingPayout, syncBankingBalance, useBankingBalance } from "../../lib/banking";
 
 type Suit = "♠" | "♥" | "♦" | "♣";
 type Card = { suit: Suit; value: string; points: number };
@@ -62,19 +62,27 @@ export default function Blackjack() {
     const dealerScore = score(house);
     const won = playerScore <= 21 && (dealerScore > 21 || playerScore > dealerScore);
     const push = playerScore <= 21 && dealerScore <= 21 && playerScore === dealerScore;
-    const returned = push ? stake : won ? stake * 2 : 0;
-    const profit = push ? 0 : won ? stake : -stake;
+    const credit = won ? stake : 0;
     const outcome = push
-      ? `Push — ${stake.toFixed(2)} stake returned.`
+      ? "Push — no money changes hands."
       : won
-        ? `Won ${profit.toFixed(2)} profit + ${stake.toFixed(2)} stake returned = ${returned.toFixed(2)} moose bucks credited.`
-        : `Dealer wins — ${stake.toFixed(2)} stake lost.`;
-    if (returned > 0) {
+        ? `Won ${credit.toFixed(2)} moose bucks credited.`
+        : `Dealer wins — ${stake.toFixed(2)} moose bucks debited.`;
+    if (credit > 0) {
       try {
-        await bankingPayout(returned);
+        await bankingPayout(credit);
         await syncBankingBalance(setBalance);
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Payout failed.");
+        setStatus("finished");
+        return;
+      }
+    } else if (!push) {
+      try {
+        await bankingLoss(stake);
+        await syncBankingBalance(setBalance);
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : "Could not record the lost stake.");
         setStatus("finished");
         return;
       }
@@ -88,8 +96,6 @@ export default function Blackjack() {
   async function deal() {
     if (bet < 1 || bet > MAX_BET || bet > balance) { setMessage(`Choose a bet between 1 and ${MAX_BET} moose bucks within your available balance.`); return; }
     try {
-      await bankingStake(bet, "blackjack");
-      await syncBankingBalance(setBalance);
       const deck = shoe.length < 20 ? makeShoe() : shoe;
       const [p1, r1] = draw(deck); const [d1, r2] = draw(r1); const [p2, r3] = draw(r2); const [d2, nextShoe] = draw(r3);
       const hand = [p1, p2]; const house = [d1, d2];
@@ -97,9 +103,9 @@ export default function Blackjack() {
       if (score(hand) === 21) {
         if (score(house) === 21) await settle(hand, house, bet);
         else {
-          await bankingPayout(bet * 2.5);
+          await bankingPayout(bet * 1.5);
           await syncBankingBalance(setBalance);
-          setMessage(`Blackjack! Won ${(bet * 1.5).toFixed(2)} profit + ${bet.toFixed(2)} stake returned = ${(bet * 2.5).toFixed(2)} moose bucks credited. Blackjack pays 3:2.`);
+          setMessage(`Blackjack! ${(bet * 1.5).toFixed(2)} moose bucks credited. Blackjack pays 3:2.`);
           setStatus("finished");
         }
       } else {
@@ -114,7 +120,7 @@ export default function Blackjack() {
   function hit() {
     const [card, nextShoe] = draw(shoe); const hand = [...player, card];
     setPlayer(hand); setShoe(nextShoe);
-    if (score(hand) > 21) { setMessage(`Bust — you scored ${score(hand)}.`); setStatus("finished"); }
+    if (score(hand) > 21) void settle(hand, dealer, bet);
     else if (score(hand) === 21) void stand(hand, bet);
   }
 
@@ -147,16 +153,9 @@ export default function Blackjack() {
   async function doubleDown() {
     if (bet * 2 > MAX_BET) { setMessage(`The table limit is ${MAX_BET} moose bucks.`); return; }
     if (balance < bet) { setMessage("You need enough balance to double your bet."); return; }
-    try {
-      await bankingStake(bet, "blackjack");
-      await syncBankingBalance(setBalance);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not place the additional stake.");
-      return;
-    }
     const stake = bet * 2; const [card, nextShoe] = draw(shoe); const hand = [...player, card];
     setBet(stake); setPlayer(hand); setShoe(nextShoe);
-    if (score(hand) > 21) { setMessage(`Double down bust — you scored ${score(hand)}.`); setStatus("finished"); } else stand(hand, stake);
+    if (score(hand) > 21) void settle(hand, dealer, stake); else stand(hand, stake);
   }
 
   function reset() { setPlayer([]); setDealer([]); setStatus("ready"); setMessage("Place a bet to deal."); setBet(Math.min(25, balance, MAX_BET)); }

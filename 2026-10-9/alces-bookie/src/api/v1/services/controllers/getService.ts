@@ -3,6 +3,8 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { InternalServerErrorSchema, NotFoundErrorSchema } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
 import { ensureServiceExists } from '../lib/helpers';
+import { ServiceReturnSchema } from '../lib/schemas';
+import { serializeService } from '../lib/serializers';
 
 export default new OpenAPIHono().openapi(
    createRoute({
@@ -12,7 +14,11 @@ export default new OpenAPIHono().openapi(
       tags: ['Services'],
       request: {
          params: z.object({
-            name: z.string().min(4).max(25).trim()
+            name: z
+               .string({ error: 'Name must be a string' })
+               .trim()
+               .min(4, { error: 'Name must be more than 4 characters' })
+               .max(25, { error: 'Name cannot be more than 25 characters' })
          })
       },
       responses: {
@@ -20,10 +26,7 @@ export default new OpenAPIHono().openapi(
             description: 'Retrieved a service successfully',
             content: {
                'application/json': {
-                  schema: z.object({
-                     id: z.int(),
-                     name: z.string()
-                  })
+                  schema: ServiceReturnSchema
                }
             }
          },
@@ -39,12 +42,6 @@ export default new OpenAPIHono().openapi(
          return await ensureServiceExists(name, tx, {});
       });
 
-      return c.json(
-         {
-            id: service.id,
-            name: service.name!
-         },
-         200
-      );
+      return c.json(serializeService(service), 200);
    }
 );
