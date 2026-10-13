@@ -10,7 +10,7 @@ import updateUser from './controllers/updateUser';
 
 export default new OpenAPIHono()
    .route('/login', login)
-   .route('/transaction', addTransaction)
+   .route('/transaction/:username', addTransaction)
    .route('/:username', getUser)
    .route('/', updateUser)
    .route('/', addUser)
