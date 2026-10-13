@@ -12,21 +12,27 @@ export default async function SignupPage() {
   }
 
   return (
-    <div className="mx-auto max-w-sm">
-      <h1 className="font-serif text-3xl">Open an account</h1>
-      <p className="mt-2 text-sm text-muted">
-        Your name goes at the top of a column in the book; every service that
-        takes a payment from you writes its line beneath it.
-      </p>
+    <div className="mx-auto max-w-md">
+      <div className="sheet p-6 sm:p-8">
+        <div className="border-b border-dashed border-rule pb-3 text-center">
+          <p className="sc">Application for an account</p>
+          <p className="mt-1 font-mono text-[0.65rem] text-muted">
+            form a-1 · no references required
+          </p>
+        </div>
 
-      <AuthForm mode="signup" />
-      <p className="mt-6 text-xs text-muted">
-        Already on the book?{" "}
-        <Link href="/login" className="underline underline-offset-4">
-          Sign in
-        </Link>
-        .
-      </p>
+        <AuthForm mode="signup" />
+
+        <p className="mt-6 border-t border-dashed border-rule pt-4 text-center text-xs leading-relaxed text-muted">
+          Your name goes at the top of a column in the book; every service that
+          takes a payment from you writes its line beneath it. Already on the
+          book?{" "}
+          <Link href="/login" className="underline underline-offset-4">
+            Present yourself
+          </Link>
+          .
+        </p>
+      </div>
     </div>
   );
 }

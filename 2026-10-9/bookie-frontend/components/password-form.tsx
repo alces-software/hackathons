@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 const inputClass =
-  "mt-1.5 w-full border border-rule bg-paper-2 px-3 py-2 font-mono text-sm " +
+  "mt-1.5 w-full border border-rule bg-paper px-3 py-2 font-mono text-sm " +
   "focus:border-ink focus:bg-paper focus:outline-none";
 
 const buttonClass =

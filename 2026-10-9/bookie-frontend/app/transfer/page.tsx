@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getAllUsers, ApiError } from "@/lib/api";
+import { getAllUsers, getFees, ApiError } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import { TransferForm } from "@/components/transfer-form";
 
@@ -23,26 +23,42 @@ export default async function TransferPage() {
     recipients = null;
   }
 
+  // The percent the house takes off each transfer — printed on the docket so
+  // nobody is surprised by what lands on the other name.
+  let fee: number | null = null;
+  try {
+    const raw = (await getFees()).userTransactionFee;
+    fee = Number.isFinite(raw) ? raw : null;
+  } catch (e) {
+    if (!(e instanceof ApiError)) throw e;
+    fee = null;
+  }
+
   return (
-    <div className="mx-auto max-w-sm">
-      <h1 className="font-serif text-3xl">Transfers</h1>
-      <p className="sc mt-1 text-muted">money between accounts</p>
-
-      <p className="mt-6 text-sm leading-relaxed text-muted">
-        Hand money to another name on the book. The amount leaves your balance
-        and lands in theirs — two entries, published in the ledger like
-        everything else.
-      </p>
-
-      <TransferForm recipients={recipients} />
-
-      <p className="mt-8 border-t border-rule pt-4 text-xs leading-relaxed text-muted">
-        The core asks for your password to move your money, so it is given
-        fresh each time and kept by nobody here. The result shows up in the{" "}
+    <div className="mx-auto max-w-xl">
+      <div className="text-center">
+        <p className="sc text-muted">form t-3 · rev. 11 · keep this stub</p>
+        <h1 className="mt-1 font-serif text-4xl">The transfer docket</h1>
+      </div>
+      <p className="mx-auto mt-3 max-w-md text-center text-sm leading-relaxed text-muted">
+        One name pays. Another name is paid, minus the house’s cut. Every line
+        of it goes into the{" "}
         <Link href="/ledger" className="underline underline-offset-4">
           ledger
         </Link>{" "}
-        straight away.
+        where anyone can read it.
+      </p>
+
+      <TransferForm recipients={recipients} fee={fee} />
+
+      <p className="mt-6 border-t border-dashed border-rule pt-4 text-xs leading-relaxed text-muted">
+        Nothing here is reversible, and the book is public — your side of every
+        docket also shows on{" "}
+        <Link href="/me" className="underline underline-offset-4">
+          your account
+        </Link>
+        . If you meant to keep the money, the office respectfully suggests not
+        filing this form.
       </p>
     </div>
   );

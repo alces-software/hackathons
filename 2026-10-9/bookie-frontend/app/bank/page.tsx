@@ -7,6 +7,29 @@ import { BankForm } from "@/components/bank-form";
 
 export const metadata = { title: "The bank" };
 
+function debtLine(debt: string | null) {
+  if (debt === null) {
+    return (
+      <p className="mt-5 text-center text-sm text-muted">
+        Your debt couldn’t be read just now — the forms below still work.
+      </p>
+    );
+  }
+  if (Number(debt) > 0) {
+    return (
+      <p className="mt-5 text-center text-sm">
+        You owe the bank{" "}
+        <span className="amt font-medium text-debit">{debt}</span>.
+      </p>
+    );
+  }
+  return (
+    <p className="mt-5 text-center text-sm text-muted">
+      You owe the bank nothing. The office finds this almost suspicious.
+    </p>
+  );
+}
+
 export default async function BankPage() {
   const me = await getSession();
   if (!me) {
@@ -21,46 +44,42 @@ export default async function BankPage() {
     standing = null;
   }
 
-  const debt = standing?.debt ?? null;
+  const debt =
+    standing === null ? null : fmtAmount(standing.debt);
 
   return (
-    <div className="mx-auto max-w-lg">
-      <h1 className="font-serif text-3xl">The bank</h1>
-      <p className="sc mt-1 text-muted">loans against your name</p>
+    <div>
+      <div className="text-center">
+        <p className="sc text-muted">the bank · open while the lights are on</p>
+        <h1 className="mt-1 font-serif text-4xl">The bank</h1>
+      </div>
 
-      {debt === null ? (
-        <p className="mt-6 text-sm text-muted">
-          Your debt couldn’t be read just now — the forms below still work.
-        </p>
-      ) : debt > 0 ? (
-        <p className="mt-6 text-sm">
-          You owe the bank{" "}
-          <span className="amt font-medium text-debit">{fmtAmount(debt)}</span>.
-        </p>
-      ) : (
-        <p className="mt-6 text-sm text-muted">You owe the bank nothing.</p>
-      )}
+      {debtLine(debt)}
 
-      <div className="mt-10 grid gap-x-10 gap-y-10 sm:grid-cols-2">
-        <section>
-          <h2 className="sc">Take a loan</h2>
-          <p className="mt-1 text-xs text-muted">
-            Money in now; a mark against your name in the book.
-          </p>
+      <div className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-2">
+        <section className="sheet p-5 sm:p-6">
+          <div className="border-b border-dashed border-rule pb-3 text-center">
+            <p className="sc">Loan deed</p>
+            <p className="mt-1 font-mono text-[0.65rem] text-muted">
+              form l-4 · money in now, owed back by the book
+            </p>
+          </div>
           <BankForm action="loan" />
         </section>
-        <section>
-          <h2 className="sc">Repay</h2>
-          <p className="mt-1 text-xs text-muted">
-            Money back; the mark shrinks the same way it grew.
-          </p>
+        <section className="sheet p-5 sm:p-6">
+          <div className="border-b border-dashed border-rule pb-3 text-center">
+            <p className="sc">Payment slip</p>
+            <p className="mt-1 font-mono text-[0.65rem] text-muted">
+              form r-2 · the mark shrinks the same way it grew
+            </p>
+          </div>
           <BankForm action="repay" />
         </section>
       </div>
 
-      <p className="mt-10 border-t border-rule pt-4 text-xs leading-relaxed text-muted">
+      <p className="mt-10 border-t border-dashed border-rule pt-4 text-center text-xs leading-relaxed text-muted">
         The core asks for your password to act on your account, so it is given
-        fresh each time and never kept here. Loans and repayments land in the{" "}
+        fresh each time and never kept here. Every deed and slip lands in the{" "}
         <Link href="/ledger" className="underline underline-offset-4">
           ledger
         </Link>{" "}

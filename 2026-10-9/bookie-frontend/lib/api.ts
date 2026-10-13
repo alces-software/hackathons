@@ -173,3 +173,20 @@ export async function getUser(username: string): Promise<User> {
   }>(`/users/${username}`);
   return toUser(raw);
 }
+
+export type Fees = {
+  /** Both are percentages of the amount in play — 5 means 5%. */
+  userTransactionFee: number;
+  serviceTransactionFee: number;
+};
+
+/** What the house skims, per kind of entry. Numbers are coerced; a core
+ *  that answers with something odd leaves NaN, which the callers treat as
+ *  "fee unknown". */
+export async function getFees(): Promise<Fees> {
+  const raw = await request<Partial<Fees>>("/bank/fees");
+  return {
+    userTransactionFee: Number(raw.userTransactionFee),
+    serviceTransactionFee: Number(raw.serviceTransactionFee),
+  };
+}

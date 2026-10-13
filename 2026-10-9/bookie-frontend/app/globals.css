@@ -35,3 +35,21 @@ body {
     @apply font-mono tabular-nums;
   }
 }
+@layer components {
+  /* rubber stamp: doubled ink line, far too much tracking, tilted by its
+     caller — see the transfer docket */
+  .stamp {
+    @apply inline-block max-w-full border-[3px] border-double px-3 py-1
+      font-mono text-[0.65rem] uppercase tracking-[0.22em];
+  }
+
+  /* paperwork panel: every form, docket and register is printed on one */
+  .sheet {
+    @apply border border-ink bg-paper-2;
+  }
+
+  /* the double rule bank stationery can’t live without */
+  .rule-double {
+    @apply border-0 border-t-[3px] border-double border-ink;
+  }
+}
