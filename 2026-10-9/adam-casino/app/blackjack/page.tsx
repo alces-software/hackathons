@@ -70,7 +70,7 @@ export default function Blackjack() {
         : `Dealer wins — ${stake.toFixed(2)} moose bucks debited.`;
     if (credit > 0) {
       try {
-        await bankingPayout(returned);
+        await bankingPayout(credit);
         await syncBankingBalance(setBalance);
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Payout failed.");
