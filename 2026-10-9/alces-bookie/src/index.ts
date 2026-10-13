@@ -1,30 +1,30 @@
-// LOAD ENV FILE
-import 'dotenv/config';
-
 // CREATE HONO
+import { serve, upgradeWebSocket } from '@hono/node-server';
 import { OpenAPIHono } from '@hono/zod-openapi';
+import { Scalar } from '@scalar/hono-api-reference';
+import { compress } from 'hono/compress';
+import { cors } from 'hono/cors';
+import { trimTrailingSlash } from 'hono/trailing-slash';
+
+import v1 from './api/v1';
+import { env } from './lib/env';
+import handleErrors from './lib/errors/errorHandler';
+import { debugLogger } from './lib/middleware/debugLogger';
+import { addClient, removeClient } from './lib/publisher';
 const hono = new OpenAPIHono();
 
 // LOAD MIDDLEWARE
-import { cors } from 'hono/cors';
 hono.use(
    '*',
    cors({
       allowMethods: ['POST', 'GET', 'DELETE', 'PATCH', 'OPTIONS']
    })
 );
-
-import { trimTrailingSlash } from 'hono/trailing-slash';
 hono.use('*', trimTrailingSlash());
-
-import { compress } from 'hono/compress';
 hono.use('*', compress());
-
-import { debugLogger } from './lib/middleware/debugLogger';
 hono.use('*', debugLogger);
 
 // LOAD V1 ENDPOINTS
-import v1 from './api/v1';
 hono.route('/api/v1', v1);
 
 // CREATE ENDPOINT DOCS
@@ -46,7 +46,6 @@ hono.get('/api/v1/openapi.json', (c) => {
 });
 
 // HOST API DOCS
-import { Scalar } from '@scalar/hono-api-reference';
 hono.get(
    '/api/v1/docs',
    Scalar({
@@ -71,17 +70,13 @@ hono.get(
 );
 
 // HANDLE ERRORS
-import handleErrors from './lib/errors/errorHandler';
 hono.onError((error, c) => handleErrors(c, error));
 hono.notFound((c) => {
    return c.body(`Looks like you have no money, LOL.`, 404);
 });
 
 // START UP SERVER
-import { serve, upgradeWebSocket } from '@hono/node-server';
-
-import { addClient, removeClient } from './lib/publisher';
 serve({
    fetch: hono.fetch,
-   port: Number(process.env.PORT) || 3000
+   port: env.PORT
 });

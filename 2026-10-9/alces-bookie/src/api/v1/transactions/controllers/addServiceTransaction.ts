@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 
+import { env } from '../../../../lib/env';
 import APIError, { APIErrorCode } from '../../../../lib/errors/apiError';
 import {
    BadRequestErrorSchema,
@@ -81,9 +82,7 @@ export default new OpenAPIHono().openapi(
          });
 
          // Calculate banks take
-         const banksCut = Number(
-            (body.amount * Number(process.env.SERVICE_TRANSACTION_FEE ?? 0)).toFixed(2)
-         );
+         const banksCut = Number((body.amount * env.SERVICE_TRANSACTION_FEE).toFixed(2));
 
          // Ensure destination user exists
          const receiver = await ensureUserExists(username, tx, {});
@@ -99,7 +98,7 @@ export default new OpenAPIHono().openapi(
          });
 
          // Get the bank information
-         const bank = await ensureUserExists(process.env.BANK_USERNAME ?? 'bank', tx, {});
+         const bank = await ensureUserExists(env.BANK_USERNAME, tx, {});
 
          // Update the bank
          await tx.users.update({

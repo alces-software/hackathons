@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 
+import { env } from '../../../../lib/env';
 import APIError, { APIErrorCode } from '../../../../lib/errors/apiError';
 import {
    BadRequestErrorSchema,
@@ -74,7 +75,7 @@ export default new OpenAPIHono().openapi(
          }
 
          // Get the bank from the database
-         const bank = await ensureUserExists(process.env.BANK_USERNAME ?? 'bank', tx, {});
+         const bank = await ensureUserExists(env.BANK_USERNAME, tx, {});
 
          // Update user account
          await tx.users.update({

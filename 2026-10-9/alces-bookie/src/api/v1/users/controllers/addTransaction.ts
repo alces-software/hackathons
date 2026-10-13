@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 
+import { env } from '../../../../lib/env';
 import APIError, { APIErrorCode } from '../../../../lib/errors/apiError';
 import {
    BadRequestErrorSchema,
@@ -53,9 +54,7 @@ export default new OpenAPIHono().openapi(
 
       await prisma.$transaction(async (tx) => {
          // Calculate the transaction fee
-         const transactionFee = Number(
-            (body.amount * Number(process.env.USER_TRANSACTION_FEE ?? 0)).toFixed(2)
-         );
+         const transactionFee = Number((body.amount * env.USER_TRANSACTION_FEE).toFixed(2));
 
          // Ensure sender user exits
          const sender = await ensureUserExists(body.username, tx, {});
@@ -96,7 +95,7 @@ export default new OpenAPIHono().openapi(
          // Update the bank
          await tx.users.update({
             where: {
-               username: process.env.BANK_USERNAME ?? 'bank'
+               username: env.BANK_USERNAME
             },
             data: {
                balance: { increment: transactionFee }

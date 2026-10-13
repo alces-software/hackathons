@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 
+import { env } from '../../../../lib/env';
 import APIError, { APIErrorCode } from '../../../../lib/errors/apiError';
 import {
    BadRequestErrorSchema,
@@ -54,8 +55,8 @@ export default new OpenAPIHono().openapi(
 
          // Check that the user can get more of a loan
          if (
-            user.debt.toNumber() === 1000 ||
-            user.debt.plus(body.amount).greaterThan(Number(process.env.DEBT_LIMIT ?? 1000))
+            user.debt.toNumber() === env.DEBT_LIMIT ||
+            user.debt.plus(body.amount).greaterThan(env.DEBT_LIMIT)
          ) {
             throw new APIError(APIErrorCode.BadRequest, {
                message: `${body.username} has hit the debt limit and can't get a loan for anyone without repaying previous loans`
@@ -63,7 +64,7 @@ export default new OpenAPIHono().openapi(
          }
 
          // Get the bank from the database
-         const bank = await ensureUserExists(process.env.BANK_USERNAME ?? 'bank', tx, {});
+         const bank = await ensureUserExists(env.BANK_USERNAME, tx, {});
 
          // Check that the bank can perform the loan
          if (bank.balance.minus(body.amount).lessThan(0)) {
