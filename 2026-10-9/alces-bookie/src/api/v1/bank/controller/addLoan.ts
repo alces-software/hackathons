@@ -78,7 +78,7 @@ export default new OpenAPIHono().openapi(
             where: { username: user.username },
             data: {
                balance: { increment: body.amount },
-               debt: { increment: body.amount }
+               debt: { increment: (body.amount * (env.LOAN_INTEREST + 1)) }
             }
          });
 
