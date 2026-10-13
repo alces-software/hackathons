@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { bankingPayout, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
+import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
 
 type Color = "red" | "yellow" | "green" | "blue" | "wild";
 type PlayColor = Exclude<Color, "wild">;
@@ -200,13 +200,16 @@ export default function Uno() {
     if (g.winner === "You") {
       const profit = stake * WIN_PROFIT_RATE;
       const returned = stake + profit;
-      bankingPayout(returned).then(() => syncBankingBalance(setBalance)).then(() => {
+      bankingReturn(stake).then(() => bankingPayout(profit)).then(() => syncBankingBalance(setBalance)).then(() => {
         setG((current) => ({ ...current, message: `You win — ${profit.toFixed(2)} profit + ${stake.toFixed(2)} stake returned = ${returned.toFixed(2)} moose bucks credited.` }));
       }).catch((error) => {
         setG((current) => ({ ...current, message: error instanceof Error ? error.message : "Payout failed." }));
       });
     } else {
       setG((current) => ({ ...current, message: `AI wins — ${stake.toFixed(2)} stake lost. Start a new game to try again.` }));
+      bankingReturn(stake).then(() => bankingLoss(stake)).then(() => syncBankingBalance(setBalance)).catch((error) => {
+        setG((current) => ({ ...current, message: error instanceof Error ? error.message : "Loss could not be recorded." }));
+      });
     }
   }, [g.winner, g.stake, g.mode, setBalance]);
 

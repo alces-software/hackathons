@@ -37,7 +37,7 @@ export function useBankingBalance() {
   return [balance, setBalance] as const;
 }
 
-export async function bankingTransfer(credentials: BankingCredentials, amount: number, direction: "stake" | "payout" | "loss", maximumPayout?: number, game?: CasinoGame) {
+export async function bankingTransfer(credentials: BankingCredentials, amount: number, direction: "stake" | "payout" | "loss" | "hold" | "return", maximumPayout?: number, game?: CasinoGame) {
   const response = await fetch("/api/banking/transfer", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -52,7 +52,13 @@ export async function bankingTransfer(credentials: BankingCredentials, amount: n
 export async function bankingStake(amount: number, game: CasinoGame) {
   const credentials = getStoredBankingCredentials();
   if (!credentials) throw new Error("Connect a banking account before placing a bet.");
-  await bankingTransfer(credentials, amount, "stake", undefined, game);
+  await bankingTransfer(credentials, amount, "hold", undefined, game);
+}
+
+export async function bankingReturn(amount: number) {
+  const credentials = getStoredBankingCredentials();
+  if (!credentials) throw new Error("Connect a banking account before settling a bet.");
+  await bankingTransfer(credentials, amount, "return");
 }
 
 export async function bankingPayout(amount: number) {

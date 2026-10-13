@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { bankingLoss, bankingPayout, syncBankingBalance, useBankingBalance } from "../../lib/banking";
+import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
 
 type Suit = "♠" | "♥" | "♦" | "♣";
 type Card = { suit: Suit; value: string; points: number };
@@ -64,28 +64,19 @@ export default function Blackjack() {
     const push = playerScore <= 21 && dealerScore <= 21 && playerScore === dealerScore;
     const credit = won ? stake : 0;
     const outcome = push
-      ? "Push — no money changes hands."
+      ? "Push — your stake was returned."
       : won
         ? `Won ${credit.toFixed(2)} moose bucks credited.`
         : `Dealer wins — ${stake.toFixed(2)} moose bucks debited.`;
-    if (credit > 0) {
-      try {
-        await bankingPayout(credit);
-        await syncBankingBalance(setBalance);
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : "Payout failed.");
-        setStatus("finished");
-        return;
-      }
-    } else if (!push) {
-      try {
-        await bankingLoss(stake);
-        await syncBankingBalance(setBalance);
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : "Could not record the lost stake.");
-        setStatus("finished");
-        return;
-      }
+    try {
+      await bankingReturn(stake);
+      if (credit > 0) await bankingPayout(credit);
+      else if (!push) await bankingLoss(stake);
+      await syncBankingBalance(setBalance);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Settlement failed.");
+      setStatus("finished");
+      return;
     }
     setMessage(`${outcome} ${playerScore} against ${dealerScore}.`);
     setStatus("finished");
@@ -96,6 +87,13 @@ export default function Blackjack() {
   async function deal() {
     if (bet < 1 || bet > MAX_BET || bet > balance) { setMessage(`Choose a bet between 1 and ${MAX_BET} moose bucks within your available balance.`); return; }
     try {
+      await bankingStake(bet, "blackjack");
+      await syncBankingBalance(setBalance);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not place the stake.");
+      return;
+    }
+    try {
       const deck = shoe.length < 20 ? makeShoe() : shoe;
       const [p1, r1] = draw(deck); const [d1, r2] = draw(r1); const [p2, r3] = draw(r2); const [d2, nextShoe] = draw(r3);
       const hand = [p1, p2]; const house = [d1, d2];
@@ -103,9 +101,10 @@ export default function Blackjack() {
       if (score(hand) === 21) {
         if (score(house) === 21) await settle(hand, house, bet);
         else {
+          await bankingReturn(bet);
           await bankingPayout(bet * 1.5);
           await syncBankingBalance(setBalance);
-          setMessage(`Blackjack! ${(bet * 1.5).toFixed(2)} moose bucks credited. Blackjack pays 3:2.`);
+          setMessage(`Blackjack! ${(bet * 1.5).toFixed(2)} profit + ${bet.toFixed(2)} stake returned = ${(bet * 2.5).toFixed(2)} moose bucks credited. Blackjack pays 3:2.`);
           setStatus("finished");
         }
       } else {
@@ -153,6 +152,13 @@ export default function Blackjack() {
   async function doubleDown() {
     if (bet * 2 > MAX_BET) { setMessage(`The table limit is ${MAX_BET} moose bucks.`); return; }
     if (balance < bet) { setMessage("You need enough balance to double your bet."); return; }
+    try {
+      await bankingStake(bet, "blackjack");
+      await syncBankingBalance(setBalance);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not place the extra stake.");
+      return;
+    }
     const stake = bet * 2; const [card, nextShoe] = draw(shoe); const hand = [...player, card];
     setBet(stake); setPlayer(hand); setShoe(nextShoe);
     if (score(hand) > 21) void settle(hand, dealer, stake); else stand(hand, stake);

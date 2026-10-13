@@ -6,7 +6,7 @@ type TransferRequest = {
   amount?: number;
   maximumPayout?: number;
   game?: "roulette" | "crash" | "minesweeper" | "plinko" | "uno" | "blackjack";
-  direction?: "stake" | "payout" | "loss";
+  direction?: "stake" | "payout" | "loss" | "hold" | "return";
 };
 
 const bankingApiUrl = process.env.BANKING_API_URL ?? "http://10.151.0.85:3000/api/v1";
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   const credentials = { username, password };
 
   try {
-    if (direction === "stake") {
+    if (direction === "stake" || direction === "hold") {
       if (!game) return errorResponse("The game must be identified before placing a bet.", 400);
       const payoutMultipliers = { roulette: 36, crash: 20, minesweeper: 20, plinko: 10, uno: 1.95, blackjack: 2.5 };
       const maximumGamePayout = amount * payoutMultipliers[game];
@@ -57,10 +57,11 @@ export async function POST(request: Request) {
         return errorResponse("The casino cannot currently cover the maximum payout for this bet.", 409);
       }
     }
+    const transactionTypes = { stake: "hold", payout: "win", loss: "loss", hold: "hold", return: "return" } as const;
     const response = await fetch(`${bankingApiUrl}/services/transaction`, {
       method: "POST",
       headers: { Accept: "application/json", "Content-Type": "application/json" },
-      body: JSON.stringify({ ...credentials, serviceToken, amount, type: direction === "payout" ? "win" : "loss" }),
+      body: JSON.stringify({ ...credentials, serviceToken, amount, type: transactionTypes[direction] }),
       cache: "no-store",
     });
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { bankingPayout, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
+import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
 import type { CSSProperties } from "react";
 
 type RoundStatus = "ready" | "running" | "crashed" | "cashed-out";
@@ -126,6 +126,7 @@ export default function Crash() {
       setStatus("crashed");
       setHistory((list) => [{ id: current.id, point: current.point, cashed: false }, ...list].slice(0, 10));
       setMessage(`Crashed at ${current.point.toFixed(2)}× — the moose took a tumble and ${current.stake.toFixed(2)} stake was lost.`);
+      bankingReturn(current.stake).then(() => bankingLoss(current.stake)).then(() => syncBankingBalance(setBalance)).catch((error) => setMessage(error instanceof Error ? error.message : "Loss could not be recorded."));
       return;
     }
     setElapsed(seconds);
@@ -168,7 +169,9 @@ export default function Crash() {
     const returned = current.stake * multiplier;
     const profit = returned - current.stake;
     try {
-      await bankingPayout(returned);
+      await bankingReturn(current.stake);
+      if (profit > 0) await bankingPayout(profit);
+      else if (profit < 0) await bankingLoss(current.stake - returned);
       await syncBankingBalance(setBalance);
     } catch (error) {
       raf.current = requestAnimationFrame(tick);

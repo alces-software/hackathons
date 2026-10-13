@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { bankingPayout, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
+import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
 
 type BetType = "red" | "black" | "odd" | "even" | "number";
 
@@ -117,12 +117,13 @@ export default function Roulette() {
       setResult(outcome);
       setHistory((current) => [outcome, ...current].slice(0, 12));
       if (returned > 0) {
-        bankingPayout(returned).then(() => syncBankingBalance(setBalance)).then(() => {
+        bankingReturn(stake).then(() => bankingPayout(profit)).then(() => syncBankingBalance(setBalance)).then(() => {
           setMessage(`${outcome} ${numberColor(outcome)} — won ${profit.toFixed(2)} profit + ${stake.toFixed(2)} stake returned = ${returned.toFixed(2)} moose bucks credited.`);
         }).catch((error) => setMessage(error instanceof Error ? error.message : "Payout failed.")).finally(() => setSpinning(false));
       } else {
-        setMessage(`${outcome} ${numberColor(outcome)} — ${stake.toFixed(2)} stake lost.`);
-        setSpinning(false);
+        bankingReturn(stake).then(() => bankingLoss(stake)).then(() => syncBankingBalance(setBalance)).then(() => {
+          setMessage(`${outcome} ${numberColor(outcome)} — ${stake.toFixed(2)} stake lost.`);
+        }).catch((error) => setMessage(error instanceof Error ? error.message : "Loss could not be recorded.")).finally(() => setSpinning(false));
       }
     };
     frame.current = requestAnimationFrame(tick);
