@@ -1,7 +1,12 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 
 import APIError, { APIErrorCode } from '../../../../lib/errors/apiError';
-import { ConflictErrorSchema, InternalServerErrorSchema } from '../../../../lib/errors/schemas';
+import {
+   BadRequestErrorSchema,
+   InternalServerErrorSchema,
+   NotFoundErrorSchema,
+   UnauthorisedErrorSchema
+} from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
 import { publish } from '../../../../lib/publisher';
 import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
@@ -40,7 +45,9 @@ export default new OpenAPIHono().openapi(
          204: {
             description: 'Successfully created a transaction'
          },
-         ...ConflictErrorSchema,
+         ...BadRequestErrorSchema,
+         ...UnauthorisedErrorSchema,
+         ...NotFoundErrorSchema,
          ...InternalServerErrorSchema
       }
    }),

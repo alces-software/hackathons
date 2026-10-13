@@ -37,8 +37,8 @@ export default new OpenAPIHono().openapi(
             description: 'Loan removed successfully'
          },
          ...BadRequestErrorSchema,
-         ...NotFoundErrorSchema,
          ...UnauthorisedErrorSchema,
+         ...NotFoundErrorSchema,
          ...InternalServerErrorSchema
       }
    }),

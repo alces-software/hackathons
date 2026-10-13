@@ -46,9 +46,9 @@ export default new OpenAPIHono().openapi(
          204: {
             description: 'Transaction was successful'
          },
-         ...NotFoundErrorSchema,
-         ...UnauthorisedErrorSchema,
          ...BadRequestErrorSchema,
+         ...UnauthorisedErrorSchema,
+         ...NotFoundErrorSchema,
          ...InternalServerErrorSchema
       }
    }),

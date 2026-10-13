@@ -1,7 +1,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { Prisma } from '@prisma/client';
 
-import { InternalServerErrorSchema, NotFoundErrorSchema } from '../../../../lib/errors/schemas';
+import { InternalServerErrorSchema } from '../../../../lib/errors/schemas';
 import {
    PaginationParamsSchema,
    PaginationResponseSchema
@@ -31,7 +31,6 @@ export default new OpenAPIHono().openapi(
                }
             }
          },
-         ...NotFoundErrorSchema,
          ...InternalServerErrorSchema
       }
    }),

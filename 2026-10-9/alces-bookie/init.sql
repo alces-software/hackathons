@@ -26,8 +26,8 @@ CREATE TABLE Ledger(
    beforeBalance DECIMAL(65, 2) NOT NULL,
    afterBalance DECIMAL(65, 2) NOT NULL,
    timestamp DATETIME NOT NULL,
-   CONSTRAINT fk_ledger_username_username FOREIGN KEY (username) REFERENCES Users(username),
-   CONSTRAINT fk_ledger_service_id FOREIGN KEY (service) REFERENCES Services(id)
+   CONSTRAINT fk_ledger_username_username FOREIGN KEY (username) REFERENCES Users(username) ON DELETE CASCADE,
+   CONSTRAINT fk_ledger_service_id FOREIGN KEY (service) REFERENCES Services(id) ON DELETE CASCADE
 );
 
 INSERT INTO Users (username, password, balance)
