@@ -6,7 +6,7 @@ type TransferRequest = {
   amount?: number;
   maximumPayout?: number;
   game?: "roulette" | "crash" | "minesweeper" | "plinko" | "uno" | "blackjack";
-  direction?: "stake" | "payout";
+  direction?: "stake" | "payout" | "loss";
 };
 
 const bankingApiUrl = process.env.BANKING_API_URL ?? "http://10.151.0.85:3000/api/v1";
@@ -35,15 +35,11 @@ export async function POST(request: Request) {
 
   const serviceToken = process.env.BANKING_SERVICE_TOKEN;
   const casinoUsername = process.env.CASINO_USERNAME;
-  const casinoPassword = process.env.CASINO_PASSWORD;
-  if (!serviceToken || !casinoUsername || !casinoPassword) {
+  if (!serviceToken || !casinoUsername) {
     return errorResponse("Banking service credentials are not configured.", 503);
   }
 
-  const transferUsername = direction === "stake" ? casinoUsername : username;
-  const credentials = direction === "stake"
-    ? { username, password }
-    : { username: casinoUsername, password: casinoPassword };
+  const credentials = { username, password };
 
   try {
     if (direction === "stake") {
@@ -58,10 +54,10 @@ export async function POST(request: Request) {
         return errorResponse("The casino cannot currently cover the maximum payout for this bet.", 409);
       }
     }
-    const response = await fetch(`${bankingApiUrl}/transactions/service/${encodeURIComponent(transferUsername)}`, {
+    const response = await fetch(`${bankingApiUrl}/services/transaction`, {
       method: "POST",
       headers: { Accept: "application/json", "Content-Type": "application/json" },
-      body: JSON.stringify({ ...credentials, serviceToken, amount }),
+      body: JSON.stringify({ ...credentials, serviceToken, amount, type: direction === "payout" ? "win" : "loss" }),
       cache: "no-store",
     });
 
