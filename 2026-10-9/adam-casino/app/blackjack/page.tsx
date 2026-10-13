@@ -62,14 +62,13 @@ export default function Blackjack() {
     const dealerScore = score(house);
     const won = playerScore <= 21 && (dealerScore > 21 || playerScore > dealerScore);
     const push = playerScore <= 21 && dealerScore <= 21 && playerScore === dealerScore;
-    const returned = won ? stake * 2 : 0;
-    const profit = push ? 0 : won ? stake : -stake;
+    const credit = won ? stake : 0;
     const outcome = push
-      ? `Push — ${stake.toFixed(2)} stake returned.`
+      ? "Push — no money changes hands."
       : won
-        ? `Won ${profit.toFixed(2)} profit + ${stake.toFixed(2)} stake returned = ${returned.toFixed(2)} moose bucks credited.`
-        : `Dealer wins — ${stake.toFixed(2)} stake lost.`;
-    if (returned > 0) {
+        ? `Won ${credit.toFixed(2)} moose bucks credited.`
+        : `Dealer wins — ${stake.toFixed(2)} moose bucks debited.`;
+    if (credit > 0) {
       try {
         await bankingPayout(returned);
         await syncBankingBalance(setBalance);
@@ -104,9 +103,9 @@ export default function Blackjack() {
       if (score(hand) === 21) {
         if (score(house) === 21) await settle(hand, house, bet);
         else {
-          await bankingPayout(bet * 2.5);
+          await bankingPayout(bet * 1.5);
           await syncBankingBalance(setBalance);
-          setMessage(`Blackjack! Won ${(bet * 1.5).toFixed(2)} profit + ${bet.toFixed(2)} stake returned = ${(bet * 2.5).toFixed(2)} moose bucks credited. Blackjack pays 3:2.`);
+          setMessage(`Blackjack! ${(bet * 1.5).toFixed(2)} moose bucks credited. Blackjack pays 3:2.`);
           setStatus("finished");
         }
       } else {
