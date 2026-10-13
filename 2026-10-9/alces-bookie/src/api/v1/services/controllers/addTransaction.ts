@@ -33,8 +33,8 @@ export default new OpenAPIHono().openapi(
                         .number({ error: 'Amount must be a number' })
                         .min(1, { error: 'Amount must be more than 0' })
                         .transform((value) => Number(value.toFixed(2))),
-                     type: z.enum(['win', 'loss', 'hold'], {
-                        error: 'The type must be either a win, loss or hold'
+                     type: z.enum(['win', 'loss', 'hold', 'return'], {
+                        error: 'The type must be either a win, loss, hold, return'
                      })
                   })
                }
@@ -88,6 +88,9 @@ export default new OpenAPIHono().openapi(
                }),
                ...(body.type === 'hold' && {
                   balance: { decrement: body.amount }
+               }),
+               ...(body.type === 'return' && {
+                  balance: { increment: body.amount }
                })
             }
          });
@@ -96,7 +99,7 @@ export default new OpenAPIHono().openapi(
          await tx.services.update({
             where: { token: body.serviceToken },
             data: {
-               ...(body.type === 'win' && {
+               ...((body.type === 'win' || body.type === 'return') && {
                   balance: { decrement: body.amount }
                }),
                ...((body.type === 'loss' || body.type === 'hold') && {
@@ -112,7 +115,7 @@ export default new OpenAPIHono().openapi(
                service: service.id,
                beforeBalance: user.balance,
                afterBalance:
-                  body.type === 'win'
+                  body.type === 'win' || body.type === 'return'
                      ? user.balance.plus(body.amount)
                      : user.balance.minus(body.amount),
                timestamp: new Date()
