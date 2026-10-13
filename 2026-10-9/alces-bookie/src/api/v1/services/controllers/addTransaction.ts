@@ -33,8 +33,8 @@ export default new OpenAPIHono().openapi(
                         .number({ error: 'Amount must be a number' })
                         .min(1, { error: 'Amount must be more than 0' })
                         .transform((value) => Number(value.toFixed(2))),
-                     type: z.enum(['win', 'loss'], {
-                        error: 'The type must be either a win or a loss'
+                     type: z.enum(['win', 'loss', 'hold'], {
+                        error: 'The type must be either a win, loss or hold'
                      })
                   })
                }
@@ -75,15 +75,17 @@ export default new OpenAPIHono().openapi(
          await tx.users.update({
             where: { username: body.username },
             data: {
-               ...(body.type === 'win'
-                  ? {
-                       balance: { increment: body.amount },
-                       winnings: { increment: body.amount }
-                    }
-                  : {
-                       balance: { decrement: body.amount },
-                       loses: { increment: body.amount }
-                    })
+               ...(body.type === 'win' && {
+                  balance: { increment: body.amount },
+                  winnings: { increment: body.amount }
+               }),
+               ...(body.type === 'loss' && {
+                  balance: { decrement: body.amount },
+                  loses: { increment: body.amount }
+               }),
+               ...(body.type === 'hold' && {
+                  balance: { decrement: body.amount }
+               }),
             }
          });
 
@@ -91,8 +93,12 @@ export default new OpenAPIHono().openapi(
          await tx.services.update({
             where: { token: body.serviceToken },
             data: {
-               balance:
-                  body.type === 'win' ? { decrement: body.amount } : { increment: body.amount }
+               ...(body.type === 'win' && {
+                  balance: { decrement: body.amount },
+               }),
+               ...((body.type === 'loss' || body.type === 'hold') && {
+                  balance: { increment: body.amount },
+               }),
             }
          });
 
