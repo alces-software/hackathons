@@ -60,7 +60,7 @@ export default new OpenAPIHono().openapi(
          // Make sure the send has enough in their account
          if (body.type === 'loss' && user.balance.minus(body.amount).lessThan(0)) {
             throw new APIError(APIErrorCode.BadRequest, {
-               message: `${user.username} does not enough have to transfer`
+               message: `${user.username} does not have enough to transfer`
             });
          }
 
