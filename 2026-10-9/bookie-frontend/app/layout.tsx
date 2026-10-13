@@ -60,6 +60,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                 <Link href="/exchange" className={link}>
                   The exchange
                 </Link>
+                <Link href="/bank" className={link}>
+                  The bank
+                </Link>
+                <Link href="/transfer" className={link}>
+                  Transfers
+                </Link>
                 <Link href="/me" className={link}>
                   Your account
                 </Link>

@@ -41,7 +41,7 @@ export function byTimestampAsc(
   return Date.parse(a.timestamp) - Date.parse(b.timestamp);
 }
 
-/** Newest first, for "latest" teasers only — never for the ledger itself. */
+/** Newest first — the teasers and the ledger itself. */
 export function byTimestampDesc(
   a: { timestamp: string },
   b: { timestamp: string },
