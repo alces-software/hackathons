@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Alces Blueprint Logical Core
+  title: Alces Bookie
   version: 1.0.0
 servers:
   - url: /api/v1
@@ -8,6 +8,340 @@ components:
   schemas: {}
   parameters: {}
 paths:
+  /bank/loan:
+    post:
+      description: Add a loan to a user
+      tags:
+        - Bank
+        - Users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  minLength: 4
+                  maxLength: 25
+                password:
+                  type: string
+                  minLength: 4
+                  maxLength: 30
+                amount:
+                  type: number
+                  minimum: 1
+              required:
+                - username
+                - password
+                - amount
+      responses:
+        "204":
+          description: Loan added successfully
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - BAD_REQUEST
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The request was malformed
+                      - type: string
+                required:
+                  - error
+                  - message
+        "401":
+          description: Unauthorised
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - UNAUTHORISED
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The request credentials are incorrect
+                      - type: string
+                required:
+                  - error
+                  - message
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - NOT_FOUND
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The requested resource does not exist
+                      - type: string
+                required:
+                  - error
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
+  /bank/repay:
+    post:
+      description: Remove a loan from a user
+      tags:
+        - Bank
+        - Users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  minLength: 4
+                  maxLength: 25
+                password:
+                  type: string
+                  minLength: 4
+                  maxLength: 30
+                amount:
+                  type: number
+                  minimum: 1
+              required:
+                - username
+                - password
+                - amount
+      responses:
+        "204":
+          description: Loan removed successfully
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - BAD_REQUEST
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The request was malformed
+                      - type: string
+                required:
+                  - error
+                  - message
+        "401":
+          description: Unauthorised
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - UNAUTHORISED
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The request credentials are incorrect
+                      - type: string
+                required:
+                  - error
+                  - message
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - NOT_FOUND
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The requested resource does not exist
+                      - type: string
+                required:
+                  - error
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
+  /services/transaction:
+    post:
+      description: Performs a transaction for service
+      tags:
+        - Services
+        - Transactions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  minLength: 4
+                  maxLength: 25
+                password:
+                  type: string
+                  minLength: 4
+                  maxLength: 30
+                serviceToken:
+                  type: string
+                  minLength: 1
+                amount:
+                  type: number
+                  minimum: 1
+                type:
+                  type: string
+                  enum:
+                    - win
+                    - loss
+              required:
+                - username
+                - password
+                - serviceToken
+                - amount
+                - type
+      responses:
+        "204":
+          description: Successfully created a transaction
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - BAD_REQUEST
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The request was malformed
+                      - type: string
+                required:
+                  - error
+                  - message
+        "401":
+          description: Unauthorised
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - UNAUTHORISED
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The request credentials are incorrect
+                      - type: string
+                required:
+                  - error
+                  - message
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - NOT_FOUND
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The requested resource does not exist
+                      - type: string
+                required:
+                  - error
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
   /services/{name}:
     get:
       description: Get a service
@@ -33,9 +367,12 @@ paths:
                     type: integer
                   name:
                     type: string
+                  balance:
+                    type: number
                 required:
                   - id
                   - name
+                  - balance
         "404":
           description: Resource not found
           content:
@@ -159,6 +496,12 @@ paths:
           required: true
           name: name
           in: path
+        - schema:
+            type: string
+            minLength: 1
+          required: true
+          name: serviceToken
+          in: path
       responses:
         "204":
           description: Deleted a service successfully
@@ -243,9 +586,12 @@ paths:
                           type: integer
                         name:
                           type: string
+                        balance:
+                          type: number
                       required:
                         - id
                         - name
+                        - balance
                     description: The paginated data from the API
                   currentPage:
                     type: number
@@ -287,11 +633,132 @@ paths:
                 required:
                   - error
                   - message
+  /transactions/service/{username}:
+    post:
+      description: Performs a transfer using a custom service
+      tags:
+        - Transactions
+        - Services
+      deprecated: true
+      parameters:
+        - schema:
+            type: string
+            minLength: 4
+            maxLength: 25
+          required: true
+          name: username
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  minLength: 4
+                  maxLength: 25
+                password:
+                  type: string
+                  minLength: 4
+                  maxLength: 30
+                serviceToken:
+                  type: string
+                  minLength: 1
+                amount:
+                  type: number
+                  minimum: 1
+              required:
+                - username
+                - password
+                - serviceToken
+                - amount
+      responses:
+        "204":
+          description: Transaction was successful
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - BAD_REQUEST
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The request was malformed
+                      - type: string
+                required:
+                  - error
+                  - message
+        "401":
+          description: Unauthorised
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - UNAUTHORISED
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The request credentials are incorrect
+                      - type: string
+                required:
+                  - error
+                  - message
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - NOT_FOUND
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The requested resource does not exist
+                      - type: string
+                required:
+                  - error
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
   /transactions/{id}:
     get:
       description: Get a transaction
       tags:
-        - Transaction
+        - Transactions
       parameters:
         - schema:
             type: integer
@@ -307,6 +774,8 @@ paths:
               schema:
                 type: object
                 properties:
+                  id:
+                    type: integer
                   username:
                     type: string
                   timestamp:
@@ -320,13 +789,14 @@ paths:
                     type: object
                     properties:
                       id:
-                        type: number
+                        type: integer
                       name:
                         type: string
                     required:
                       - id
                       - name
                 required:
+                  - id
                   - username
                   - timestamp
                   - before
@@ -397,6 +867,15 @@ paths:
           description: How many items to retrieve
           name: limit
           in: query
+        - schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+          required: false
+          name: order
+          in: query
       responses:
         "200":
           description: Retired all transactions successfully
@@ -410,6 +889,8 @@ paths:
                     items:
                       type: object
                       properties:
+                        id:
+                          type: integer
                         username:
                           type: string
                         timestamp:
@@ -423,13 +904,14 @@ paths:
                           type: object
                           properties:
                             id:
-                              type: number
+                              type: integer
                             name:
                               type: string
                           required:
                             - id
                             - name
                       required:
+                        - id
                         - username
                         - timestamp
                         - before
@@ -458,6 +940,165 @@ paths:
                   - limit
                   - itemCount
                   - itemTotal
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
+  /users/login:
+    post:
+      description: Login a user
+      tags:
+        - Users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  minLength: 4
+                  maxLength: 25
+                password:
+                  type: string
+                  minLength: 4
+                  maxLength: 30
+              required:
+                - username
+                - password
+      responses:
+        "204":
+          description: logged in successfully
+        "401":
+          description: Unauthorised
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - UNAUTHORISED
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The request credentials are incorrect
+                      - type: string
+                required:
+                  - error
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
+  /users/transaction/{username}:
+    post:
+      description: Transfer from one user to another
+      tags:
+        - Users
+        - Transactions
+      parameters:
+        - schema:
+            type: string
+            minLength: 4
+            maxLength: 25
+          required: true
+          name: username
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  minLength: 4
+                  maxLength: 25
+                password:
+                  type: string
+                  minLength: 4
+                  maxLength: 30
+                amount:
+                  type: number
+                  minimum: 1
+              required:
+                - username
+                - password
+                - amount
+      responses:
+        "204":
+          description: Transaction was successful
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - BAD_REQUEST
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The request was malformed
+                      - type: string
+                required:
+                  - error
+                  - message
+        "401":
+          description: Unauthorised
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - UNAUTHORISED
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The request credentials are incorrect
+                      - type: string
+                required:
+                  - error
+                  - message
         "404":
           description: Resource not found
           content:
@@ -510,8 +1151,32 @@ paths:
           name: username
           in: path
       responses:
-        "204":
+        "200":
           description: Retired a user successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  username:
+                    type: string
+                  balance:
+                    type: number
+                  debt:
+                    type: number
+                  winnings:
+                    type: number
+                  loses:
+                    type: number
+                required:
+                  - id
+                  - username
+                  - balance
+                  - debt
+                  - winnings
+                  - loses
         "404":
           description: Resource not found
           content:
@@ -551,6 +1216,93 @@ paths:
                   - error
                   - message
   /users:
+    patch:
+      description: Update a user
+      tags:
+        - Users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  minLength: 4
+                  maxLength: 25
+                password:
+                  type: string
+                  minLength: 4
+                  maxLength: 30
+                newPassword:
+                  type: string
+                  minLength: 4
+                  maxLength: 30
+              required:
+                - username
+                - password
+                - newPassword
+      responses:
+        "204":
+          description: Updated user successfully
+        "401":
+          description: Unauthorised
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - UNAUTHORISED
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The request credentials are incorrect
+                      - type: string
+                required:
+                  - error
+                  - message
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - NOT_FOUND
+                  message:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - The requested resource does not exist
+                      - type: string
+                required:
+                  - error
+                  - message
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
     post:
       description: Create a user
       tags:
@@ -734,13 +1486,25 @@ paths:
                     items:
                       type: object
                       properties:
+                        id:
+                          type: integer
                         username:
                           type: string
                         balance:
                           type: number
+                        debt:
+                          type: number
+                        winnings:
+                          type: number
+                        loses:
+                          type: number
                       required:
+                        - id
                         - username
                         - balance
+                        - debt
+                        - winnings
+                        - loses
                     description: The paginated data from the API
                   currentPage:
                     type: number
@@ -764,26 +1528,6 @@ paths:
                   - limit
                   - itemCount
                   - itemTotal
-        "404":
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    enum:
-                      - NOT_FOUND
-                  message:
-                    anyOf:
-                      - type: string
-                        enum:
-                          - The requested resource does not exist
-                      - type: string
-                required:
-                  - error
-                  - message
         "500":
           description: Internal server error
           content:

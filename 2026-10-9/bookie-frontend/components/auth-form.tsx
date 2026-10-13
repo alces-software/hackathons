@@ -76,8 +76,9 @@ export function AuthForm({ mode, next }: Props) {
         />
         {mode === "signup" && (
           <span className="mt-1 block text-xs text-muted">
-            4 to 30 characters. The core only checks it you delete your
-            account, so pick something memorable for that occasion.
+            4 to 30 characters. You’ll be asked for it again at sign-in and
+            whenever you act on the account — and it can be changed on{" "}
+            <span className="sc">your account</span>.
           </span>
         )}
       </label>

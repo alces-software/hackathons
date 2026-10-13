@@ -13,6 +13,31 @@ npm run dev
 
 Then open <http://localhost:3000>.
 
+### Or by compose, as the core does
+
+```bash
+docker compose up -d
+```
+
+runs this frontend as a single service — the site on <http://localhost:3001>.
+There's no Dockerfile: the container is plain `node` with this checkout bound
+in and a `run.sh` that installs, builds and serves, exactly how the core's
+own compose runs it. Source edits take effect on the next
+`docker compose restart frontend`.
+
+The core is a separate service, running from its own compose in
+`../alces-bookie` (API published on :3000) — the frontend reaches it over the
+host's port. If the core lives somewhere other than this VM's :3000, that's
+the `API_URL` line in `docker-compose.yml`.
+
+The websocket the **browser** should find the core on is baked into the
+client bundle while the container builds; set it in `.env` when opening the
+site from another machine:
+
+```
+NEXT_PUBLIC_WS_URL=ws://<vm-address>:3000/api/v1/ws
+```
+
 ## Pointing it at the core
 
 The core's base URL lives in `.env` and is read server-side only — the
@@ -27,20 +52,32 @@ as a copyable template.
 
 ## What's here
 
-- `/` — latest entries and the accounts currently on the book
-- `/ledger` — every transaction in the core, paginated
-- `/me` — your own entries and standing balance (sign in required)
-- `/signup`, `/login` — accounts, backed by POST/GET on the core's `/users`
+- `/` — latest entries and the accounts currently on the book (debts shown
+  against names that carry them)
+- `/ledger` — every transaction in the core, paginated, newest first
+- `/me` — your own entries, balance, winnings, losses and bank debt, plus a
+  password change via the core's `PATCH /users` (sign in required)
+- `/bank` — take a loan and repay it, via the core's `POST /bank/loan` and
+  `POST /bank/repay` (sign in required)
+- `/transfer` — hand money to another name on the book, via the core's
+  `POST /users/transaction/{username}` (sign in required)
+- `/signup`, `/login` — accounts, backed by POST `/users` and POST
+  `/users/login`
 
-All reads are server-rendered straight from the core; sign-in and sign-up go
-through an internal route (`app/api/session`) which sets an httpOnly cookie
-holding the account name.
+All reads are server-rendered straight from the core; sign-in, sign-up, bank
+and password actions go through internal routes (`app/api/session`,
+`app/api/bank`, `app/api/password`) so the password is checked server-side
+and never stored. Sign-in sets an httpOnly cookie holding the account name.
 
 ## One honest caveat
 
-The core's API has no session or password-verification endpoint — POST
-`/users` creates an account, DELETE `/users` is the only place a password is
-checked, and GET `/users/{username}` merely answers 204 or 404. So sign-in
-here verifies that a name is on the book, not that the password matches.
-If the core grows a proper auth endpoint, `app/api/session/route.ts` and
-`userExists()` in `lib/api.ts` are the two places to change.
+The core's transaction-writing endpoints for service operators
+(`POST /services/transaction`, `POST /transactions/service/{username}`) are
+for services paying out, not for a public front, and need a service token —
+nothing here calls them.
+
+For `POST /users/transaction/{username}` the doc names the recipient in the
+path and carries the sender's credentials in the body (mirroring the service
+endpoint's shape), so that's what `/transfer` assumes — and the current spec
+templates it just so. If the core ends up doing it the other way round,
+`app/api/transfer/route.ts` is the place to flip it.

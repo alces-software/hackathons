@@ -20,7 +20,7 @@ export default async function LedgerPage({ searchParams }: Props) {
     itemTotal: number;
   } | null = null;
   try {
-    const res = await getTransactions(page, 25);
+    const res = await getTransactions(page, 25, "desc");
     data = {
       rows: res.data,
       totalPages: res.totalPages,
@@ -35,11 +35,12 @@ export default async function LedgerPage({ searchParams }: Props) {
     <div>
       <LiveLedger />
       <h1 className="font-serif text-3xl">The ledger</h1>
-      <p className="sc mt-1 text-muted">every entry, in the order it was written</p>
+      <p className="sc mt-1 text-muted">every entry, newest first</p>
 
       <div className="mt-8">
         <TxnTable
           rows={data?.rows ?? null}
+          newestFirst
           emptyMessage={
             data !== null && page > 1
               ? "Nothing on this page — turn back."

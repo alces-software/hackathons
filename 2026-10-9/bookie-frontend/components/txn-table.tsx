@@ -4,7 +4,7 @@ import { byTimestampAsc, fmtAmount, fmtTimestamp } from "@/lib/format";
 type Props = {
   rows: Txn[] | null;
   emptyMessage?: string;
-  /** Teaser only — the ledger itself always reads oldest first. */
+  /** Newest first — how the teaser and the ledger itself read. */
   newestFirst?: boolean;
 };
 
@@ -55,7 +55,7 @@ export function TxnTable({ rows, emptyMessage, newestFirst }: Props) {
           const debit = delta < 0 ? -delta : 0;
           const credit = delta > 0 ? delta : 0;
           return (
-            <tr key={i} className="border-b border-rule/70">
+            <tr key={t.id ?? i} className="border-b border-rule/70">
               <td className="whitespace-nowrap py-2 font-mono text-xs text-muted">
                 {fmtTimestamp(t.timestamp)}
               </td>

@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getAllUsers, fetchAll, ApiError, type Txn } from "@/lib/api";
+import { getUser, fetchAll, ApiError, type Txn, type User } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import { fmtAmount } from "@/lib/format";
 import { TxnTable } from "@/components/txn-table";
+import { PasswordForm } from "@/components/password-form";
 
 export const metadata = { title: "Your account" };
 
@@ -13,7 +14,7 @@ export default async function MePage() {
     redirect("/login?next=/me");
   }
 
-  const balance = await loadBalance(me);
+  const standing = await loadStanding(me);
   const entries = await loadEntries(me);
 
   return (
@@ -23,15 +24,28 @@ export default async function MePage() {
           <h1 className="font-serif text-3xl">{me}</h1>
           <p className="sc mt-1 text-muted">your side of the book</p>
         </div>
-        {balance !== null && (
+        {standing !== null && (
           <p className="text-right">
             <span className="sc block text-muted">standing</span>
             <span className="amt font-serif text-3xl leading-tight">
-              {fmtAmount(balance)}
+              {fmtAmount(standing.balance)}
             </span>
+            {standing.debt > 0 && (
+              <span className="amt block text-xs text-debit">
+                owes the bank {fmtAmount(standing.debt)}
+              </span>
+            )}
           </p>
         )}
       </div>
+
+      {standing !== null && (
+        <dl className="mt-6 grid grid-cols-3 gap-x-6 border-t border-rule pt-3 sm:max-w-md">
+          <Stat label="winnings" value={standing.winnings} tone="credit" />
+          <Stat label="losses" value={standing.loses} tone="debit" />
+          <Stat label="bank debt" value={standing.debt} tone="debit" />
+        </dl>
+      )}
 
       <div className="mt-8">
         <TxnTable
@@ -40,7 +54,27 @@ export default async function MePage() {
         />
       </div>
 
-      <p className="mt-5 text-xs text-muted">
+      <section className="mt-8 max-w-sm border-t border-rule pt-6">
+        <h2 className="sc font-serif text-lg">Change your password</h2>
+        <p className="mt-1 text-xs text-muted">
+          The core holds one password per account — this swaps it, once the
+          current one checks out.
+        </p>
+        <PasswordForm />
+      </section>
+
+      <p className="mt-6 text-xs text-muted">
+        Short of pocket, or flush with it?{" "}
+        <Link href="/bank" className="underline underline-offset-4">
+          The bank
+        </Link>{" "}
+        takes loans and repayments, and{" "}
+        <Link href="/transfer" className="underline underline-offset-4">
+          a transfer
+        </Link>{" "}
+        hands money to another name on the book.
+      </p>
+      <p className="mt-2 text-xs text-muted">
         Balances are read from the{" "}
         <Link href="/ledger" className="underline underline-offset-4">
           whole ledger
@@ -51,12 +85,11 @@ export default async function MePage() {
   );
 }
 
-/** Balances only live on the user list, so walk it and find ours. */
-async function loadBalance(me: string): Promise<number | null> {
+/** The core hands out a single account's facts straight off
+ *  GET /users/{username} — no walking the list. */
+async function loadStanding(me: string): Promise<User | null> {
   try {
-    const users = await getAllUsers();
-    const found = users.find((u) => u.username === me);
-    return found?.balance ?? null;
+    return await getUser(me);
   } catch (e) {
     if (e instanceof ApiError) return null;
     throw e;
@@ -71,4 +104,27 @@ async function loadEntries(me: string): Promise<Txn[] | null> {
     if (e instanceof ApiError) return null;
     throw e;
   }
+}
+
+function Stat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone?: "credit" | "debit";
+}) {
+  return (
+    <div>
+      <dt className="sc text-muted">{label}</dt>
+      <dd
+        className={`amt mt-0.5 ${
+          tone === "credit" ? "text-credit" : tone === "debit" ? "text-debit" : ""
+        }`}
+      >
+        {fmtAmount(value)}
+      </dd>
+    </div>
+  );
 }

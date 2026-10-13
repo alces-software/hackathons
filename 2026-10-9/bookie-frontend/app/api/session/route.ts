@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { api, ApiError, userExists } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { SESSION_COOKIE } from "@/lib/session";
 
-// The core has no session endpoint, so this route turns the one credential
-// the browser sends into a signed-in shape we control: an httpOnly cookie
-// carrying the account name.
+// The core keeps no sessions of its own, so this route checks credentials
+// against POST /users/login and turns success into a signed-in shape we
+// control: an httpOnly cookie carrying the account name.
 
 type Body = {
   mode?: unknown;
@@ -38,19 +38,24 @@ export async function POST(req: Request) {
     if (mode === "signup") {
       await api("/users", { method: "POST", body: { username, password } });
     } else if (mode === "login") {
-      if (!(await userExists(username))) {
-        return bad("No account under that name.", 401);
-      }
+      // The core answers 204 for good credentials and 409 for bad ones.
+      await api("/users/login", { method: "POST", body: { username, password } });
     } else {
       return bad("Unrecognised request.");
     }
   } catch (e) {
     if (!(e instanceof ApiError)) throw e;
-    if (e.status === 409) {
-      return bad("That name is already on the book.", 409);
-    }
     if (e.status === 0) {
       return bad(e.message, 502);
+    }
+    if (mode === "signup" && e.status === 409) {
+      return bad("That name is already on the book.", 409);
+    }
+    if (mode === "login") {
+      if (e.status === 404) {
+        return bad("No account under that name.", 401);
+      }
+      return bad("That name and password don’t match.", 401);
     }
     return bad("The core refused the request.", 502);
   }

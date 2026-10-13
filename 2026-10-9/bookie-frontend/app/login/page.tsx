@@ -29,9 +29,9 @@ export default async function LoginPage({ searchParams }: Props) {
       <AuthForm mode="login" next={next} />
 
       <p className="mt-6 border-t border-rule pt-4 text-xs leading-relaxed text-muted">
-        The core keeps no sessions of its own and does not yet check passwords
-        at sign-in — you are vouching for yourself. Passwords matter for
-        opening and closing accounts.
+        Sign-in is checked against the core’s login endpoint, so a name and
+        password that don’t match are turned away. Passwords are asked for
+        again whenever you deal with the bank.
       </p>
       <p className="mt-3 text-xs text-muted">
         No account yet?{" "}

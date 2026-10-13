@@ -99,7 +99,14 @@ export default async function HomePage({ searchParams }: Props) {
                   className="flex items-baseline justify-between gap-4 py-1.5"
                 >
                   <span className="text-sm font-medium">{u.username}</span>
-                  <span className="amt text-sm">{fmtAmount(u.balance)}</span>
+                  <span className="flex items-baseline gap-3">
+                    {u.debt > 0 && (
+                      <span className="amt whitespace-nowrap text-xs text-debit">
+                        owes {fmtAmount(u.debt)}
+                      </span>
+                    )}
+                    <span className="amt text-sm">{fmtAmount(u.balance)}</span>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -117,11 +124,8 @@ export default async function HomePage({ searchParams }: Props) {
   );
 }
 
-/** The core paginates oldest-first, so the freshest entries sit on the last
- *  page. Peek at page one to learn where the end of the book is, then read it. */
+/** The core reads newest-first now, so the freshest entries are simply the
+ *  first page — no more peeking at the end of the book to find it. */
 async function loadLatestEntries(): Promise<Txn[]> {
-  const head = await getTransactions(1, 8);
-  if (head.totalPages <= 1) return head.data;
-  const tail = await getTransactions(head.totalPages, 8);
-  return tail.data;
+  return (await getTransactions(1, 8, "desc")).data;
 }
