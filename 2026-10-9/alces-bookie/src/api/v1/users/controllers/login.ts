@@ -3,7 +3,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { ConflictErrorSchema, InternalServerErrorSchema } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
 import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
-import { ensureAccountCredentialsMatch } from '../lib/helpers';
+import { ensureUserCredentialsMatch } from '../lib/helpers';
 
 export default new OpenAPIHono().openapi(
    createRoute({
@@ -35,7 +35,7 @@ export default new OpenAPIHono().openapi(
 
       await prisma.$transaction(async (tx) => {
          // Check that the account details are correct
-         await ensureAccountCredentialsMatch(body.username, body.password, tx);
+         await ensureUserCredentialsMatch(body.username, body.password, tx);
       });
 
       return c.body(null, 204);

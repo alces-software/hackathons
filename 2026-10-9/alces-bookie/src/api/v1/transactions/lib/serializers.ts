@@ -13,6 +13,7 @@ export function serializeTransaction(
    transaction: Prisma.LedgerGetPayload<{ include: typeof transactionInclude }>
 ): z.infer<typeof TransactionReturnSchema> {
    return {
+      id: transaction.id,
       username: transaction.username,
       timestamp: transaction.timestamp,
       before: transaction.beforeBalance.toNumber(),

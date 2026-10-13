@@ -20,7 +20,8 @@ export default new OpenAPIHono().openapi(
       tags: ['Transactions'],
       request: {
          query: z.object({
-            ...PaginationParamsSchema
+            ...PaginationParamsSchema,
+            order: z.enum(['asc', 'desc']).default('desc')
          })
       },
       responses: {
@@ -47,6 +48,9 @@ export default new OpenAPIHono().openapi(
          return [
             await tx.ledger.findMany({
                where,
+               orderBy: {
+                  timestamp: query.order
+               },
                include: transactionInclude,
                ...paginationOptions(query.page, query.limit)
             }),

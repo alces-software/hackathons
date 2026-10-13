@@ -12,7 +12,15 @@ export default new OpenAPIHono().openapi(
       tags: ['Services'],
       request: {
          params: z.object({
-            name: z.string().min(4).max(25).trim()
+            name: z
+               .string({ error: 'Name must be a string' })
+               .trim()
+               .min(4, { error: 'Name must be more than 4 characters' })
+               .max(25, { error: 'Name cannot be more than 25 characters' }),
+            serviceToken: z
+               .string({ error: 'Service token must be a string' })
+               .trim()
+               .min(1, { error: 'Service token cannot be empty' })
          })
       },
       responses: {
@@ -24,7 +32,7 @@ export default new OpenAPIHono().openapi(
       }
    }),
    async (c) => {
-      const { name } = c.req.valid('param');
+      const { name, serviceToken } = c.req.valid('param');
 
       await prisma.$transaction(async (tx) => {
          // Make sure the service exists
@@ -32,7 +40,7 @@ export default new OpenAPIHono().openapi(
 
          // Delete the service
          await tx.services.delete({
-            where: { name }
+            where: { name, token: serviceToken }
          });
       });
 
