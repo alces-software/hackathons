@@ -15,13 +15,40 @@ type Props = {
   /** Names you can pay. null when the book couldn't be read — falls back
    *  to typing the name in. */
   recipients: string[] | null;
+  /** The percent the house takes off each transfer. null when the fee
+   *  couldn't be read — the pair then moves one to one. */
+  fee: number | null;
 };
 
-export function TransferForm({ recipients }: Props) {
+const r2 = (n: number) => (Math.round(n * 100) / 100).toFixed(2);
+
+const num = (v: string) => (v.trim() === "" ? NaN : Number(v));
+
+export function TransferForm({ recipients, fee }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [noted, setNoted] = useState<string | null>(null);
+
+  // What the sender types, and what the recipient is shown to get — the two
+  // fields keep each other honest through the fee.
+  const [send, setSend] = useState("");
+  const [receive, setReceive] = useState("");
+
+  const factor = fee === null ? 1 : 1 - fee / 100;
+  const syncs = factor > 0;
+
+  function onSend(v: string) {
+    setSend(v);
+    const n = num(v);
+    setReceive(Number.isFinite(n) && syncs ? r2(n * factor) : "");
+  }
+
+  function onReceive(v: string) {
+    setReceive(v);
+    const n = num(v);
+    setSend(Number.isFinite(n) && syncs ? r2(n / factor) : "");
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     const form = e.currentTarget;
@@ -36,7 +63,7 @@ export function TransferForm({ recipients }: Props) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           recipient: fd.get("recipient"),
-          amount: fd.get("amount"),
+          amount: Number(send),
           password: fd.get("password"),
         }),
       });
@@ -46,6 +73,8 @@ export function TransferForm({ recipients }: Props) {
         return;
       }
       form.reset();
+      setSend("");
+      setReceive("");
       setNoted("The transfer is on the book.");
       router.refresh();
     } catch {
@@ -90,19 +119,43 @@ export function TransferForm({ recipients }: Props) {
           </select>
         )}
       </label>
-      <label className="block">
-        <span className="sc text-muted">Amount</span>
-        <input
-          name="amount"
-          type="number"
-          min="1"
-          step="0.01"
-          inputMode="decimal"
-          required
-          placeholder="10.00"
-          className={inputClass}
-        />
-      </label>
+      <div className="grid grid-cols-2 gap-x-4">
+        <label className="block">
+          <span className="sc text-muted">You send</span>
+          <input
+            name="amount"
+            type="number"
+            min="1"
+            step="0.01"
+            inputMode="decimal"
+            required
+            placeholder="10.00"
+            value={send}
+            onChange={(e) => onSend(e.target.value)}
+            className={inputClass}
+          />
+        </label>
+        <label className="block">
+          <span className="sc text-muted">They receive</span>
+          <input
+            type="number"
+            step="0.01"
+            inputMode="decimal"
+            placeholder={syncs ? "9.50" : "10.00"}
+            value={receive}
+            disabled={!syncs}
+            onChange={(e) => onReceive(e.target.value)}
+            className={inputClass}
+          />
+        </label>
+      </div>
+      <p className="text-xs text-muted">
+        {fee === null
+          ? "The core wouldn’t say the fee just now — treated as none, so the pair moves one to one."
+          : fee === 0
+            ? "The house takes nothing off transfers right now."
+            : `The house takes ${String(fee)}% off every transfer — type one side and the other follows.`}
+      </p>
       <label className="block">
         <span className="sc text-muted">Password</span>
         <input

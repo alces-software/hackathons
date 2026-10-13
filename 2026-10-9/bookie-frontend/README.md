@@ -60,7 +60,9 @@ as a copyable template.
 - `/bank` — take a loan and repay it, via the core's `POST /bank/loan` and
   `POST /bank/repay` (sign in required)
 - `/transfer` — hand money to another name on the book, via the core's
-  `POST /users/transaction/{username}` (sign in required)
+  `POST /users/transaction/{username}`, with the house's
+  `GET /bank/fees` cut shown up front — editable "you send" and
+  "they receive" fields that fill each other in (sign in required)
 - `/signup`, `/login` — accounts, backed by POST `/users` and POST
   `/users/login`
 

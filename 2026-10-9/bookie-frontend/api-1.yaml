@@ -116,6 +116,44 @@ paths:
                 required:
                   - error
                   - message
+  /bank/fees:
+    get:
+      description: Get the transaction fees
+      tags:
+        - Bank
+      responses:
+        "200":
+          description: Retrieved the transaction fees successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userTransactionFee:
+                    type: number
+                  serviceTransactionFee:
+                    type: number
+                required:
+                  - userTransactionFee
+                  - serviceTransactionFee
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - INTERNAL_SERVER_ERROR
+                  message:
+                    type: string
+                    enum:
+                      - An unexpected error occurred
+                required:
+                  - error
+                  - message
   /bank/repay:
     post:
       description: Remove a loan from a user

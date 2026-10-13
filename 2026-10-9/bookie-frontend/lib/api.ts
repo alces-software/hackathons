@@ -173,3 +173,14 @@ export async function getUser(username: string): Promise<User> {
   }>(`/users/${username}`);
   return toUser(raw);
 }
+
+export type Fees = {
+  /** Both are percentages of the amount in play — 5 means 5%. */
+  userTransactionFee: number;
+  serviceTransactionFee: number;
+};
+
+/** What the house skims, per kind of entry. */
+export async function getFees(): Promise<Fees> {
+  return request<Fees>("/bank/fees");
+}
