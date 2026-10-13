@@ -18,7 +18,7 @@ export default new OpenAPIHono().openapi(
       method: 'post',
       path: '/',
       description: 'Transfer from one user to another',
-      tags: ['users', 'Transactions'],
+      tags: ['Users', 'Transactions'],
       request: {
          params: z.object({
             ...UsernameParamSchema
