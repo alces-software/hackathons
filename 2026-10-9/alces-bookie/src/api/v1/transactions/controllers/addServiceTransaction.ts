@@ -19,6 +19,7 @@ export default new OpenAPIHono().openapi(
       path: '/',
       description: 'Performs a transfer using a custom service',
       tags: ['Transactions', 'Services'],
+      deprecated: true,
       request: {
          params: z.object({
             ...UsernameParamSchema
