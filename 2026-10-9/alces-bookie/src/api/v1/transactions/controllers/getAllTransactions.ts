@@ -48,7 +48,7 @@ export default new OpenAPIHono().openapi(
          return [
             await tx.ledger.findMany({
                where,
-               orderBy: [{ timestamp: query.order }, { id: query.order }],
+               orderBy: { id: query.order },
                include: transactionInclude,
                ...paginationOptions(query.page, query.limit)
             }),
