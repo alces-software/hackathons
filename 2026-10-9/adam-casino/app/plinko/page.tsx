@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { bankingPayout, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
+import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
 
 
 const multipliers = [10, 5, 2, 1, 0.5, 0, 0.5, 1, 2, 5, 10];
@@ -101,7 +101,11 @@ export default function Plinko() {
         const returned = ball.stake * multiplier;
         const profit = returned - ball.stake;
         hit.current = { slot: ball.slot, time: now };
-        const settle = returned > 0 ? bankingPayout(returned).then(() => syncBankingBalance(setBalance)) : Promise.resolve();
+        const settle = bankingReturn(ball.stake).then(() => {
+          if (profit > 0) return bankingPayout(profit);
+          if (profit < 0) return bankingLoss(ball.stake - returned);
+          return undefined;
+        }).then(() => syncBankingBalance(setBalance));
         settle.then(() => {
           setNet((current) => current + profit);
           setHistory((current) => [{ id: ball.id, multiplier }, ...current].slice(0, 12));
@@ -126,7 +130,7 @@ export default function Plinko() {
       try {
         for (; placed < count; placed += 1) await bankingStake(bet, "plinko");
       } catch (error) {
-        if (placed > 0) await bankingPayout(bet * placed);
+        if (placed > 0) await bankingReturn(bet * placed);
         throw error;
       }
       await syncBankingBalance(setBalance);

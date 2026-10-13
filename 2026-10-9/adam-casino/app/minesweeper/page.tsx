@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { CSSProperties } from "react";
-import { bankingPayout, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
+import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
 
 type Phase = "idle" | "playing" | "lost" | "cashed" | "cleared";
 type Round = { id: number; phase: Phase; mines: Set<number>; picked: Set<number>; exploded: number | null; stake: number };
@@ -141,8 +141,11 @@ export default function Minesweeper() {
     setSettling(true);
     const winMultiplier = multiplierFor(finished.picked.size, tiles, mineCount);
     const returned = finished.stake * winMultiplier;
+    const profit = returned - finished.stake;
     try {
-      await bankingPayout(returned);
+      await bankingReturn(finished.stake);
+      if (profit > 0) await bankingPayout(profit);
+      else if (profit < 0) await bankingLoss(finished.stake - returned);
       await syncBankingBalance(setBalance);
     } catch (error) {
       setSettling(false);
@@ -159,6 +162,7 @@ export default function Minesweeper() {
     if (round.mines.has(index)) {
       setRound({ ...round, phase: "lost", exploded: index });
       setMessage(`Mine hit — ${round.stake.toFixed(2)} stake lost.`);
+      bankingReturn(round.stake).then(() => bankingLoss(round.stake)).then(() => syncBankingBalance(setBalance)).catch((error) => setMessage(error instanceof Error ? error.message : "Loss could not be recorded."));
       return;
     }
     const next: Round = { ...round, picked: new Set([...round.picked, index]) };

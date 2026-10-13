@@ -2,9 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { bankingPayout, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
+import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
 
-type BetType = "red" | "black" | "odd" | "even" | "number";
+const outsideSpots = ["red", "black", "odd", "even"] as const;
+type StakeMap = Record<string, number>;
+
+const round2 = (value: number) => Math.round(value * 100) / 100;
+const fmtChip = (value: number) => (Number.isInteger(value) ? String(value) : value.toFixed(2));
 
 const redNumbers = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
 
@@ -21,6 +25,18 @@ const SPIN_MS = 6500;
 function numberColor(number: number) {
   if (number === 0) return "green";
   return redNumbers.has(number) ? "red" : "black";
+}
+
+function spotWins(spot: string, outcome: number) {
+  if (spot === "red") return numberColor(outcome) === "red";
+  if (spot === "black") return numberColor(outcome) === "black";
+  if (spot === "odd") return outcome !== 0 && outcome % 2 === 1;
+  if (spot === "even") return outcome !== 0 && outcome % 2 === 0;
+  return Number(spot) === outcome;
+}
+
+function spotMultiplier(spot: string) {
+  return (outsideSpots as readonly string[]).includes(spot) ? 1 : 35;
 }
 
 function polar(radius: number, angle: number) {
@@ -47,47 +63,61 @@ const pocketFill = { red: "#b91c1c", black: "#111827", green: "#047857" } as con
 export default function Roulette() {
   const MAX_BET = 250;
   const [balance, setBalance] = useBankingBalance();
-  const [bet, setBet] = useState(25);
-  const [betType, setBetType] = useState<BetType>("red");
-  const [number, setNumber] = useState(17);
+  const [chip, setChip] = useState(25);
+  const [stakes, setStakes] = useState<StakeMap>({});
   const [result, setResult] = useState<number | null>(null);
   const [history, setHistory] = useState<number[]>([]);
-  const [message, setMessage] = useState("Choose a bet and spin the wheel.");
+  const [message, setMessage] = useState("Set a chip value, place your bets, and spin the wheel.");
   const [spinning, setSpinning] = useState(false);
   const [view, setView] = useState({ wheel: 0, ball: 0, radius: TRACK_R });
   const frame = useRef(0);
 
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
 
+  const totalStaked = round2(Object.values(stakes).reduce((sum, amount) => sum + amount, 0));
+
+  function addStake(spot: string) {
+    if (spinning || !(chip > 0)) return;
+    setStakes((current) => ({ ...current, [spot]: round2((current[spot] ?? 0) + chip) }));
+  }
+
+  function removeStake(spot: string) {
+    if (spinning) return;
+    setStakes((current) => {
+      const amount = round2((current[spot] ?? 0) - chip);
+      const next = { ...current };
+      if (amount > 0) next[spot] = amount;
+      else delete next[spot];
+      return next;
+    });
+  }
+
   async function spin() {
     if (spinning) return;
-    if (bet < 1 || bet > MAX_BET || bet > balance) {
-      setMessage(`Choose a bet between 1 and ${MAX_BET} moose bucks within your available balance.`);
+    const stakeEntries = Object.entries(stakes).filter(([, amount]) => amount > 0);
+    const stake = round2(stakeEntries.reduce((sum, [, amount]) => sum + amount, 0));
+    if (stake < 1 || stake > MAX_BET || stake > balance) {
+      setMessage(stake < 1
+        ? "Place at least 1 moose buck in bets before spinning."
+        : stake > MAX_BET
+          ? `The table limit is ${MAX_BET} moose bucks per spin.`
+          : "Not enough balance to cover your bets.");
       return;
     }
     setSpinning(true);
     try {
-      await bankingStake(bet, "roulette");
+      await bankingStake(stake, "roulette");
       await syncBankingBalance(setBalance);
     } catch (error) {
       setSpinning(false);
       setMessage(error instanceof Error ? error.message : "Could not place the stake.");
       return;
     }
+    setStakes({});
     const outcome = Math.floor(Math.random() * 37);
-    const wins = betType === "red"
-      ? numberColor(outcome) === "red"
-      : betType === "black"
-        ? numberColor(outcome) === "black"
-        : betType === "odd"
-          ? outcome !== 0 && outcome % 2 === 1
-          : betType === "even"
-            ? outcome !== 0 && outcome % 2 === 0
-            : outcome === number;
-    const multiplier = betType === "number" ? 35 : 1;
-    const profit = wins ? bet * multiplier : -bet;
-    const returned = wins ? bet * (multiplier + 1) : 0;
-    const stake = bet;
+    const winning = stakeEntries.filter(([spot]) => spotWins(spot, outcome));
+    const returned = round2(winning.reduce((sum, [spot, amount]) => sum + amount * (spotMultiplier(spot) + 1), 0));
+    const profit = round2(returned - stake);
 
     const target = wheelOrder.indexOf(outcome) * STEP;
     const wheelStart = view.wheel;
@@ -116,13 +146,21 @@ export default function Roulette() {
       }
       setResult(outcome);
       setHistory((current) => [outcome, ...current].slice(0, 12));
-      if (returned > 0) {
-        bankingPayout(returned).then(() => syncBankingBalance(setBalance)).then(() => {
-          setMessage(`${outcome} ${numberColor(outcome)} — won ${profit.toFixed(2)} profit + ${stake.toFixed(2)} stake returned = ${returned.toFixed(2)} moose bucks credited.`);
+      if (profit > 0) {
+        bankingReturn(stake).then(() => bankingPayout(profit)).then(() => syncBankingBalance(setBalance)).then(() => {
+          setMessage(`${outcome} ${numberColor(outcome)} — ${winning.length === 1 ? "1 bet won" : `${winning.length} bets won`} — ${profit.toFixed(2)} profit + ${stake.toFixed(2)} stake returned = ${returned.toFixed(2)} moose bucks credited.`);
         }).catch((error) => setMessage(error instanceof Error ? error.message : "Payout failed.")).finally(() => setSpinning(false));
+      } else if (profit < 0) {
+        const loss = round2(stake - returned);
+        bankingReturn(stake).then(() => (loss >= 1 ? bankingLoss(loss) : undefined)).then(() => syncBankingBalance(setBalance)).then(() => {
+          setMessage(returned > 0
+            ? `${outcome} ${numberColor(outcome)} — ${returned.toFixed(2)} returned from your ${stake.toFixed(2)} in bets (${loss.toFixed(2)} lost).`
+            : `${outcome} ${numberColor(outcome)} — ${loss.toFixed(2)} in bets lost.`);
+        }).catch((error) => setMessage(error instanceof Error ? error.message : "Loss could not be recorded.")).finally(() => setSpinning(false));
       } else {
-        setMessage(`${outcome} ${numberColor(outcome)} — ${stake.toFixed(2)} stake lost.`);
-        setSpinning(false);
+        bankingReturn(stake).then(() => syncBankingBalance(setBalance)).then(() => {
+          setMessage(`${outcome} ${numberColor(outcome)} — bets broke even and your ${stake.toFixed(2)} stake was returned.`);
+        }).catch((error) => setMessage(error instanceof Error ? error.message : "Stake could not be returned.")).finally(() => setSpinning(false));
       }
     };
     frame.current = requestAnimationFrame(tick);
@@ -201,9 +239,10 @@ export default function Roulette() {
               <p className="mt-5 min-h-6 text-center text-sm font-semibold text-sky-100">{message}</p>
             </div>
             <div className="space-y-4">
-              <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4"><label htmlFor="roulette-bet" className="text-xs font-bold uppercase tracking-wider text-sky-100/65">Bet amount</label><div className="mt-2 flex items-center gap-2">              <input id="roulette-bet" type="number" min="1" max={MAX_BET} value={bet || ""} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setBet(Number(event.target.value) || 0)} disabled={spinning} className="w-full rounded-lg border border-sky-200/20 bg-slate-900 px-3 py-2 text-lg font-bold text-white outline-none focus:border-sky-400" /><span className="text-sm text-sky-100/65">moose bucks</span></div><p className="mt-2 text-xs text-sky-100/45">Table limit: {MAX_BET} moose bucks</p></div>
-              <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-sky-100/65">Choose your bet</p><div className="grid grid-cols-2 gap-2">{(["red", "black", "odd", "even"] as BetType[]).map((type) => <button key={type} onClick={() => setBetType(type)} disabled={spinning} className={`rounded-xl border px-3 py-3 text-sm font-semibold capitalize transition disabled:opacity-40 ${betType === type ? "border-sky-300 bg-sky-300/20 text-sky-100" : "border-white/15 text-sky-100/70 hover:bg-white/10"}`}>{type}<span className="block text-[10px] font-normal opacity-60">Pays 1:1</span></button>)}</div></div>
-              <div className={`rounded-xl border p-3 ${betType === "number" ? "border-sky-300/60 bg-sky-300/10" : "border-white/15 bg-white/[0.03]"}`}><div className="flex items-center justify-between text-sm font-semibold text-sky-100"><span>Straight-up number</span><span className="text-sky-300">Pays 35:1</span></div><p className="mt-1 text-xs text-sky-100/55">Choose a number</p><div className="mt-3 grid grid-cols-7 gap-1">{tableNumbers.map((value) => <button key={value} onClick={() => { setNumber(value); setBetType("number"); }} disabled={spinning} className={`rounded px-1 py-2 text-xs font-bold transition disabled:opacity-40 ${value === 0 ? "bg-emerald-700 text-emerald-50 hover:bg-emerald-600" : numberColor(value) === "red" ? "bg-red-700 text-red-50 hover:bg-red-600" : "bg-slate-950 text-slate-100 hover:bg-slate-800"} ${betType === "number" && number === value ? "ring-2 ring-sky-300 ring-offset-1 ring-offset-[#0b2741]" : ""}`}>{value}</button>)}</div></div>
+              <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4"><label htmlFor="roulette-chip" className="text-xs font-bold uppercase tracking-wider text-sky-100/65">Chip value</label><div className="mt-2 flex items-center gap-2">              <input id="roulette-chip" type="number" min="1" max={MAX_BET} value={chip || ""} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setChip(Number(event.target.value) || 0)} disabled={spinning} className="w-full rounded-lg border border-sky-200/20 bg-slate-900 px-3 py-2 text-lg font-bold text-white outline-none focus:border-sky-400" /><span className="text-sm text-sky-100/65">moose bucks</span></div><p className="mt-2 text-xs text-sky-100/45">Table limit: {MAX_BET} moose bucks per spin</p></div>
+              <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-sky-100/65">Place your bets</p><div className="grid grid-cols-2 gap-2">{outsideSpots.map((spot) => <button key={spot} onClick={() => addStake(spot)} onContextMenu={(event) => { event.preventDefault(); removeStake(spot); }} disabled={spinning} className={`relative rounded-xl border px-3 py-3 text-sm font-semibold capitalize transition disabled:opacity-40 ${stakes[spot] ? "border-sky-300 bg-sky-300/20 text-sky-100" : "border-white/15 text-sky-100/70 hover:bg-white/10"}`}>{spot}<span className="block text-[10px] font-normal opacity-60">Pays 1:1</span>{stakes[spot] ? <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-[#0b2741] bg-sky-400 px-1 text-[10px] font-bold text-[#071426]">{fmtChip(stakes[spot])}</span> : null}</button>)}</div></div>
+              <div className="rounded-xl border border-white/15 bg-white/[0.03] p-3"><div className="flex items-center justify-between text-sm font-semibold text-sky-100"><span>Straight-up numbers</span><span className="text-sky-300">Pays 35:1</span></div><p className="mt-1 text-xs text-sky-100/55">Click a number to add your chip · right-click to remove</p><div className="mt-3 grid grid-cols-7 gap-1">{tableNumbers.map((value) => <button key={value} onClick={() => addStake(String(value))} onContextMenu={(event) => { event.preventDefault(); removeStake(String(value)); }} disabled={spinning} className={`relative rounded px-1 py-2 text-xs font-bold transition disabled:opacity-40 ${value === 0 ? "bg-emerald-700 text-emerald-50 hover:bg-emerald-600" : numberColor(value) === "red" ? "bg-red-700 text-red-50 hover:bg-red-600" : "bg-slate-950 text-slate-100 hover:bg-slate-800"}`}>{value}{stakes[String(value)] ? <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[#0b2741] bg-sky-400 px-0.5 text-[9px] font-bold text-[#071426]">{fmtChip(stakes[String(value)])}</span> : null}</button>)}</div></div>
+              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/40 px-4 py-3"><span className="text-xs font-bold uppercase tracking-wider text-sky-100/65">Total staked</span><span className="text-lg font-bold text-sky-200">{totalStaked.toFixed(2)}</span></div>
               <button onClick={spin} disabled={spinning} className="w-full rounded-xl bg-sky-400 px-4 py-3 text-sm font-bold text-[#071426] hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-40">{spinning ? "Spinning..." : "Spin the wheel"}</button>
             </div>
           </div>
