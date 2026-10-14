@@ -5,7 +5,7 @@ type TransferRequest = {
   password?: string;
   amount?: number;
   maximumPayout?: number;
-  game?: "roulette" | "crash" | "minesweeper" | "plinko" | "uno" | "blackjack" | "slots";
+  game?: "roulette" | "crash" | "minesweeper" | "plinko" | "uno" | "blackjack" | "slots" | "coinpusher";
   direction?: "stake" | "payout" | "loss" | "hold" | "return";
 };
 
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   try {
     if (direction === "stake" || direction === "hold") {
       if (!game) return errorResponse("The game must be identified before placing a bet.", 400);
-      const payoutMultipliers = { roulette: 36, crash: 20, minesweeper: 20, plinko: 10, uno: 1.95, blackjack: 2.5, slots: 110 };
+      const payoutMultipliers = { roulette: 36, crash: 20, minesweeper: 20, plinko: 10, uno: 1.95, blackjack: 2.5, slots: 110, coinpusher: 10 };
       const flatWorstCase = amount * payoutMultipliers[game];
       const maximumGamePayout = maximumPayout === null ? flatWorstCase : Math.min(maximumPayout, flatWorstCase);
       const balanceResponse = await fetch(`${bankingApiUrl}/services/${encodeURIComponent(casinoUsername)}`, {

@@ -21,6 +21,7 @@ const C = 170;
 const TRACK_R = 138; 
 const REST_R = 114; 
 const SPIN_MS = 6500;
+const EAT_MS = 2200;
 
 function numberColor(number: number) {
   if (number === 0) return "green";
@@ -70,6 +71,10 @@ export default function Roulette() {
   const [message, setMessage] = useState("Set a chip value, place your bets, and spin the wheel.");
   const [spinning, setSpinning] = useState(false);
   const [view, setView] = useState({ wheel: 0, ball: 0, radius: TRACK_R });
+  const [eat, setEat] = useState<number | null>(null); // eating animation progress 0..1
+  const [ballGone, setBallGone] = useState(false);
+  const roundRef = useRef<"idle" | "spinning" | "settling" | "eaten">("idle");
+  const stakeRef = useRef(0);
   const frame = useRef(0);
 
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
@@ -115,6 +120,9 @@ export default function Roulette() {
       return;
     }
     setStakes({});
+    roundRef.current = "spinning";
+    stakeRef.current = stake;
+    setBallGone(false);
     const outcome = Math.floor(Math.random() * 37);
     const winning = stakeEntries.filter(([spot]) => spotWins(spot, outcome));
     const returned = round2(winning.reduce((sum, [spot, amount]) => sum + amount * (spotMultiplier(spot) + 1), 0));
@@ -131,6 +139,7 @@ export default function Roulette() {
 
     const start = performance.now();
     const tick = (now: number) => {
+      if (roundRef.current !== "spinning") return; // stopped because the ball was eaten
       const p = Math.min(1, (now - start) / duration);
       const eased = 1 - (1 - p) ** 3;
       const wheel = wheelStart + wheelTravel * eased;
@@ -145,30 +154,81 @@ export default function Roulette() {
         frame.current = requestAnimationFrame(tick);
         return;
       }
+      roundRef.current = "settling";
       setResult(outcome);
       setHistory((current) => [outcome, ...current].slice(0, 12));
       if (profit > 0) {
         bankingReturn(stake).then(() => bankingPayout(profit)).then(() => syncBankingBalance(setBalance)).then(() => {
           setMessage(`${outcome} ${numberColor(outcome)} — ${winning.length === 1 ? "1 bet won" : `${winning.length} bets won`} — ${profit.toFixed(2)} profit + ${stake.toFixed(2)} stake returned = ${returned.toFixed(2)} moose bucks credited.`);
-        }).catch((error) => setMessage(error instanceof Error ? error.message : "Payout failed.")).finally(() => setSpinning(false));
+        }).catch((error) => setMessage(error instanceof Error ? error.message : "Payout failed.")).finally(() => { roundRef.current = "idle"; setSpinning(false); });
       } else if (profit < 0) {
         const loss = round2(stake - returned);
         bankingReturn(stake).then(() => (loss >= 1 ? bankingLoss(loss) : undefined)).then(() => syncBankingBalance(setBalance)).then(() => {
           setMessage(returned > 0
             ? `${outcome} ${numberColor(outcome)} — ${returned.toFixed(2)} returned from your ${stake.toFixed(2)} in bets (${loss.toFixed(2)} lost).`
             : `${outcome} ${numberColor(outcome)} — ${loss.toFixed(2)} in bets lost.`);
-        }).catch((error) => setMessage(error instanceof Error ? error.message : "Loss could not be recorded.")).finally(() => setSpinning(false));
+        }).catch((error) => setMessage(error instanceof Error ? error.message : "Loss could not be recorded.")).finally(() => { roundRef.current = "idle"; setSpinning(false); });
       } else {
         bankingReturn(stake).then(() => syncBankingBalance(setBalance)).then(() => {
           setMessage(`${outcome} ${numberColor(outcome)} — bets broke even and your ${stake.toFixed(2)} stake was returned.`);
-        }).catch((error) => setMessage(error instanceof Error ? error.message : "Stake could not be returned.")).finally(() => setSpinning(false));
+        }).catch((error) => setMessage(error instanceof Error ? error.message : "Stake could not be returned.")).finally(() => { roundRef.current = "idle"; setSpinning(false); });
       }
+    };
+    frame.current = requestAnimationFrame(tick);
+  }
+
+  function eatBall() {
+    if (roundRef.current !== "spinning" || eat !== null) return;
+    roundRef.current = "eaten";
+    cancelAnimationFrame(frame.current);
+    const stake = stakeRef.current;
+    setEat(0);
+    setMessage("The moose lunges for the ball...");
+
+    // Settle the loss immediately; the animation just plays alongside it.
+    const settle = (async () => {
+      try {
+        await bankingReturn(stake);
+        await bankingLoss(stake);
+        await syncBankingBalance(setBalance);
+        return null;
+      } catch (error) {
+        return error instanceof Error ? error.message : "Loss could not be recorded.";
+      }
+    })();
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const duration = reduced ? 600 : EAT_MS;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration);
+      setEat(p);
+      if (p < 1) {
+        frame.current = requestAnimationFrame(tick);
+        return;
+      }
+      setBallGone(true);
+      settle
+        .then((error) => setMessage(error ?? `🫎 The moose ate the ball! ${stake.toFixed(2)} moose bucks in bets forfeited.`))
+        .finally(() => {
+          setEat(null);
+          roundRef.current = "idle";
+          setSpinning(false);
+        });
     };
     frame.current = requestAnimationFrame(tick);
   }
 
   const [ballX, ballY] = polar(view.radius, view.ball);
   const resultFill = result === null ? "#7dd3fc" : numberColor(result) === "red" ? "#f87171" : numberColor(result) === "green" ? "#34d399" : "#e0f2fe";
+
+  const ballScale = eat === null || eat < 0.5 ? 1 : Math.max(0, 1 - (eat - 0.5) / 0.1);
+  const mooseApproach = eat === null ? 0 : smooth(eat / 0.35);
+  const mooseRetreat = eat === null ? 0 : smooth((eat - 0.75) / 0.25);
+  const mooseFar = 250;
+  const mooseR = mooseFar - (mooseFar - (view.radius + 10)) * mooseApproach + (mooseFar - (view.radius + 10)) * mooseRetreat;
+  const [mooseX, mooseY] = polar(mooseR, view.ball);
+  const chomp = eat !== null && eat > 0.35 && eat < 0.65 ? 1 + 0.3 * Math.abs(Math.sin(((eat - 0.35) / 0.3) * Math.PI * 3)) : 1;
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#071426] text-white">
@@ -227,8 +287,22 @@ export default function Roulette() {
                 <text x={C} y={C + 12} textAnchor="middle" fontSize="30" fontWeight="900" fill={resultFill}>{result ?? "—"}</text>
 
                 {/* Ball (absolute position, so it can travel against the wheel) */}
-                <circle cx={ballX + 1.5} cy={ballY + 2} r="5.5" fill="#000" opacity="0.35" />
-                <circle cx={ballX} cy={ballY} r="5.5" fill="url(#rw-ball)" />
+                {!ballGone && (
+                  <>
+                    <circle cx={ballX + 1.5} cy={ballY + 2} r={5.5 * ballScale} fill="#000" opacity="0.35" />
+                    <circle cx={ballX} cy={ballY} r={5.5 * ballScale} fill="url(#rw-ball)" />
+                  </>
+                )}
+                {eat !== null && (
+                  <>
+                    <g transform={`translate(${mooseX} ${mooseY}) scale(${chomp})`}>
+                      <text textAnchor="middle" dominantBaseline="central" fontSize="44">🫎</text>
+                    </g>
+                    {eat > 0.4 && eat < 0.8 && (
+                      <text x={C} y={C + 68} textAnchor="middle" fontSize="18" fontWeight="900" fill="#fbbf24">CHOMP!</text>
+                    )}
+                  </>
+                )}
               </svg>
               {history.length > 0 && (
                 <div className="mt-4 flex flex-wrap justify-center gap-1.5" aria-label="Recent results">
@@ -245,6 +319,11 @@ export default function Roulette() {
               <div className="rounded-xl border border-white/15 bg-white/[0.03] p-3"><div className="flex items-center justify-between text-sm font-semibold text-sky-100"><span>Straight-up numbers</span><span className="text-sky-300">Pays 35:1</span></div><p className="mt-1 text-xs text-sky-100/55">Click a number to add your chip · right-click to remove</p><div className="mt-3 grid grid-cols-7 gap-1">{tableNumbers.map((value) => <button key={value} onClick={() => addStake(String(value))} onContextMenu={(event) => { event.preventDefault(); removeStake(String(value)); }} disabled={spinning} className={`relative rounded px-1 py-2 text-xs font-bold transition disabled:opacity-40 ${value === 0 ? "bg-emerald-700 text-emerald-50 hover:bg-emerald-600" : numberColor(value) === "red" ? "bg-red-700 text-red-50 hover:bg-red-600" : "bg-slate-950 text-slate-100 hover:bg-slate-800"}`}>{value}{stakes[String(value)] ? <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[#0b2741] bg-sky-400 px-0.5 text-[9px] font-bold text-[#071426]">{fmtChip(stakes[String(value)])}</span> : null}</button>)}</div></div>
               <div className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/40 px-4 py-3"><span className="text-xs font-bold uppercase tracking-wider text-sky-100/65">Total staked</span><span className="text-lg font-bold text-sky-200">{totalStaked.toFixed(2)}</span></div>
               <button onClick={spin} disabled={spinning} className="w-full rounded-xl bg-sky-400 px-4 py-3 text-sm font-bold text-[#071426] hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-40">{spinning ? "Spinning..." : "Spin the wheel"}</button>
+              {spinning && (
+                <button onClick={eatBall} disabled={eat !== null || roundRef.current !== "spinning"} className="w-full rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40">
+                  🫎 Eat the ball (forfeit bets)
+                </button>
+              )}
             </div>
           </div>
         </section>
