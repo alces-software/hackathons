@@ -49,10 +49,10 @@ export async function bankingTransfer(credentials: BankingCredentials, amount: n
   }
 }
 
-export async function bankingStake(amount: number, game: CasinoGame) {
+export async function bankingStake(amount: number, game: CasinoGame, maximumPayout?: number) {
   const credentials = getStoredBankingCredentials();
   if (!credentials) throw new Error("Connect a banking account before placing a bet.");
-  await bankingTransfer(credentials, amount, "hold", undefined, game);
+  await bankingTransfer(credentials, amount, "hold", maximumPayout, game);
 }
 
 export async function bankingReturn(amount: number) {

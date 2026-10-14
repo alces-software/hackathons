@@ -27,9 +27,9 @@ export async function POST(request: Request) {
   const username = typeof body.username === "string" ? body.username.trim() : "";
   const password = typeof body.password === "string" ? body.password : "";
   const amount = typeof body.amount === "number" ? body.amount : NaN;
-  const maximumPayout = typeof body.maximumPayout === "number" ? body.maximumPayout : amount;
+  const maximumPayout = typeof body.maximumPayout === "number" && Number.isFinite(body.maximumPayout) && body.maximumPayout > 0 ? body.maximumPayout : null;
   const game = body.game;
-  if (!username || !password || !Number.isFinite(amount) || amount <= 0 || !Number.isFinite(maximumPayout) || maximumPayout < amount || !direction) {
+  if (!username || !password || !Number.isFinite(amount) || amount <= 0 || !direction) {
     return errorResponse("Username, password, a positive amount, and direction are required.", 400);
   }
 
@@ -45,7 +45,8 @@ export async function POST(request: Request) {
     if (direction === "stake" || direction === "hold") {
       if (!game) return errorResponse("The game must be identified before placing a bet.", 400);
       const payoutMultipliers = { roulette: 36, crash: 20, minesweeper: 20, plinko: 10, uno: 1.95, blackjack: 2.5 };
-      const maximumGamePayout = amount * payoutMultipliers[game];
+      const flatWorstCase = amount * payoutMultipliers[game];
+      const maximumGamePayout = maximumPayout === null ? flatWorstCase : Math.min(maximumPayout, flatWorstCase);
       const balanceResponse = await fetch(`${bankingApiUrl}/services/${encodeURIComponent(casinoUsername)}`, {
         cache: "no-store",
         headers: { Accept: "application/json", Authorization: `Bearer ${serviceToken}` },

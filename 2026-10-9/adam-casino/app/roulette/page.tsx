@@ -96,6 +96,7 @@ export default function Roulette() {
     if (spinning) return;
     const stakeEntries = Object.entries(stakes).filter(([, amount]) => amount > 0);
     const stake = round2(stakeEntries.reduce((sum, [, amount]) => sum + amount, 0));
+    const worstCasePayout = round2(tableNumbers.reduce((worst, outcome) => Math.max(worst, stakeEntries.reduce((sum, [spot, amount]) => sum + (spotWins(spot, outcome) ? amount * (spotMultiplier(spot) + 1) : 0), 0)), 0));
     if (stake < 1 || stake > MAX_BET || stake > balance) {
       setMessage(stake < 1
         ? "Place at least 1 moose buck in bets before spinning."
@@ -106,7 +107,7 @@ export default function Roulette() {
     }
     setSpinning(true);
     try {
-      await bankingStake(stake, "roulette");
+      await bankingStake(stake, "roulette", worstCasePayout);
       await syncBankingBalance(setBalance);
     } catch (error) {
       setSpinning(false);
