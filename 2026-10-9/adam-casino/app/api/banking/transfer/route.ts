@@ -26,8 +26,10 @@ export async function POST(request: Request) {
   const { direction } = body;
   const username = typeof body.username === "string" ? body.username.trim() : "";
   const password = typeof body.password === "string" ? body.password : "";
-  const amount = typeof body.amount === "number" ? body.amount : NaN;
-  const maximumPayout = typeof body.maximumPayout === "number" && Number.isFinite(body.maximumPayout) && body.maximumPayout > 0 ? body.maximumPayout : null;
+  const round2 = (value: number) => Math.round(value * 100) / 100;
+  const amount = typeof body.amount === "number" && Number.isFinite(body.amount) ? round2(body.amount) : NaN;
+  const rawMaximumPayout = typeof body.maximumPayout === "number" && Number.isFinite(body.maximumPayout) ? round2(body.maximumPayout) : null;
+  const maximumPayout = rawMaximumPayout !== null && rawMaximumPayout > 0 ? rawMaximumPayout : null;
   const game = body.game;
   if (!username || !password || !Number.isFinite(amount) || amount <= 0 || !direction) {
     return errorResponse("Username, password, a positive amount, and direction are required.", 400);
