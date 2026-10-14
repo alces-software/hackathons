@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 export type BankingCredentials = { username: string; password: string };
-export type CasinoGame = "roulette" | "crash" | "minesweeper" | "plinko" | "uno" | "blackjack";
+export type CasinoGame = "roulette" | "crash" | "minesweeper" | "plinko" | "uno" | "blackjack" | "slots";
 
 const credentialsKey = "alces-banking-credentials";
 

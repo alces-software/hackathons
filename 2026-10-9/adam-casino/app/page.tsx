@@ -7,6 +7,7 @@ const games = [
   { name: "UNO", description: "Match colors, stack cards, and be first to shout UNO.", icon: "UNO", accent: "from-indigo-300 to-violet-600", href: "/uno" },
   { name: "Minesweeper", description: "Reveal safe tiles, avoid the mines, and clear the board.", icon: "💣", accent: "from-emerald-300 to-teal-600", href: "/minesweeper" },
   { name: "Plinko", description: "Drop your chip and watch it bounce toward the big prize.", icon: "●", accent: "from-violet-300 to-purple-600", href: "/plinko" },
+  { name: "Slots", description: "Spin the reels and line up three moose for the jackpot.", icon: "🎰", accent: "from-amber-300 to-orange-600", href: "/slots" },
   { name: "Crash", description: "Ride the multiplier higher, then cash out before it crashes.", icon: "↗", accent: "from-orange-300 to-red-600", href: "/crash" },
 ];
 
