@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
 
 
-const multipliers = [10, 5, 2, 1, 0.5, 0, 0.5, 1, 2, 5, 10];
+const multipliers = [8, 3, 1.5, 1, 1, 0.4, 1, 1, 1.5, 3, 8];
 const ROWS = 10;
 
 
