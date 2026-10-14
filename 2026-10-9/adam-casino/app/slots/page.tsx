@@ -164,7 +164,7 @@ export default function Slots() {
                   <span className="text-sm text-sky-100/65">moose bucks</span>
                 </div>
                 <div className="mt-3 grid grid-cols-4 gap-2">
-                  {[10, 25, 100, MAX_BET].map((amount) => (
+                  {[10, 25, 50, MAX_BET].map((amount) => (
                     <button key={amount} onClick={() => setBet(amount)} disabled={spinning} className={`rounded-lg border px-2 py-1.5 text-xs font-semibold transition disabled:opacity-40 ${bet === amount ? "border-sky-300 bg-sky-300/20 text-sky-100" : "border-white/15 text-sky-100/70 hover:bg-white/10"}`}>{amount === MAX_BET ? "Max" : amount}</button>
                   ))}
                 </div>
