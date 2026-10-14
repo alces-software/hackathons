@@ -17,7 +17,8 @@ const envSchema = z.object({
    USER_TRANSACTION_FEE: z.coerce.number().min(0).max(1).default(0.05),
    SERVICE_TRANSACTION_FEE: z.coerce.number().min(0).max(1).default(0.01),
    DEBT_LIMIT: z.coerce.number().min(0).default(1000),
-   LOAN_INTEREST: z.coerce.number().min(0).max(1).default(0.10),
+   LOAN_INTEREST: z.coerce.number().min(0).max(1).default(0.1),
+   LOAN_REPAY: z.coerce.number().min(0).max(1).default(0.03),
 
    // Bank
    BANK_USERNAME: z.string().default('bank')

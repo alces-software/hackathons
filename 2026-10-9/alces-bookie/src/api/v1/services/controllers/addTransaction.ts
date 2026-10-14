@@ -1,5 +1,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { Prisma } from '@prisma/client';
 
+import { env } from '../../../../lib/env';
 import APIError, { APIErrorCode } from '../../../../lib/errors/apiError';
 import {
    BadRequestErrorSchema,
@@ -7,9 +9,9 @@ import {
    NotFoundErrorSchema,
    UnauthorisedErrorSchema
 } from '../../../../lib/errors/schemas';
-import { prisma } from '../../../../lib/prisma';
 import { publish } from '../../../../lib/publisher';
 import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
+import { transactionWithRetry } from '../../../../lib/transactionWithRetry';
 import { ensureUserCredentialsMatch, ensureUserExists } from '../../users/lib/helpers';
 import { ensureServiceExistsToken } from '../lib/helpers';
 
@@ -54,7 +56,7 @@ export default new OpenAPIHono().openapi(
    async (c) => {
       const body = c.req.valid('json');
 
-      await prisma.$transaction(async (tx) => {
+      await transactionWithRetry(async (tx) => {
          // Ensure the service exists
          const service = await ensureServiceExistsToken(body.serviceToken, tx, {});
 
@@ -71,6 +73,39 @@ export default new OpenAPIHono().openapi(
          ) {
             throw new APIError(APIErrorCode.BadRequest, {
                message: `${user.username} does not have enough to transfer`
+            });
+         }
+
+         // Update service
+         await tx.services.update({
+            where: { token: body.serviceToken },
+            data: {
+               ...((body.type === 'win' || body.type === 'return') && {
+                  balance: { decrement: body.amount }
+               }),
+               ...((body.type === 'loss' || body.type === 'hold') && {
+                  balance: { increment: body.amount }
+               })
+            }
+         });
+
+         // Bank takes cut if debt is present
+         if (body.type === 'win' && user.debt.greaterThan(0)) {
+            const amount = new Prisma.Decimal(body.amount);
+            const repayment = Prisma.Decimal.min(
+               amount.mul(env.LOAN_REPAY).toDecimalPlaces(2),
+               user.debt
+            );
+            body.amount = amount.minus(repayment).toNumber();
+
+            await tx.users.update({
+               where: { username: env.BANK_USERNAME },
+               data: { balance: { increment: repayment } }
+            });
+
+            await tx.users.update({
+               where: { username: body.username },
+               data: { debt: { decrement: repayment } }
             });
          }
 
@@ -95,32 +130,21 @@ export default new OpenAPIHono().openapi(
             }
          });
 
-         // Update service
-         await tx.services.update({
-            where: { token: body.serviceToken },
-            data: {
-               ...((body.type === 'win' || body.type === 'return') && {
-                  balance: { decrement: body.amount }
-               }),
-               ...((body.type === 'loss' || body.type === 'hold') && {
-                  balance: { increment: body.amount }
-               })
-            }
-         });
-
          // Add ledger transaction
-         await tx.ledger.create({
-            data: {
-               username: user.username,
-               service: service.id,
-               beforeBalance: user.balance,
-               afterBalance:
-                  body.type === 'win' || body.type === 'return'
-                     ? user.balance.plus(body.amount)
-                     : user.balance.minus(body.amount),
-               timestamp: new Date()
-            }
-         });
+         if (body.type === 'win' || body.type === 'loss') {
+            await tx.ledger.create({
+               data: {
+                  username: user.username,
+                  service: service.id,
+                  beforeBalance: user.balance,
+                  afterBalance:
+                     body.type === 'win'
+                        ? user.balance.plus(body.amount)
+                        : user.balance.minus(body.amount),
+                  timestamp: new Date()
+               }
+            });
+         }
       });
 
       // Update the websocket
