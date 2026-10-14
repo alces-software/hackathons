@@ -166,6 +166,7 @@ export default new OpenAPIHono().openapi(
          {
             id: transactionID.id
          },
+         200
       );
    }
 );
