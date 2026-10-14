@@ -5,6 +5,7 @@ import { Scalar } from '@scalar/hono-api-reference';
 import { compress } from 'hono/compress';
 import { cors } from 'hono/cors';
 import { trimTrailingSlash } from 'hono/trailing-slash';
+import { WebSocketServer } from 'ws';
 
 import v1 from './api/v1';
 import { env } from './lib/env';
@@ -76,7 +77,10 @@ hono.notFound((c) => {
 });
 
 // START UP SERVER
+const wss = new WebSocketServer({ noServer: true });
+
 serve({
    fetch: hono.fetch,
+   websocket: { server: wss },
    port: env.PORT
 });
