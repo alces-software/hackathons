@@ -47,7 +47,7 @@ export default new OpenAPIHono().openapi(
          200: {
             description: 'Successfully created a transaction',
             content: {
-               "application/json": {
+               'application/json': {
                   schema: z.object({
                      id: z.int()
                   })
@@ -162,8 +162,10 @@ export default new OpenAPIHono().openapi(
          timestamp: new Date().toISOString()
       });
 
-      return c.json({
-         id: transactionID.id
-      }, 200);
+      return c.json(
+         {
+            id: transactionID.id
+         },
+      );
    }
 );

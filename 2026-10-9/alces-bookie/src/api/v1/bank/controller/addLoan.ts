@@ -91,6 +91,34 @@ export default new OpenAPIHono().openapi(
                balance: { decrement: body.amount }
             }
          });
+
+         // Get service information
+         const service = await tx.services
+            .findUnique({
+               where: {
+                  name: 'Loan'
+               },
+               select: {
+                  id: true
+               }
+            })
+            .then((service) => {
+               if (!service) {
+                  throw new APIError(APIErrorCode.InternalServerError);
+               }
+               return service;
+            });
+
+         // Add ledger
+         await tx.ledger.create({
+            data: {
+               username: user.username,
+               service: service?.id,
+               beforeBalance: user.balance,
+               afterBalance: user.balance.plus(body.amount),
+               timestamp: new Date()
+            }
+         });
       });
 
       return c.body(null, 204);
