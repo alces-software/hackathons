@@ -8,6 +8,7 @@ const games = [
   { name: "Minesweeper", description: "Reveal safe tiles, avoid the mines, and clear the board.", icon: "💣", accent: "from-emerald-300 to-teal-600", href: "/minesweeper" },
   { name: "Plinko", description: "Drop your chip and watch it bounce toward the big prize.", icon: "●", accent: "from-violet-300 to-purple-600", href: "/plinko" },
   { name: "Slots", description: "Spin the reels and line up three moose for the jackpot.", icon: "🎰", accent: "from-amber-300 to-orange-600", href: "/slots" },
+  { name: "2p Machine", description: "Low-stakes slots for small change — bets from 0.02 to 0.50.", icon: "🪙", accent: "from-lime-300 to-emerald-600", href: "/slots-2p" },
   { name: "Crash", description: "Ride the multiplier higher, then cash out before it crashes.", icon: "↗", accent: "from-orange-300 to-red-600", href: "/crash" },
 ];
 
