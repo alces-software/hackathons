@@ -181,6 +181,7 @@ export default function Uno() {
   const [pendingWildWho, setPendingWildWho] = useState<Who | null>(null);
   const [balance, setBalance] = useBankingBalance();
   const [bet, setBet] = useState(25);
+  const [aiDelay, setAiDelay] = useState(5000);
   const [mode] = useState<GameMode>("ai");
 
   const inProgress = g.started && !g.winner;
@@ -190,9 +191,9 @@ export default function Uno() {
 
   useEffect(() => {
     if (!inProgress || g.mode !== "ai" || g.turn !== "ai") return;
-    const id = window.setTimeout(() => setG(aiMove), 5000);
+    const id = window.setTimeout(() => setG(aiMove), aiDelay);
     return () => window.clearTimeout(id);
-  }, [g, inProgress]);
+  }, [g, inProgress, aiDelay]);
 
   useEffect(() => {
     if (!g.winner) return;
@@ -311,6 +312,15 @@ export default function Uno() {
               <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
                 <label htmlFor="uno-bet" className="text-xs font-bold uppercase tracking-wider text-sky-100/65">Bet amount</label>
                 <div className="mt-2 flex items-center gap-2">                <input id="uno-bet" type="number" min="1" max={MAX_BET} value={bet || ""} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setBet(Number(event.target.value) || 0)} disabled={inProgress} className="w-full rounded-lg border border-sky-200/20 bg-slate-900 px-3 py-2 text-lg font-bold text-white outline-none focus:border-sky-400" /><span className="text-sm text-sky-100/65">moose bucks</span></div><p className="mt-2 text-xs text-sky-100/45">Table limit: {MAX_BET} moose bucks</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+                <label htmlFor="uno-speed" className="text-xs font-bold uppercase tracking-wider text-sky-100/65">AI speed</label>
+                <select id="uno-speed" value={aiDelay} onChange={(event) => setAiDelay(Number(event.target.value))} className="mt-2 w-full rounded-lg border border-sky-200/20 bg-slate-900 px-3 py-2 text-sm font-semibold text-white outline-none focus:border-sky-400">
+                  <option value={5000}>Slow — 5s per move</option>
+                  <option value={2000}>Normal — 2s per move</option>
+                  <option value={1000}>Fast — 1s per move</option>
+                </select>
+                <p className="mt-2 text-xs text-sky-100/45">How long the AI pauses before each move. Applies immediately, even mid-game.</p>
               </div>
             </aside>
           </div>
