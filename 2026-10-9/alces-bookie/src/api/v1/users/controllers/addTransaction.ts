@@ -31,7 +31,7 @@ export default new OpenAPIHono().openapi(
                      ...JSONUsernameAndPasswordSchema,
                      amount: z
                         .number({ error: 'Amount must be a number' })
-                        .min(1, { error: 'Amount must be more than 0' })
+                        .min(0, { error: 'Amount must be more than 0' })
                         .transform((value) => Number(value.toFixed(2)))
                   })
                }
