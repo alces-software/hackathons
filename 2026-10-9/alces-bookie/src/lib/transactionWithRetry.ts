@@ -14,7 +14,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 /**
  * Adds a retry function to prisma transactions so they will retry if they fail
  * @param operation The transactions to perform with the database
- * @param maxAttempts How many times to retry
+ * @param maxAttempts Maximum number of attempts, including the initial attempt
  * @returns The data returned by the transaction
  */
 export async function transactionWithRetry<T>(
@@ -25,7 +25,8 @@ export async function transactionWithRetry<T>(
       try {
          return await prisma.$transaction(operation, {
             maxWait: 10000,
-            timeout: 15000
+            timeout: 15000,
+            isolationLevel: Prisma.TransactionIsolationLevel.Serializable
          });
       } catch (error) {
          const isRetryable =
