@@ -21,12 +21,13 @@ CREATE TABLE Services(
 
 CREATE TABLE Ledger(
    id INT AUTO_INCREMENT PRIMARY KEY,
-   username VARCHAR(255) NOT NULL,
+   origin VARCHAR(255),
+   receiver VARCHAR(255) NOT NULL,
    service INT NOT NULL,
    beforeBalance DECIMAL(65, 2) NOT NULL,
    afterBalance DECIMAL(65, 2) NOT NULL,
    timestamp DATETIME NOT NULL,
-   CONSTRAINT fk_ledger_username_username FOREIGN KEY (username) REFERENCES Users(username) ON DELETE CASCADE,
+   CONSTRAINT fk_ledger_username_username FOREIGN KEY (receiver) REFERENCES Users(username) ON DELETE CASCADE,
    CONSTRAINT fk_ledger_service_id FOREIGN KEY (service) REFERENCES Services(id) ON DELETE CASCADE
 );
 
@@ -34,4 +35,5 @@ INSERT INTO Users (username, password, balance)
 VALUES ('bank', 'password', 10000);
 
 INSERT INTO Services (name, token)
-VALUES ('Transfer', '1')
+VALUES ('Transfer', '1'),
+   ('Loan', '2')
