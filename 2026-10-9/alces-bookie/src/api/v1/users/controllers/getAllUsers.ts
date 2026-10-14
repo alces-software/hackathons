@@ -19,7 +19,8 @@ export default new OpenAPIHono().openapi(
       tags: ['Users'],
       request: {
          query: z.object({
-            ...PaginationParamsSchema
+            ...PaginationParamsSchema,
+            orderByBalance: z.enum(['asc', 'desc']).optional()
          })
       },
       responses: {
@@ -45,6 +46,11 @@ export default new OpenAPIHono().openapi(
          return [
             await tx.users.findMany({
                where,
+               orderBy: {
+                  ...(query.orderByBalance !== undefined && {
+                     balance: query.orderByBalance
+                  })
+               },
                ...paginationOptions(query.page, query.limit)
             }),
             await tx.users.count({ where })

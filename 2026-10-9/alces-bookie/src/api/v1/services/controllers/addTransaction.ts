@@ -44,8 +44,15 @@ export default new OpenAPIHono().openapi(
          }
       },
       responses: {
-         204: {
-            description: 'Successfully created a transaction'
+         200: {
+            description: 'Successfully created a transaction',
+            content: {
+               "application/json": {
+                  schema: z.object({
+                     id: z.int()
+                  })
+               }
+            }
          },
          ...BadRequestErrorSchema,
          ...UnauthorisedErrorSchema,
@@ -56,7 +63,7 @@ export default new OpenAPIHono().openapi(
    async (c) => {
       const body = c.req.valid('json');
 
-      await transactionWithRetry(async (tx) => {
+      const transactionID = await transactionWithRetry(async (tx) => {
          // Ensure the service exists
          const service = await ensureServiceExistsToken(body.serviceToken, tx, {});
 
@@ -131,20 +138,21 @@ export default new OpenAPIHono().openapi(
          });
 
          // Add ledger transaction
-         if (body.type === 'win' || body.type === 'loss') {
-            await tx.ledger.create({
-               data: {
-                  username: user.username,
-                  service: service.id,
-                  beforeBalance: user.balance,
-                  afterBalance:
-                     body.type === 'win'
-                        ? user.balance.plus(body.amount)
-                        : user.balance.minus(body.amount),
-                  timestamp: new Date()
-               }
-            });
-         }
+         return await tx.ledger.create({
+            data: {
+               username: user.username,
+               service: service.id,
+               beforeBalance: user.balance,
+               afterBalance:
+                  body.type === 'win' || body.type === 'return'
+                     ? user.balance.plus(body.amount)
+                     : user.balance.minus(body.amount),
+               timestamp: new Date()
+            },
+            select: {
+               id: true
+            }
+         });
       });
 
       // Update the websocket
@@ -154,6 +162,8 @@ export default new OpenAPIHono().openapi(
          timestamp: new Date().toISOString()
       });
 
-      return c.body(null, 204);
+      return c.json({
+         id: transactionID.id
+      }, 200);
    }
 );
