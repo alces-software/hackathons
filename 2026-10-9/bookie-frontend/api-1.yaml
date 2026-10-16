@@ -716,7 +716,7 @@ paths:
                     type:
                     - string
                     - 'null'
-                  timestamp:
+                  createdAt:
                     type: string
                     format: date-time
                   service:
@@ -737,7 +737,7 @@ paths:
                 - id
                 - sender
                 - receiver
-                - timestamp
+                - createdAt
                 - service
         '404':
           description: Resource not found
@@ -836,7 +836,7 @@ paths:
                           type:
                           - string
                           - 'null'
-                        timestamp:
+                        createdAt:
                           type: string
                           format: date-time
                         service:
@@ -857,7 +857,7 @@ paths:
                       - id
                       - sender
                       - receiver
-                      - timestamp
+                      - createdAt
                       - service
                     description: The paginated data from the API
                   currentPage:
