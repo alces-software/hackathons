@@ -8,8 +8,8 @@ import {
    NotFoundErrorSchema,
    UnauthorisedErrorSchema
 } from '../../../../lib/errors/schemas';
-import { prisma } from '../../../../lib/prisma';
 import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
+import { transactionWithRetry } from '../../../../lib/transactionWithRetry';
 import { ensureServiceExists } from '../../services/lib/helpers';
 import { ServicesDefaultInclude } from '../../services/lib/includes';
 import { ensureUserCredentialsMatch, ensureUserExists } from '../../users/lib/helpers';
@@ -48,7 +48,7 @@ export default new OpenAPIHono().openapi(
    async (c) => {
       const body = c.req.valid('json');
 
-      await prisma.$transaction(async (tx) => {
+      await transactionWithRetry(async (tx) => {
          // Ensure the user exists
          const user = await ensureUserExists(body.username, tx, {});
 
