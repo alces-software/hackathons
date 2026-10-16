@@ -1,0 +1,333 @@
+@import "tailwindcss";
+
+/*
+   Deadeye house style — ink on warm paper stock.
+   Oswald carries the display type. Newsreader (serif) carries
+   prose so it reads like print, not a terminal; Courier Prime
+   hangs around only for ledger numerals and form numbers.
+   Colour is ink and money: oxblood for what's owed,
+   bill green for what's paid.
+*/
+
+@theme {
+  --color-paper: #f1ebdc;
+  --color-paper-deep: #e7dfcb;
+  --color-ink: #231f19;
+  --color-ink-soft: #5e5746;
+  --color-rule: #cfc5a9;
+  --color-oxblood: #94351f;
+  --color-bill: #2f5a31;
+  --color-brass: #8a6a1d;
+}
+
+@theme inline {
+  --font-display: var(--font-oswald);
+  --font-mono: var(--font-courier);
+  --font-body: var(--font-newsreader);
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-newsreader), Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+/* Stock grain, laid over everything. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: 0.055;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23grain)'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: var(--color-oxblood);
+  color: var(--color-paper);
+}
+
+:focus-visible {
+  outline: 2px dashed var(--color-oxblood);
+  outline-offset: 2px;
+}
+
+/* ── print furniture ──────────────────────────────────────── */
+
+.label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+/* A ruled notice: heavy top rule, hairline inside. */
+.card {
+  position: relative;
+  border: 1px solid var(--color-ink);
+  border-top-width: 3px;
+  background: var(--color-paper);
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 22%, transparent);
+  pointer-events: none;
+}
+
+/* Rubber-stamp type. Ink takes the current colour. */
+.stamp {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  line-height: 1.1;
+  border: 2px solid currentColor;
+  padding: 0.3rem 0.55rem 0.22rem;
+  mix-blend-mode: multiply;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.stamp-sm {
+  padding: 0.2rem 0.42rem 0.14rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+}
+
+/* The big diagonal seal that lands on settled notices. */
+.stamp-seal {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  z-index: 2;
+  transform: translate(-50%, -50%) rotate(-11deg);
+}
+
+.seal-face {
+  border-width: 3px;
+  padding: 0.55rem 1.1rem 0.4rem;
+  font-size: 1.9rem;
+  letter-spacing: 0.22em;
+}
+
+@keyframes stamp-in {
+  from {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(0.92);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+}
+
+.stamp-in {
+  animation: stamp-in 0.16s ease-out both;
+}
+
+/* Counter buttons — hard offset shadow, they press down. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--color-ink);
+  border: 1px solid var(--color-ink);
+  color: var(--color-paper);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 0.65rem 1.15rem 0.55rem;
+  box-shadow: 3px 3px 0 var(--color-ink);
+  cursor: pointer;
+  transition:
+    translate 60ms ease-out,
+    box-shadow 60ms ease-out,
+    background-color 120ms ease-out,
+    border-color 120ms ease-out;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--color-oxblood);
+  border-color: var(--color-oxblood);
+  box-shadow: 2px 2px 0 var(--color-oxblood);
+  translate: 1px 1px;
+}
+
+.btn:active:not(:disabled) {
+  translate: 3px 3px;
+  box-shadow: none;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: 1px solid var(--color-ink);
+  color: var(--color-ink);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 0.6rem 1.05rem 0.5rem;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.75rem 0.28rem;
+  font-size: 0.72rem;
+}
+
+/* Ruled inputs. */
+.field {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--color-ink) 45%, transparent);
+  padding: 0.5rem 0 0.45rem;
+  color: var(--color-ink);
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.field::placeholder {
+  color: color-mix(in srgb, var(--color-ink) 40%, transparent);
+}
+
+.field:focus {
+  outline: none;
+  border-bottom-color: var(--color-oxblood);
+  border-bottom-width: 2px;
+  padding-bottom: calc(0.45rem - 1px);
+}
+
+/* Wire dots while a request is in flight. */
+.dots {
+  display: inline-flex;
+  padding-left: 0.35rem;
+}
+
+.dots span {
+  animation: dotpulse 1.1s infinite;
+}
+
+.dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes dotpulse {
+  0% {
+    opacity: 0.25;
+  }
+  25% {
+    opacity: 1;
+  }
+  75%,
+  100% {
+    opacity: 0.25;
+  }
+}
+
+/* The register table — figures stay typewriter. */
+.ledger {
+  border-collapse: collapse;
+  font-family: var(--font-courier), "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger th {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+  text-align: left;
+  border-bottom: 2px solid var(--color-ink);
+  padding: 0.5rem 0.75rem;
+  white-space: nowrap;
+}
+
+.ledger td {
+  border-bottom: 1px solid var(--color-rule);
+  padding: 0.6rem 0.75rem;
+  font-size: 0.88rem;
+}
+
+.ledger tbody tr:hover td {
+  background: color-mix(in srgb, var(--color-ink) 4%, transparent);
+}
+
+/* Picked-account box used in the settle panel. */
+.select-boxed {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--color-ink);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0;
+}
+
+/* The register table — figures stay typewriter. */
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+  background: transparent;
+  border: 0;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+}
+
+.seg[aria-pressed="true"] {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}

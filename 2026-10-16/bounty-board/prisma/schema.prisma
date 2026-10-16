@@ -1,0 +1,18 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Bounty {
+  id          Int       @id @default(autoincrement())
+  patron      String    @db.VarChar(255)
+  claiment    String?   @db.VarChar(255)
+  price       Decimal   @db.Decimal(10, 2)
+  title       String    @db.VarChar(255)
+  description String?   @db.Text
+  startTime   DateTime  @db.DateTime(0)
+  endTime     DateTime? @db.DateTime(0)
+}

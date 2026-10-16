@@ -1,0 +1,58 @@
+services:
+   api_database:
+      container_name: api_database
+      image: mariadb:latest
+      restart: unless-stopped
+      environment:
+         MARIADB_ROOT_PASSWORD: rootpassword
+         MARIADB_DATABASE: testdb
+         MARIADB_USER: api
+         MARIADB_PASSWORD: mypassword
+      ports:
+         - '3306:3306'
+      volumes:
+         - database_data:/var/lib/mysql
+         - ./bounty-board/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      healthcheck:
+         test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+         interval: 10s
+         timeout: 5s
+         retries: 10
+
+   bounty_api:
+      container_name: bounty_api
+      image: node:24
+      restart: unless-stopped
+      working_dir: /app/bounty-board
+      init: true
+      depends_on:
+         api_database:
+            condition: service_healthy
+      ports:
+         - '3000:3000'
+      volumes:
+         - ./bounty-board:/app/bounty-board
+      command: './run.sh'
+
+   bounty_frontend:
+      container_name: bounty_frontend
+      image: node:24
+      restart: unless-stopped
+      working_dir: /app/bounty-frontend
+      init: true
+      depends_on:
+         - bounty_api
+      environment:
+         # .env.local points BOUNTY_API_URL at localhost:3000, which only works
+         # when the API runs on the host. Inside the compose network the API is
+         # reachable by service name, and a real environment variable beats
+         # .env.local in Next.
+         BOUNTY_API_URL: http://bounty_api:3000/api/v1
+      ports:
+         - '3001:3000'
+      volumes:
+         - ./bounty-frontend:/app/bounty-frontend
+      command: './run.sh'
+
+volumes:
+   database_data:
