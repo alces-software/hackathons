@@ -88,6 +88,16 @@ export default new OpenAPIHono().openapi(
             });
          }
 
+         // Check that the service has enough money
+         if (
+            (body.type === 'win' || body.type === 'return') &&
+            service.Account.balance.minus(body.amount).lessThan(0)
+         ) {
+            throw new APIError(APIErrorCode.BadRequest, {
+               message: `${service.name} doesn't have enough money`
+            });
+         }
+
          // Ensure that the user exists
          const user = await ensureUserExists(body.username, tx, UserDefaultInclude);
 
@@ -102,7 +112,7 @@ export default new OpenAPIHono().openapi(
             user.Account.balance.minus(body.amount).lessThan(0)
          ) {
             throw new APIError(APIErrorCode.BadRequest, {
-               message: `${user.username} does not have enough to transfer`
+               message: `${user.username} doesn't have enough money`
             });
          }
 
@@ -120,7 +130,7 @@ export default new OpenAPIHono().openapi(
             }
          });
 
-         // Bank takes cut if debt is present
+         // Bank takes a cut if debt is present and the pay is a win
          if (body.type === 'win' && user.debt.greaterThan(0)) {
             const amount = new Prisma.Decimal(body.amount);
             const repayment = Prisma.Decimal.min(
