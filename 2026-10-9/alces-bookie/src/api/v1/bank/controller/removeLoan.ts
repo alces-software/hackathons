@@ -8,9 +8,12 @@ import {
    NotFoundErrorSchema,
    UnauthorisedErrorSchema
 } from '../../../../lib/errors/schemas';
-import { prisma } from '../../../../lib/prisma';
 import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
+import { transactionWithRetry } from '../../../../lib/transactionWithRetry';
+import { ensureServiceExists } from '../../services/lib/helpers';
+import { ServicesDefaultInclude } from '../../services/lib/includes';
 import { ensureUserCredentialsMatch, ensureUserExists } from '../../users/lib/helpers';
+import { UserDefaultInclude } from '../../users/lib/includes';
 
 export default new OpenAPIHono().openapi(
    createRoute({
@@ -46,9 +49,9 @@ export default new OpenAPIHono().openapi(
    async (c) => {
       const body = c.req.valid('json');
 
-      await prisma.$transaction(async (tx) => {
+      await transactionWithRetry(async (tx) => {
          // Ensure the user exists
-         const user = await ensureUserExists(body.username, tx, { Account: true });
+         const user = await ensureUserExists(body.username, tx, UserDefaultInclude);
 
          // Make sure the user credentials match
          await ensureUserCredentialsMatch(body.username, body.password, tx);
@@ -74,37 +77,34 @@ export default new OpenAPIHono().openapi(
             });
          }
 
-         // Get the bank from the database
-         const bank = await ensureUserExists(env.BANK_USERNAME, tx, {});
-
          // Update user account
          await tx.users.update({
             where: { username: user.username },
             data: {
+               debt: { decrement: body.amount },
                Account: {
                   update: {
                      data: {
                         balance: { decrement: body.amount }
                      }
                   }
-               },
-               debt: { decrement: body.amount }
+               }
             }
          });
 
+         // Get the bank from the database
+         const bank = await ensureServiceExists(env.BANK_USERNAME, tx, ServicesDefaultInclude);
+
+         // Make sure the bank has an account
+         if (bank.Account === null || bank.account_id === null) {
+            throw new APIError(APIErrorCode.InternalServerError);
+         }
+
          // Update bank
-         await tx.users.update({
-            where: {
-               username: bank.username
-            },
+         await tx.accounts.update({
+            where: { id: bank.account_id },
             data: {
-               Account: {
-                  update: {
-                     data: {
-                        balance: { increment: body.amount }
-                     }
-                  }
-               }
+               balance: { increment: body.amount }
             }
          });
 
@@ -132,7 +132,7 @@ export default new OpenAPIHono().openapi(
                receiver_account_id: bank.account_id,
                service_id: service.id,
                amount: body.amount,
-               timestamp: new Date()
+               created_at: new Date()
             }
          });
       });

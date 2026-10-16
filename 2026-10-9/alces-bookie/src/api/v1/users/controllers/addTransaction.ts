@@ -8,10 +8,12 @@ import {
    NotFoundErrorSchema,
    UnauthorisedErrorSchema
 } from '../../../../lib/errors/schemas';
-import { prisma } from '../../../../lib/prisma';
 import { publish } from '../../../../lib/publisher';
 import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
 import { UsernameParamSchema } from '../../../../lib/schema/param';
+import { transactionWithRetry } from '../../../../lib/transactionWithRetry';
+import { ensureServiceExists } from '../../services/lib/helpers';
+import { ServicesDefaultInclude } from '../../services/lib/includes';
 import { ensureUserCredentialsMatch, ensureUserExists } from '../lib/helpers';
 import { UserDefaultInclude } from '../lib/includes';
 
@@ -60,7 +62,7 @@ export default new OpenAPIHono().openapi(
       const { username } = c.req.valid('param');
       const body = c.req.valid('json');
 
-      const transactionID = await prisma.$transaction(async (tx) => {
+      const transactionID = await transactionWithRetry(async (tx) => {
          // Calculate the transaction fee
          const transactionFee = Number((body.amount * env.USER_TRANSACTION_FEE).toFixed(2));
 
@@ -78,7 +80,7 @@ export default new OpenAPIHono().openapi(
          }
 
          // Take money off sender
-         await tx.account.update({
+         await tx.accounts.update({
             where: { id: sender.account_id },
             data: {
                balance: { decrement: body.amount }
@@ -89,26 +91,26 @@ export default new OpenAPIHono().openapi(
          const receiver = await ensureUserExists(username, tx, {});
 
          // Update the receivers money
-         await tx.account.update({
+         await tx.accounts.update({
             where: { id: receiver.account_id },
             data: {
                balance: { increment: body.amount - transactionFee }
             }
          });
 
+         // Get the bank from the database
+         const bank = await ensureServiceExists(env.BANK_USERNAME, tx, ServicesDefaultInclude);
+
+         // Make sure the bank has an account
+         if (bank.Account === null || bank.account_id === null) {
+            throw new APIError(APIErrorCode.InternalServerError);
+         }
+
          // Update the bank
-         await tx.users.update({
-            where: {
-               username: env.BANK_USERNAME
-            },
+         await tx.accounts.update({
+            where: { id: bank.account_id },
             data: {
-               Account: {
-                  update: {
-                     data: {
-                        balance: { increment: transactionFee }
-                     }
-                  }
-               }
+               balance: { increment: transactionFee }
             }
          });
 

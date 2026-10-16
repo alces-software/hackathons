@@ -10,10 +10,12 @@ import {
    UnauthorisedErrorSchema
 } from '../../../../lib/errors/schemas';
 import { publish } from '../../../../lib/publisher';
-import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
+import { JSONPasswordSchema, JSONUsernameSchema } from '../../../../lib/schema/json';
 import { transactionWithRetry } from '../../../../lib/transactionWithRetry';
 import { ensureUserCredentialsMatch, ensureUserExists } from '../../users/lib/helpers';
-import { ensureServiceExistsToken } from '../lib/helpers';
+import { UserDefaultInclude } from '../../users/lib/includes';
+import { ensureServiceExists, ensureServiceExistsToken } from '../lib/helpers';
+import { ServicesDefaultInclude } from '../lib/includes';
 
 export default new OpenAPIHono().openapi(
    createRoute({
@@ -26,11 +28,12 @@ export default new OpenAPIHono().openapi(
             content: {
                'application/json': {
                   schema: z.object({
-                     ...JSONUsernameAndPasswordSchema,
+                     username: JSONUsernameSchema,
+                     password: JSONPasswordSchema.optional(),
                      serviceToken: z
                         .string({ error: 'Service token must be a string' })
                         .trim()
-                        .min(1, { error: 'Service token cannot be empty' }),
+                        .length(32, { error: 'Service token must be 32 characters long' }),
                      amount: z
                         .number({ error: 'Amount must be a number' })
                         .min(0, { error: 'Amount must be more than 0' })
@@ -64,21 +67,44 @@ export default new OpenAPIHono().openapi(
       const body = c.req.valid('json');
 
       const transactionID = await transactionWithRetry(async (tx) => {
+         // Make sure if it's a loss or a hold a password is provided
+         if (body.password === undefined && (body.type === 'hold' || body.type === 'loss')) {
+            throw new APIError(APIErrorCode.BadRequest, {
+               error: 'Money cant be taken off a user without the password'
+            });
+         }
+
          // Ensure the service exists
-         const service = await ensureServiceExistsToken(body.serviceToken, tx, {});
+         const service = await ensureServiceExistsToken(
+            body.serviceToken,
+            tx,
+            ServicesDefaultInclude
+         );
 
          // Check that the service has an account
-         if (service.account_id === null) {
+         if (service.account_id === null || service.Account === null) {
             throw new APIError(APIErrorCode.BadRequest, {
                message: 'Service does now have an account'
             });
          }
 
-         // Ensure that the user exists
-         const user = await ensureUserExists(body.username, tx, { Account: true });
+         // Check that the service has enough money
+         if (
+            (body.type === 'win' || body.type === 'return') &&
+            service.Account.balance.minus(body.amount).lessThan(0)
+         ) {
+            throw new APIError(APIErrorCode.BadRequest, {
+               message: `${service.name} doesn't have enough money`
+            });
+         }
 
-         // Ensure that user credentials are correct
-         await ensureUserCredentialsMatch(body.username, body.password, tx);
+         // Ensure that the user exists
+         const user = await ensureUserExists(body.username, tx, UserDefaultInclude);
+
+         if (body.password) {
+            // Ensure that user credentials are correct
+            await ensureUserCredentialsMatch(body.username, body.password, tx);
+         }
 
          // Make sure the send has enough in their account
          if (
@@ -86,36 +112,25 @@ export default new OpenAPIHono().openapi(
             user.Account.balance.minus(body.amount).lessThan(0)
          ) {
             throw new APIError(APIErrorCode.BadRequest, {
-               message: `${user.username} does not have enough to transfer`
+               message: `${user.username} doesn't have enough money`
             });
          }
 
          // Update service
-         await tx.services.update({
-            where: { token: body.serviceToken },
+         await tx.accounts.update({
+            where: { id: service.account_id },
             data: {
-               ...((body.type === 'win' || body.type === 'return') && {
-                  Account: {
-                     update: {
-                        data: {
-                           balance: { decrement: body.amount }
-                        }
-                     }
-                  }
-               }),
-               ...((body.type === 'loss' || body.type === 'hold') && {
-                  Account: {
-                     update: {
-                        data: {
-                           balance: { increment: body.amount }
-                        }
-                     }
-                  }
-               })
+               ...(body.type === 'win' || body.type === 'return'
+                  ? {
+                       balance: { decrement: body.amount }
+                    }
+                  : {
+                       balance: { increment: body.amount }
+                    })
             }
          });
 
-         // Bank takes cut if debt is present
+         // Bank takes a cut if debt is present and the pay is a win
          if (body.type === 'win' && user.debt.greaterThan(0)) {
             const amount = new Prisma.Decimal(body.amount);
             const repayment = Prisma.Decimal.min(
@@ -124,17 +139,17 @@ export default new OpenAPIHono().openapi(
             );
             body.amount = amount.minus(repayment).toNumber();
 
-            await tx.users.update({
-               where: { username: env.BANK_USERNAME },
-               data: {
-                  Account: {
-                     update: {
-                        data: {
-                           balance: { increment: repayment }
-                        }
-                     }
-                  }
-               }
+            // Get the bank from the database
+            const bank = await ensureServiceExists(env.BANK_USERNAME, tx, ServicesDefaultInclude);
+
+            // Make sure the bank has an account
+            if (bank.Account === null || bank.account_id === null) {
+               throw new APIError(APIErrorCode.InternalServerError);
+            }
+
+            await tx.accounts.update({
+               where: { id: bank.account_id },
+               data: { balance: { increment: repayment } }
             });
 
             await tx.users.update({

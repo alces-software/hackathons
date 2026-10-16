@@ -40,7 +40,11 @@ export default new OpenAPIHono().openapi(
 
       const [services, servicesCount] = await prisma.$transaction(async (tx) => {
          // create the where statement
-         const where: Prisma.ServicesWhereInput = {};
+         const where: Prisma.ServicesWhereInput = {
+            type: {
+               not: 'bank'
+            }
+         };
 
          // Get all the services and a total count
          return [
