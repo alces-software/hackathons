@@ -4,7 +4,7 @@ import { getSession } from "@/lib/session";
 
 // Transfers pass through here rather than to the core directly: the sender
 // comes from the session cookie, the recipient named in the path (the way
-// /transactions/service/{username} takes its username), and the password is
+// /users/transaction/{username} takes its username), and the password is
 // given fresh per transfer and never stored. The browser never calls the
 // core itself — it has no CORS and no business holding credentials.
 

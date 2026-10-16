@@ -5,11 +5,11 @@ const API_URL = process.env.API_URL ?? "http://localhost:8000/api/v1";
 
 export type Txn = {
   id?: number;
-  username: string;
-  timestamp: string;
-  before: number;
-  after: number;
-  service: { id: number; name: string };
+  /** Null for entries that don't involve a user account. */
+  sender: string | null;
+  receiver: string | null;
+  createdAt: string;
+  service: { id: number | null; name: string | null };
 };
 
 export type User = {
@@ -18,7 +18,7 @@ export type User = {
   balance: number;
   debt: number;
   winnings: number;
-  loses: number;
+  losses: number;
 };
 
 export type Page<T> = {
@@ -125,26 +125,32 @@ const toUser = (raw: {
   balance: string | number;
   debt?: string | number;
   winnings?: string | number;
-  loses?: string | number;
+  losses?: string | number;
 }): User => ({
   username: raw.username,
   balance: Number(raw.balance),
   debt: raw.debt === undefined ? 0 : Number(raw.debt),
   winnings: raw.winnings === undefined ? 0 : Number(raw.winnings),
-  loses: raw.loses === undefined ? 0 : Number(raw.loses),
+  losses: raw.losses === undefined ? 0 : Number(raw.losses),
 });
 
 export async function getUsers(
   page: number,
   limit: number,
+  orderByBalance?: "asc" | "desc",
 ): Promise<Page<User>> {
   const res = await getPage<{
     username: string;
     balance: string | number;
     debt?: string | number;
     winnings?: string | number;
-    loses?: string | number;
-  }>("/users", page, limit);
+    losses?: string | number;
+  }>(
+    "/users",
+    page,
+    limit,
+    orderByBalance ? { orderByBalance } : undefined,
+  );
   return { ...res, data: res.data.map(toUser) };
 }
 
@@ -157,7 +163,7 @@ export async function getAllUsers(): Promise<User[]> {
       balance: string | number;
       debt?: string | number;
       winnings?: string | number;
-      loses?: string | number;
+      losses?: string | number;
     }>("/users")
   ).map(toUser);
 }
@@ -169,7 +175,7 @@ export async function getUser(username: string): Promise<User> {
     balance: string | number;
     debt?: string | number;
     winnings?: string | number;
-    loses?: string | number;
+    losses?: string | number;
   }>(`/users/${username}`);
   return toUser(raw);
 }

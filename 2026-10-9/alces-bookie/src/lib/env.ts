@@ -21,7 +21,9 @@ const envSchema = z.object({
    LOAN_REPAY: z.coerce.number().min(0).max(1).default(0.1),
 
    // Bank
-   BANK_USERNAME: z.string().default('bank')
+   BANK_USERNAME: z.string().default('bank'),
+   PLAYER_START_CASH: z.coerce.number().min(0).default(500),
+   SERVICE_START_CASH: z.coerce.number().min(0).default(4000)
 });
 
 export const env = envSchema.parse(process.env);

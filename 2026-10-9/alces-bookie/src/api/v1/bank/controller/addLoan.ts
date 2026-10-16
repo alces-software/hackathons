@@ -64,10 +64,10 @@ export default new OpenAPIHono().openapi(
          }
 
          // Get the bank from the database
-         const bank = await ensureUserExists(env.BANK_USERNAME, tx, {});
+         const bank = await ensureUserExists(env.BANK_USERNAME, tx, { Account: true });
 
          // Check that the bank can perform the loan
-         if (bank.balance.minus(body.amount).lessThan(0)) {
+         if (bank.Account.balance.minus(body.amount).lessThan(0)) {
             throw new APIError(APIErrorCode.BadRequest, {
                message: 'The bank cannot fund this loan at the moment'
             });
@@ -77,8 +77,14 @@ export default new OpenAPIHono().openapi(
          await tx.users.update({
             where: { username: user.username },
             data: {
-               balance: { increment: body.amount },
-               debt: { increment: body.amount * (env.LOAN_INTEREST + 1) }
+               debt: { increment: body.amount * (env.LOAN_INTEREST + 1) },
+               Account: {
+                  update: {
+                     data: {
+                        balance: { increment: body.amount }
+                     }
+                  }
+               }
             }
          });
 
@@ -88,7 +94,13 @@ export default new OpenAPIHono().openapi(
                username: bank.username
             },
             data: {
-               balance: { decrement: body.amount }
+               Account: {
+                  update: {
+                     data: {
+                        balance: { decrement: body.amount }
+                     }
+                  }
+               }
             }
          });
 
@@ -112,10 +124,10 @@ export default new OpenAPIHono().openapi(
          // Add ledger
          await tx.ledger.create({
             data: {
-               username: user.username,
-               service: service?.id,
-               beforeBalance: user.balance,
-               afterBalance: user.balance.plus(body.amount),
+               sender_account_id: bank.account_id,
+               receiver_account_id: user.account_id,
+               service_id: service.id,
+               amount: body.amount,
                timestamp: new Date()
             }
          });

@@ -8,6 +8,7 @@ import {
 } from '../../../../lib/pagination/schemas';
 import { paginationOptions, serializePagination } from '../../../../lib/pagination/serializers';
 import { prisma } from '../../../../lib/prisma';
+import { UserDefaultInclude } from '../lib/includes';
 import { UserReturnSchema } from '../lib/schemas';
 import { serializeUser } from '../lib/serializers';
 
@@ -46,9 +47,12 @@ export default new OpenAPIHono().openapi(
          return [
             await tx.users.findMany({
                where,
+               include: UserDefaultInclude,
                orderBy: {
                   ...(query.orderByBalance !== undefined && {
-                     balance: query.orderByBalance
+                     Account: {
+                        balance: query.orderByBalance
+                     }
                   })
                },
                ...paginationOptions(query.page, query.limit)

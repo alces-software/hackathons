@@ -13,6 +13,7 @@ import { publish } from '../../../../lib/publisher';
 import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
 import { UsernameParamSchema } from '../../../../lib/schema/param';
 import { ensureUserCredentialsMatch, ensureUserExists } from '../lib/helpers';
+import { UserDefaultInclude } from '../lib/includes';
 
 export default new OpenAPIHono().openapi(
    createRoute({
@@ -39,8 +40,15 @@ export default new OpenAPIHono().openapi(
          }
       },
       responses: {
-         204: {
-            description: 'Transaction was successful'
+         200: {
+            description: 'Transaction was successful',
+            content: {
+               'application/json': {
+                  schema: z.object({
+                     id: z.int()
+                  })
+               }
+            }
          },
          ...BadRequestErrorSchema,
          ...UnauthorisedErrorSchema,
@@ -52,18 +60,18 @@ export default new OpenAPIHono().openapi(
       const { username } = c.req.valid('param');
       const body = c.req.valid('json');
 
-      await prisma.$transaction(async (tx) => {
+      const transactionID = await prisma.$transaction(async (tx) => {
          // Calculate the transaction fee
          const transactionFee = Number((body.amount * env.USER_TRANSACTION_FEE).toFixed(2));
 
          // Ensure sender user exits
-         const sender = await ensureUserExists(body.username, tx, {});
+         const sender = await ensureUserExists(body.username, tx, UserDefaultInclude);
 
          // Ensure account credentials are correct
          await ensureUserCredentialsMatch(body.username, body.password, tx);
 
          // Make sure the send has enough in their account
-         if (sender.balance.minus(body.amount).lessThan(0)) {
+         if (sender.Account.balance.minus(body.amount).lessThan(0)) {
             throw new APIError(APIErrorCode.BadRequest, {
                message: `${body.username} does not have enough to send to ${username}`
             });
@@ -119,25 +127,17 @@ export default new OpenAPIHono().openapi(
                return service;
             });
 
-         // Add sender ledger
-         await tx.ledger.create({
+         // Add ledger
+         return await tx.ledger.create({
             data: {
-               username: sender.username,
-               service: service?.id,
-               beforeBalance: sender.balance,
-               afterBalance: sender.balance.minus(body.amount),
+               sender_account_id: sender.account_id,
+               receiver_account_id: receiver.account_id,
+               amount: body.amount,
+               service: service.id,
                timestamp: new Date()
-            }
-         });
-
-         // Add receiver ledger
-         await tx.ledger.create({
-            data: {
-               username: receiver.username,
-               service: service?.id,
-               beforeBalance: receiver.balance,
-               afterBalance: receiver.balance.plus(body.amount - transactionFee),
-               timestamp: new Date()
+            },
+            select: {
+               id: true
             }
          });
       });
@@ -149,6 +149,11 @@ export default new OpenAPIHono().openapi(
          timestamp: new Date().toISOString()
       });
 
-      return c.body(null, 204);
+      return c.json(
+         {
+            id: transactionID.id
+         },
+         200
+      );
    }
 );

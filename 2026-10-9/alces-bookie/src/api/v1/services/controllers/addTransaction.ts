@@ -67,8 +67,15 @@ export default new OpenAPIHono().openapi(
          // Ensure the service exists
          const service = await ensureServiceExistsToken(body.serviceToken, tx, {});
 
+         // Check that the service has an account
+         if (service.account_id === null) {
+            throw new APIError(APIErrorCode.BadRequest, {
+               message: 'Service does now have an account'
+            });
+         }
+
          // Ensure that the user exists
-         const user = await ensureUserExists(body.username, tx, {});
+         const user = await ensureUserExists(body.username, tx, { Account: true });
 
          // Ensure that user credentials are correct
          await ensureUserCredentialsMatch(body.username, body.password, tx);
@@ -76,7 +83,7 @@ export default new OpenAPIHono().openapi(
          // Make sure the send has enough in their account
          if (
             (body.type === 'loss' || body.type === 'hold') &&
-            user.balance.minus(body.amount).lessThan(0)
+            user.Account.balance.minus(body.amount).lessThan(0)
          ) {
             throw new APIError(APIErrorCode.BadRequest, {
                message: `${user.username} does not have enough to transfer`
@@ -126,7 +133,7 @@ export default new OpenAPIHono().openapi(
                }),
                ...(body.type === 'loss' && {
                   balance: { decrement: body.amount },
-                  loses: { increment: body.amount }
+                  losses: { increment: body.amount }
                }),
                ...(body.type === 'hold' && {
                   balance: { decrement: body.amount }
@@ -140,14 +147,18 @@ export default new OpenAPIHono().openapi(
          // Add ledger transaction
          return await tx.ledger.create({
             data: {
-               username: user.username,
-               service: service.id,
-               beforeBalance: user.balance,
-               afterBalance:
-                  body.type === 'win' || body.type === 'return'
-                     ? user.balance.plus(body.amount)
-                     : user.balance.minus(body.amount),
-               timestamp: new Date()
+               ...(body.type === 'win' || body.type === 'return'
+                  ? {
+                       sender_account_id: service.account_id,
+                       receiver_account_id: user.account_id
+                    }
+                  : {
+                       sender_account_id: user.account_id,
+                       receiver_account_id: service.account_id
+                    }),
+               service_id: service.id,
+               amount: body.amount,
+               created_at: new Date()
             },
             select: {
                id: true

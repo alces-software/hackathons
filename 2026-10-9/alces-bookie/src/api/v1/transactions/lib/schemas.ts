@@ -5,12 +5,11 @@ import { z } from '@hono/zod-openapi';
  */
 export const TransactionReturnSchema = z.object({
    id: z.int(),
-   username: z.string(),
-   timestamp: z.date(),
-   before: z.number(),
-   after: z.number(),
+   sender: z.string().nullable(),
+   receiver: z.string().nullable(),
+   createdAt: z.date(),
    service: z.object({
-      id: z.int(),
-      name: z.string()
+      id: z.int().nullable(),
+      name: z.string().nullable()
    })
 });
