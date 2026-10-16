@@ -90,7 +90,7 @@ VALUES (
 -- Create services
 INSERT INTO Services (name, token)
 VALUES
-    ('Transfer', 'REPLACE_WITH_TRANSFER_TOKEN_HASH'),
-    ('Loan', 'REPLACE_WITH_LOAN_TOKEN_HASH');
+    ('Transfer', '1'),
+    ('Loan', '2');
 
 COMMIT;
