@@ -84,6 +84,7 @@ export default new OpenAPIHono().openapi(
                balance: { decrement: body.amount }
             }
          });
+         console.log('hello')
 
          // Ensure destination user exists
          const receiver = await ensureUserExists(username, tx, {});
@@ -96,6 +97,7 @@ export default new OpenAPIHono().openapi(
             }
          });
 
+         console.log('hello')
          // Update the bank
          await tx.users.update({
             where: {
@@ -129,6 +131,7 @@ export default new OpenAPIHono().openapi(
                return service;
             });
 
+         console.log('hello')
          // Add ledger
          return await tx.ledger.create({
             data: {
