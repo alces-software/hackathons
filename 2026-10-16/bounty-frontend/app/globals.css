@@ -314,7 +314,8 @@ body::after {
   border-radius: 0;
 }
 
-/* The register table — figures stay typewriter. */
+/* Segmented sort toggle — small uppercase buttons in a ruled strip. */
+.seg {
   font-family: inherit;
   font-size: 0.74rem;
   font-weight: 700;

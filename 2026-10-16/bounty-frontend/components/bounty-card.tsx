@@ -43,7 +43,7 @@ export function BountyCard({
     try {
       // The API caps a sheet at 100; plenty for the county.
       const sheet = await wire<Page<PublicUser>>(
-        "/api/users?page=1&limit=100&orderByBalance=desc",
+        "/users?page=1&limit=100&orderByBalance=desc",
       );
       setRecipients(
         sheet.data
@@ -57,7 +57,10 @@ export function BountyCard({
   }
 
   return (
-    <article className="card flex flex-col" style={{ transform: `rotate(${tilt}deg)` }}>
+    <article
+      className="card flex flex-col"
+      style={{ transform: `rotate(${tilt}deg)` }}
+    >
       <div className="flex items-baseline justify-between gap-3 border-b border-rule px-5 py-2.5 font-mono text-[0.7rem] font-bold uppercase tracking-[0.1em] text-ink-soft">
         <span>Nº {fmtNumber(bounty.id)}</span>
         <span>{paid ? `Paid ${fmtDate(bounty.endDate)}` : "Open"}</span>
@@ -77,7 +80,9 @@ export function BountyCard({
         <p className="font-display text-[2.7rem] font-semibold uppercase leading-[0.9] tracking-[0.07em]">
           Wanted
         </p>
-        <h3 className="mt-2 text-[1.05rem] font-bold leading-snug">{bounty.title}</h3>
+        <h3 className="mt-2 text-[1.05rem] font-bold leading-snug">
+          {bounty.title}
+        </h3>
         <p className="mt-2 text-[0.92rem] leading-relaxed text-ink-soft line-clamp-4">
           {bounty.description?.trim()
             ? bounty.description
@@ -101,18 +106,23 @@ export function BountyCard({
         <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-[0.72rem] uppercase tracking-[0.1em] text-ink-soft">
           <span>
             Posted by{" "}
-            <span className="font-bold normal-case text-ink">{bounty.patron}</span>
+            <span className="font-bold normal-case text-ink">
+              {bounty.patron}
+            </span>
           </span>
           {bounty.claiment && (
             <span>
               Claimed by{" "}
-              <span className="font-bold normal-case text-ink">{bounty.claiment}</span>
+              <span className="font-bold normal-case text-ink">
+                {bounty.claiment}
+              </span>
             </span>
           )}
         </div>
 
-        {onSettle && !paid && (
-          panelOpen ? (
+        {onSettle &&
+          !paid &&
+          (panelOpen ? (
             <div className="border-t border-ink mt-4 pt-4">
               <label className="label" htmlFor={`recipient-${bounty.id}`}>
                 Pay the reward to
@@ -120,7 +130,9 @@ export function BountyCard({
 
               {recipientError !== null ? (
                 <div className="mt-2">
-                  <p className="text-[0.82rem] text-oxblood">{recipientError}</p>
+                  <p className="text-[0.82rem] text-oxblood">
+                    {recipientError}
+                  </p>
                   <button
                     type="button"
                     className="btn-ghost btn-sm mt-3"
@@ -202,8 +214,7 @@ export function BountyCard({
                 Choose who receives the reward
               </p>
             </div>
-          )
-        )}
+          ))}
       </div>
     </article>
   );

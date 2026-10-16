@@ -17,7 +17,7 @@ export async function authenticate(username: string, password: string): Promise<
       body: JSON.stringify(payload)
    });
 
-   if (response.status === 204) {
+   if (response.ok) {
       return true;
    } else if (response.status === 401 || response.status === 404) {
       return false;

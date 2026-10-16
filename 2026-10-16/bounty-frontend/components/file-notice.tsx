@@ -53,7 +53,7 @@ export function FileNotice() {
     setPending(true);
     try {
       const created = await wire<Bounty>(
-        "/api/bounties",
+        "/bounties",
         jsonInit("POST", {
           username: clerk.username,
           password: clerk.password,

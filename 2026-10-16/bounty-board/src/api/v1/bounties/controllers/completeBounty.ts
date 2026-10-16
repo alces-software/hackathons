@@ -11,7 +11,7 @@ import {
    UnauthorisedErrorSchema
 } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
-import { returnMoney } from '../lib/helpers';
+import { payUser, userExists } from '../lib/helpers';
 import { bountyReturnSchema } from '../lib/schemas';
 import { serializeBounty } from '../lib/serializers';
 
@@ -19,7 +19,7 @@ export default new OpenAPIHono().openapi(
    createRoute({
       method: 'patch',
       path: '/{id}/complete',
-      description: 'Complete a bounty, paying out the held money to the patron',
+      description: 'Complete a bounty, paying out the held money to the claiment',
       tags: ['Bounty'],
       request: {
          params: z.object({
@@ -33,7 +33,10 @@ export default new OpenAPIHono().openapi(
                'application/json': {
                   schema: z.object({
                      username: z.string(),
-                     password: z.string()
+                     password: z.string(),
+                     claiment: z.string().meta({
+                        description: 'The username of the user to pay the reward to'
+                     })
                   })
                }
             }
@@ -58,7 +61,7 @@ export default new OpenAPIHono().openapi(
    }),
    async (c) => {
       const { id } = c.req.valid('param');
-      const { username, password } = c.req.valid('json');
+      const { username, password, claiment } = c.req.valid('json');
 
       // Authenticate user
       const isAuth = await authenticate(username, password);
@@ -88,12 +91,30 @@ export default new OpenAPIHono().openapi(
          });
       }
 
-      // Return the held money to the patron
-      const returnedMoney = await returnMoney(username, password, bounty.price.toNumber());
+      // The patron cannot pay the reward to themselves — the money is
+      // theirs until it is paid out, so a self-payout would be a refund
+      if (claiment === username) {
+         throw new APIError(APIErrorCode.Forbidden, {
+            message: 'The reward cannot be paid to the patron of the bounty'
+         });
+      }
 
-      if (!returnedMoney) {
+      // Check the claiment exists at the bank
+      const claimentExists = await userExists(claiment);
+
+      if (!claimentExists) {
+         throw new APIError(APIErrorCode.NotFound, {
+            message: 'The claiment does not exist at the bank'
+         });
+      }
+
+      // Pay the claiment from the service's held money. The bank credits
+      // the claiment directly — the patron is not the sender.
+      const paidClaiment = await payUser(claiment, bounty.price.toNumber());
+
+      if (!paidClaiment) {
          throw new APIError(APIErrorCode.InternalServerError, {
-            error: 'Could not return money to the patron'
+            error: 'Could not pay the claiment'
          });
       }
 
@@ -101,7 +122,8 @@ export default new OpenAPIHono().openapi(
       const completedBounty = await prisma.bounty.update({
          where: { id },
          data: {
-            endTime: new Date()
+            endTime: new Date(),
+            claiment
          }
       });
 

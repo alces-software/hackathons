@@ -57,15 +57,21 @@ export function Masthead() {
             );
           })}
           {ready && clerk === null && (
-            <Link href="/sign-in" className="btn btn-sm">
+            <Link
+              href={
+                pathname === "/" || pathname.startsWith("/sign-in")
+                  ? "/sign-in"
+                  : `/sign-in?then=${encodeURIComponent(pathname)}`
+              }
+              className="btn btn-sm"
+            >
               Sign in
             </Link>
           )}
           {ready && clerk !== null && (
             <span className="flex items-center gap-3">
               <span className="label">
-                Signed in as{" "}
-                <span className="text-ink">{clerk.username}</span>
+                Signed in as <span className="text-ink">{clerk.username}</span>
               </span>
               <button
                 type="button"

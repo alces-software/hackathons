@@ -35,7 +35,7 @@ export function Register() {
         orderByBalance: sort,
       });
       try {
-        const data = await wire<Page<PublicUser>>(`/api/users?${query}`, {
+        const data = await wire<Page<PublicUser>>(`/users?${query}`, {
           signal: controller.signal,
         });
         if (!alive) return;
@@ -59,10 +59,7 @@ export function Register() {
   if (feed.error && !sheet) {
     return (
       <main className="px-4 pb-24 sm:px-6">
-        <WireErrorNote
-          message={feed.error}
-          onRetry={() => setPage(1)}
-        />
+        <WireErrorNote message={feed.error} onRetry={() => setPage(1)} />
       </main>
     );
   }
@@ -72,8 +69,7 @@ export function Register() {
     <main className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-4 pb-5">
         <p className="label">
-          {sheet.itemTotal} accounts · page {page} of{" "}
-          {Math.max(1, totalPages)}
+          {sheet.itemTotal} accounts · page {page} of {Math.max(1, totalPages)}
         </p>
         <div className="flex border border-ink">
           <button
@@ -143,7 +139,9 @@ export function Register() {
                       </span>
                     )}
                   </td>
-                  <td className="text-right font-bold">{fmtMoney(user.balance)}</td>
+                  <td className="text-right font-bold">
+                    {fmtMoney(user.balance)}
+                  </td>
                   <td
                     className={`text-right ${
                       user.debt > 0 ? "text-oxblood" : "text-ink-soft"

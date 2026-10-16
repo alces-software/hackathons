@@ -1,4 +1,8 @@
-// Browser-side client for our own /api route handlers.
+// Browser-side client. The browser talks to the bank API directly
+// (the API sends permissive CORS headers), so the base URL must be
+// resolvable from the browser — not the compose-internal service name.
+// NEXT_PUBLIC_BANK_API_URL is set in .env.local / docker-compose.
+const BANK_BASE = process.env.NEXT_PUBLIC_BANK_API_URL ?? "";
 
 export class WireError extends Error {
   readonly status: number;
@@ -10,11 +14,11 @@ export class WireError extends Error {
   }
 }
 
-/** Same ritual as the server's bank call, pointed at our own routes. */
+/** Same ritual as the server's bank call, pointed at the bank API. */
 export async function wire<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(path, { ...init });
+    res = await fetch(`${BANK_BASE}${path}`, { ...init });
   } catch {
     throw new WireError(
       0,

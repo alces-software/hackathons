@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BountyCard } from "@/components/bounty-card";
 import { useClerk } from "@/components/session";
@@ -20,6 +21,7 @@ type Feed = { loading: boolean; sheet?: Page<Bounty>; error?: string };
 
 export function Postings() {
   const { clerk } = useClerk();
+  const pathname = usePathname();
   const [page, setPage] = useState(1);
   const [tick, setTick] = useState(0);
   const [feed, setFeed] = useState<Feed>({ loading: true });
@@ -42,7 +44,7 @@ export function Postings() {
         completed: "false",
       });
       try {
-        const data = await wire<Page<Bounty>>(`/api/bounties?${query}`, {
+        const data = await wire<Page<Bounty>>(`/bounties?${query}`, {
           signal: controller.signal,
         });
         if (!alive) return;
@@ -68,7 +70,7 @@ export function Postings() {
     setSettlingId(bounty.id);
     try {
       const cleared = await wire<Bounty>(
-        `/api/bounties/${bounty.id}/complete`,
+        `/bounties/${bounty.id}/complete`,
         jsonInit("PATCH", {
           username: clerk.username,
           password: clerk.password,
@@ -92,7 +94,10 @@ export function Postings() {
   if (feed.error && !sheet) {
     return (
       <main className="px-4 pb-24 sm:px-6">
-        <WireErrorNote message={feed.error} onRetry={() => setTick((t) => t + 1)} />
+        <WireErrorNote
+          message={feed.error}
+          onRetry={() => setTick((t) => t + 1)}
+        />
       </main>
     );
   }
@@ -107,7 +112,10 @@ export function Postings() {
         </p>
         {!clerk && (
           <p className="label">
-            <Link href="/sign-in" className="underline underline-offset-2">
+            <Link
+              href={`/sign-in?then=${encodeURIComponent(pathname)}`}
+              className="underline underline-offset-2"
+            >
               Sign in
             </Link>{" "}
             to settle a bounty
@@ -139,7 +147,10 @@ export function Postings() {
               Post a bounty
             </Link>
           ) : (
-            <Link href="/sign-in" className="btn">
+            <Link
+              href={`/sign-in?then=${encodeURIComponent(pathname)}`}
+              className="btn"
+            >
               Sign in to post one
             </Link>
           )}

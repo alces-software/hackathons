@@ -91,7 +91,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     async (username, password) => {
       try {
         await wire<{ message: string }>(
-          "/api/users/login",
+          "/users/login",
           jsonInit("POST", { username, password }),
         );
       } catch (error) {

@@ -37,7 +37,7 @@ export function Settled() {
         completed: "true",
       });
       try {
-        const data = await wire<Page<Bounty>>(`/api/bounties?${query}`, {
+        const data = await wire<Page<Bounty>>(`/bounties?${query}`, {
           signal: controller.signal,
         });
         if (!alive) return;
@@ -74,8 +74,7 @@ export function Settled() {
     <main className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
       <div className="flex flex-wrap items-baseline justify-between gap-3 pb-5">
         <p className="label">
-          {sheet.itemTotal} paid out · page {page} of{" "}
-          {Math.max(1, totalPages)}
+          {sheet.itemTotal} paid out · page {page} of {Math.max(1, totalPages)}
         </p>
         <p className="label">
           <Link href="/" className="underline underline-offset-2">
