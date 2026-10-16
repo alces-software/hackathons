@@ -83,7 +83,13 @@ export default new OpenAPIHono().openapi(
                username: sender.username
             },
             data: {
-               balance: { decrement: body.amount }
+               Account: {
+                  update: {
+                     data: {
+                        balance: { decrement: body.amount }
+                     }
+                  }
+               }
             }
          });
 
@@ -96,7 +102,13 @@ export default new OpenAPIHono().openapi(
                username: receiver.username
             },
             data: {
-               balance: { increment: body.amount - transactionFee }
+               Account: {
+                  update: {
+                     data: {
+                        balance: { increment: body.amount - transactionFee }
+                     }
+                  }
+               }
             }
          });
 
@@ -106,7 +118,13 @@ export default new OpenAPIHono().openapi(
                username: env.BANK_USERNAME
             },
             data: {
-               balance: { increment: transactionFee }
+               Account: {
+                  update: {
+                     data: {
+                        balance: { increment: transactionFee }
+                     }
+                  }
+               }
             }
          });
 

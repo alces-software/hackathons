@@ -81,7 +81,13 @@ export default new OpenAPIHono().openapi(
          await tx.users.update({
             where: { username: user.username },
             data: {
-               balance: { decrement: body.amount },
+               Account: {
+                  update: {
+                     data: {
+                        balance: { decrement: body.amount }
+                     }
+                  }
+               },
                debt: { decrement: body.amount }
             }
          });
@@ -92,7 +98,13 @@ export default new OpenAPIHono().openapi(
                username: bank.username
             },
             data: {
-               balance: { increment: body.amount }
+               Account: {
+                  update: {
+                     data: {
+                        balance: { increment: body.amount }
+                     }
+                  }
+               }
             }
          });
 

@@ -95,10 +95,22 @@ export default new OpenAPIHono().openapi(
             where: { token: body.serviceToken },
             data: {
                ...((body.type === 'win' || body.type === 'return') && {
-                  balance: { decrement: body.amount }
+                  Account: {
+                     update: {
+                        data: {
+                           balance: { decrement: body.amount }
+                        }
+                     }
+                  }
                }),
                ...((body.type === 'loss' || body.type === 'hold') && {
-                  balance: { increment: body.amount }
+                  Account: {
+                     update: {
+                        data: {
+                           balance: { increment: body.amount }
+                        }
+                     }
+                  }
                })
             }
          });
@@ -114,7 +126,15 @@ export default new OpenAPIHono().openapi(
 
             await tx.users.update({
                where: { username: env.BANK_USERNAME },
-               data: { balance: { increment: repayment } }
+               data: {
+                  Account: {
+                     update: {
+                        data: {
+                           balance: { increment: repayment }
+                        }
+                     }
+                  }
+               }
             });
 
             await tx.users.update({
@@ -128,18 +148,42 @@ export default new OpenAPIHono().openapi(
             where: { username: body.username },
             data: {
                ...(body.type === 'win' && {
-                  balance: { increment: body.amount },
+                  Account: {
+                     update: {
+                        data: {
+                           balance: { increment: body.amount }
+                        }
+                     }
+                  },
                   winnings: { increment: body.amount }
                }),
                ...(body.type === 'loss' && {
-                  balance: { decrement: body.amount },
+                  Account: {
+                     update: {
+                        data: {
+                           balance: { decrement: body.amount }
+                        }
+                     }
+                  },
                   losses: { increment: body.amount }
                }),
                ...(body.type === 'hold' && {
-                  balance: { decrement: body.amount }
+                  Account: {
+                     update: {
+                        data: {
+                           balance: { decrement: body.amount }
+                        }
+                     }
+                  }
                }),
                ...(body.type === 'return' && {
-                  balance: { increment: body.amount }
+                  Account: {
+                     update: {
+                        data: {
+                           balance: { increment: body.amount }
+                        }
+                     }
+                  }
                })
             }
          });
