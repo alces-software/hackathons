@@ -54,5 +54,50 @@ services:
          - ./bounty-frontend:/app/bounty-frontend
       command: './run.sh'
 
+   # Alces prediction market. Host ports 3000/3001 and 3306 are taken by the
+   # bounty stack above, so the app publishes on 3002 and the database on 3307.
+   alces_database:
+      container_name: alces_database
+      image: mariadb:11
+      restart: unless-stopped
+      environment:
+         MARIADB_ROOT_PASSWORD: rootpassword
+         MARIADB_DATABASE: alces
+         MARIADB_USER: alces_user
+         MARIADB_PASSWORD: alces_dev_password
+      ports:
+         - '3307:3306'
+      volumes:
+         - alces_database_data:/var/lib/mysql
+         - ./alces-prediction-market/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      healthcheck:
+         test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+         interval: 10s
+         timeout: 5s
+         retries: 10
+
+   alces_app:
+      container_name: alces_app
+      image: node:24
+      restart: unless-stopped
+      working_dir: /app/alces-prediction-market
+      init: true
+      depends_on:
+         alces_database:
+            condition: service_healthy
+      environment:
+         # Inside the compose network the database is reachable by service name;
+         # a real environment variable beats .env.local in Next.
+         DATABASE_URL: mariadb://alces_user:alces_dev_password@alces_database:3306/alces
+         BOOKIE_API_URL: http://10.151.0.85:3000/api/v1
+         BOOKIE_SERVICE_TOKEN: 54fa13565bac9eb7b309a50e50549493
+         SESSION_SECRET: a4b4e1973636e3c137ef34938053fbeae795b7c2f7a62bd0bf3fd8b08f7c46a3
+      ports:
+         - '3002:3000'
+      volumes:
+         - ./alces-prediction-market:/app/alces-prediction-market
+      command: './run.sh'
+
 volumes:
    database_data:
+   alces_database_data:
