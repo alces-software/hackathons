@@ -10,7 +10,7 @@ import {
    UnauthorisedErrorSchema
 } from '../../../../lib/errors/schemas';
 import { publish } from '../../../../lib/publisher';
-import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
+import { JSONPasswordSchema, JSONUsernameSchema } from '../../../../lib/schema/json';
 import { transactionWithRetry } from '../../../../lib/transactionWithRetry';
 import { ensureUserCredentialsMatch, ensureUserExists } from '../../users/lib/helpers';
 import { UserDefaultInclude } from '../../users/lib/includes';
@@ -28,7 +28,8 @@ export default new OpenAPIHono().openapi(
             content: {
                'application/json': {
                   schema: z.object({
-                     ...JSONUsernameAndPasswordSchema,
+                     username: JSONUsernameSchema,
+                     password: JSONPasswordSchema.optional(),
                      serviceToken: z
                         .string({ error: 'Service token must be a string' })
                         .trim()
@@ -66,6 +67,13 @@ export default new OpenAPIHono().openapi(
       const body = c.req.valid('json');
 
       const transactionID = await transactionWithRetry(async (tx) => {
+         // Make sure if it's a loss or a hold a password is provided
+         if (body.password === undefined && (body.type === 'hold' || body.type === 'loss')) {
+            throw new APIError(APIErrorCode.BadRequest, {
+               error: 'Money cant be taken off a user without the password'
+            });
+         }
+
          // Ensure the service exists
          const service = await ensureServiceExistsToken(
             body.serviceToken,
@@ -83,8 +91,10 @@ export default new OpenAPIHono().openapi(
          // Ensure that the user exists
          const user = await ensureUserExists(body.username, tx, UserDefaultInclude);
 
-         // Ensure that user credentials are correct
-         await ensureUserCredentialsMatch(body.username, body.password, tx);
+         if (body.password) {
+            // Ensure that user credentials are correct
+            await ensureUserCredentialsMatch(body.username, body.password, tx);
+         }
 
          // Make sure the send has enough in their account
          if (
