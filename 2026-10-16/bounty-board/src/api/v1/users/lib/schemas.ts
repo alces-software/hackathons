@@ -10,3 +10,16 @@ export const userReturnSchema = z.object({
 });
 
 export type User = z.infer<typeof userReturnSchema>;
+
+export const loginRequestSchema = z.object({
+   username: z.string(),
+   password: z.string()
+});
+
+export type LoginRequest = z.infer<typeof loginRequestSchema>;
+
+export const loginReturnSchema = z.object({
+   message: z.string()
+});
+
+export type LoginResponse = z.infer<typeof loginReturnSchema>;
