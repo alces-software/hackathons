@@ -20,7 +20,7 @@ export default new OpenAPIHono().openapi(
             serviceToken: z
                .string({ error: 'Service token must be a string' })
                .trim()
-               .min(1, { error: 'Service token cannot be empty' })
+               .length(32, { error: 'Service token must be 32 characters long' })
          })
       },
       responses: {
