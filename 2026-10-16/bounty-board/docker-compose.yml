@@ -1,0 +1,30 @@
+services:
+   api_database:
+      container_name: api_database
+      image: mariadb:latest
+      restart: unless-stopped
+      environment:
+         MARIADB_ROOT_PASSWORD: rootpassword
+         MARIADB_DATABASE: testdb
+         MARIADB_USER: api
+         MARIADB_PASSWORD: mypassword
+      ports:
+         - '3306:3306'
+      volumes:
+         - database_data:/var/lib/mysql
+         - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+   bounty_api:
+      container_name: bounty
+      image: node:latest
+      restart: unless-stopped
+      working_dir: /app/src
+      volumes:
+         - ./:/app/src
+      depends_on:
+         - api_database
+      ports:
+         - '3000:3000'
+      command: './run.sh'
+
+volumes:
+   database_data:
