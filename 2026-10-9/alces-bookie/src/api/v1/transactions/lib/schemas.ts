@@ -8,6 +8,7 @@ export const TransactionReturnSchema = z.object({
    sender: z.string().nullable(),
    receiver: z.string().nullable(),
    createdAt: z.date(),
+   amount: z.number(),
    service: z.object({
       id: z.int().nullable(),
       name: z.string().nullable()

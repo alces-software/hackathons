@@ -44,7 +44,7 @@ CREATE TABLE Services (
 
 -- Transaction history
 CREATE TABLE Ledger (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     sender_account_id INT,
     receiver_account_id INT NOT NULL,
     service_id INT,

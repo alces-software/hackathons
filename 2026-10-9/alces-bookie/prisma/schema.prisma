@@ -7,7 +7,7 @@ datasource db {
 }
 
 model Ledger {
-  id                                          BigInt    @id @default(autoincrement())
+  id                                          Int       @id @default(autoincrement())
   sender_account_id                           Int?
   receiver_account_id                         Int
   service_id                                  Int?
