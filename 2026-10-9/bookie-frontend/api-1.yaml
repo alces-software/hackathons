@@ -719,6 +719,8 @@ paths:
                   createdAt:
                     type: string
                     format: date-time
+                  amount:
+                    type: number
                   service:
                     type: object
                     properties:
@@ -738,6 +740,7 @@ paths:
                 - sender
                 - receiver
                 - createdAt
+                - amount
                 - service
         '404':
           description: Resource not found
@@ -839,6 +842,8 @@ paths:
                         createdAt:
                           type: string
                           format: date-time
+                        amount:
+                          type: number
                         service:
                           type: object
                           properties:
@@ -858,6 +863,7 @@ paths:
                       - sender
                       - receiver
                       - createdAt
+                      - amount
                       - service
                     description: The paginated data from the API
                   currentPage:

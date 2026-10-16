@@ -9,6 +9,7 @@ export type Txn = {
   sender: string | null;
   receiver: string | null;
   createdAt: string;
+  amount: number;
   service: { id: number | null; name: string | null };
 };
 

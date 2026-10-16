@@ -1,5 +1,5 @@
 import type { Txn } from "@/lib/api";
-import { byTimestampAsc, fmtTimestamp } from "@/lib/format";
+import { byTimestampAsc, fmtAmount, fmtTimestamp } from "@/lib/format";
 
 type Props = {
   rows: Txn[] | null;
@@ -36,7 +36,7 @@ export function TxnTable({ rows, emptyMessage, newestFirst }: Props) {
       <table className="w-full text-sm">
         <thead>
           <tr className="sc text-muted">
-            {["Date", "From", "To", "Service"].map((h) => (
+            {["Date", "From", "To", "Amount", "Service"].map((h) => (
               <th
                 key={h}
                 className="border-b border-ink pb-1.5 pt-1 text-left font-medium"
@@ -57,6 +57,9 @@ export function TxnTable({ rows, emptyMessage, newestFirst }: Props) {
               </td>
               <td className="pe-4 py-2 font-medium">{t.sender ?? "—"}</td>
               <td className="pe-4 py-2 font-medium">{t.receiver ?? "—"}</td>
+              <td className="whitespace-nowrap pe-4 py-2 font-mono text-xs">
+                {fmtAmount(t.amount)}
+              </td>
               <td className="pe-4 py-2 font-serif italic text-muted">
                 {t.service?.name ?? "—"}
               </td>
