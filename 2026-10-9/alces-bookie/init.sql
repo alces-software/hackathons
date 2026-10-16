@@ -7,10 +7,9 @@ COLLATE utf8mb4_unicode_ci;
 USE bank;
 
 -- Accounts
-CREATE TABLE Account (
+CREATE TABLE Accounts (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    balance DECIMAL(20, 2) NOT NULL DEFAULT 0,
-    status ENUM('active', 'closed') NOT NULL DEFAULT 'active'
+    balance DECIMAL(20, 2) NOT NULL DEFAULT 0
 );
 
 -- Users
@@ -25,7 +24,7 @@ CREATE TABLE Users (
 
     CONSTRAINT fk_user_account
         FOREIGN KEY (account_id)
-        REFERENCES Account(id)
+        REFERENCES Accounts(id)
         ON DELETE RESTRICT
 );
 
@@ -34,11 +33,12 @@ CREATE TABLE Services (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) UNIQUE NOT NULL,
     token VARCHAR(255) UNIQUE NOT NULL,
+    type ENUM("bank", "other") NOT NULL DEFAULT "other",
     account_id INT UNIQUE,
 
     CONSTRAINT fk_service_account
         FOREIGN KEY (account_id)
-        REFERENCES Account(id)
+        REFERENCES Accounts(id)
         ON DELETE RESTRICT
 );
 
@@ -56,12 +56,12 @@ CREATE TABLE Ledger (
 
     CONSTRAINT fk_ledger_sender
         FOREIGN KEY (sender_account_id)
-        REFERENCES Account(id)
+        REFERENCES Accounts(id)
         ON DELETE RESTRICT,
 
     CONSTRAINT fk_ledger_receiver
         FOREIGN KEY (receiver_account_id)
-        REFERENCES Account(id)
+        REFERENCES Accounts(id)
         ON DELETE RESTRICT,
 
     CONSTRAINT fk_ledger_service
@@ -74,23 +74,15 @@ CREATE TABLE Ledger (
 START TRANSACTION;
 
 -- Create bank account
-INSERT INTO Account (balance)
+INSERT INTO Accounts (balance)
 VALUES (10000.00);
-
 SET @bank_account_id = LAST_INSERT_ID();
 
--- Create bank user
-INSERT INTO Users (username, password, account_id)
-VALUES (
-    'bank',
-    "password",
-    @bank_account_id
-);
-
 -- Create services
-INSERT INTO Services (name, token)
+INSERT INTO Services (name, token, account_id, type)
 VALUES
-    ('Transfer', '1'),
-    ('Loan', '2');
+    ('Bank', '1', @bank_account_id, 'bank'),
+    ('Transfer', '2', null, 'bank'),
+    ('Loan', '3', null, 'bank');
 
 COMMIT;

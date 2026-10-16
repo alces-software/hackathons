@@ -78,7 +78,7 @@ export default new OpenAPIHono().openapi(
          }
 
          // Take money off sender
-         await tx.account.update({
+         await tx.accounts.update({
             where: { id: sender.account_id },
             data: {
                balance: { decrement: body.amount }
@@ -89,7 +89,7 @@ export default new OpenAPIHono().openapi(
          const receiver = await ensureUserExists(username, tx, {});
 
          // Update the receivers money
-         await tx.account.update({
+         await tx.accounts.update({
             where: { id: receiver.account_id },
             data: {
                balance: { increment: body.amount - transactionFee }

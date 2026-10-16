@@ -10,6 +10,8 @@ import {
 } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
 import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
+import { ensureServiceExists } from '../../services/lib/helpers';
+import { ServicesDefaultInclude } from '../../services/lib/includes';
 import { ensureUserCredentialsMatch, ensureUserExists } from '../../users/lib/helpers';
 
 export default new OpenAPIHono().openapi(
@@ -64,7 +66,12 @@ export default new OpenAPIHono().openapi(
          }
 
          // Get the bank from the database
-         const bank = await ensureUserExists(env.BANK_USERNAME, tx, { Account: true });
+         const bank = await ensureServiceExists(env.BANK_USERNAME, tx, ServicesDefaultInclude);
+
+         // Make sure the bank has an account
+         if (bank.Account === null || bank.account_id === null) {
+            throw new APIError(APIErrorCode.InternalServerError);
+         }
 
          // Check that the bank can perform the loan
          if (bank.Account.balance.minus(body.amount).lessThan(0)) {
@@ -89,18 +96,10 @@ export default new OpenAPIHono().openapi(
          });
 
          // Update bank
-         await tx.users.update({
-            where: {
-               username: bank.username
-            },
+         await tx.accounts.update({
+            where: { id: bank.account_id },
             data: {
-               Account: {
-                  update: {
-                     data: {
-                        balance: { decrement: body.amount }
-                     }
-                  }
-               }
+               balance: { decrement: body.amount }
             }
          });
 
