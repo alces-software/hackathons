@@ -37,7 +37,10 @@ export default new OpenAPIHono().openapi(
                      amount: z
                         .number({ error: 'Amount must be a number' })
                         .min(0, { error: 'Amount must be more than 0' })
-                        .transform((value) => Number(value.toFixed(2))),
+                        .transform((value) => Number(value.toFixed(2)))
+                        .refine((value) => value > 0, {
+                           error: 'Amount must be at least 0.01'
+                        }),
                      type: z.enum(['win', 'loss', 'hold', 'return'], {
                         error: 'The type must be either a win, loss, hold, return'
                      })
@@ -130,14 +133,15 @@ export default new OpenAPIHono().openapi(
             }
          });
 
+         let debtRepayment = new Prisma.Decimal(0);
+
          // Bank takes a cut if debt is present and the pay is a win
          if (body.type === 'win' && user.debt.greaterThan(0)) {
             const amount = new Prisma.Decimal(body.amount);
-            const repayment = Prisma.Decimal.min(
+            debtRepayment = Prisma.Decimal.min(
                amount.mul(env.LOAN_REPAY).toDecimalPlaces(2),
                user.debt
             );
-            body.amount = amount.minus(repayment).toNumber();
 
             // Get the bank from the database
             const bank = await ensureServiceExists(env.BANK_USERNAME, tx, ServicesDefaultInclude);
@@ -149,12 +153,12 @@ export default new OpenAPIHono().openapi(
 
             await tx.accounts.update({
                where: { id: bank.account_id },
-               data: { balance: { increment: repayment } }
+               data: { balance: { increment: debtRepayment } }
             });
 
             await tx.users.update({
                where: { username: body.username },
-               data: { debt: { decrement: repayment } }
+               data: { debt: { decrement: debtRepayment } }
             });
          }
 
@@ -166,7 +170,9 @@ export default new OpenAPIHono().openapi(
                   Account: {
                      update: {
                         data: {
-                           balance: { increment: body.amount }
+                           balance: {
+                              increment: new Prisma.Decimal(body.amount).minus(debtRepayment)
+                           }
                         }
                      }
                   },
