@@ -132,7 +132,7 @@ export default new OpenAPIHono().openapi(
                receiver_account_id: bank.account_id,
                service_id: service.id,
                amount: body.amount,
-               timestamp: new Date()
+               created_at: new Date()
             }
          });
       });
