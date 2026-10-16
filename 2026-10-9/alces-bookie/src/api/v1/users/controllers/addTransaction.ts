@@ -135,7 +135,7 @@ export default new OpenAPIHono().openapi(
                sender_account_id: sender.account_id,
                receiver_account_id: receiver.account_id,
                amount: body.amount,
-               service: service.id,
+               service_id: service.id,
                timestamp: new Date()
             },
             select: {
