@@ -21,6 +21,11 @@ export default new OpenAPIHono().openapi(
       request: {
          query: z.object({
             ...PaginationParamsSchema,
+            serviceID: z.coerce
+               .number({ error: 'Service ID must be a number' })
+               .int({ error: 'Service ID must be a whole number' })
+               .min(1, { error: 'Service ID must be more than 0' })
+               .optional(),
             order: z.enum(['asc', 'desc']).default('desc')
          })
       },
@@ -41,7 +46,11 @@ export default new OpenAPIHono().openapi(
 
       const [transactions, transactionsCount] = await prisma.$transaction(async (tx) => {
          // create the where statement
-         const where: Prisma.LedgerWhereInput = {};
+         const where: Prisma.LedgerWhereInput = {
+            ...(query.serviceID !== undefined && {
+               service_id: query.serviceID
+            })
+         };
 
          // Get all the transactions and a total count
          return [

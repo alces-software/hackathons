@@ -67,7 +67,11 @@ export default new OpenAPIHono().openapi(
 
       const transactionID = await transactionWithRetry(async (tx) => {
          // Ensure the service exists
-         const service = await ensureServiceExistsToken(body.serviceToken, tx, ServicesDefaultInclude);
+         const service = await ensureServiceExistsToken(
+            body.serviceToken,
+            tx,
+            ServicesDefaultInclude
+         );
 
          // Check that the service has an account
          if (service.account_id === null || service.Account === null) {
@@ -96,11 +100,13 @@ export default new OpenAPIHono().openapi(
          await tx.accounts.update({
             where: { id: service.account_id },
             data: {
-               ...((body.type === 'win' || body.type === 'return') ? {
-                  balance: { decrement: body.amount }
-               } : {
-                  balance: { increment: body.amount }
-               })
+               ...(body.type === 'win' || body.type === 'return'
+                  ? {
+                       balance: { decrement: body.amount }
+                    }
+                  : {
+                       balance: { increment: body.amount }
+                    })
             }
          });
 
@@ -182,13 +188,13 @@ export default new OpenAPIHono().openapi(
             data: {
                ...(body.type === 'win' || body.type === 'return'
                   ? {
-                     sender_account_id: service.account_id,
-                     receiver_account_id: user.account_id
-                  }
+                       sender_account_id: service.account_id,
+                       receiver_account_id: user.account_id
+                    }
                   : {
-                     sender_account_id: user.account_id,
-                     receiver_account_id: service.account_id
-                  }),
+                       sender_account_id: user.account_id,
+                       receiver_account_id: service.account_id
+                    }),
                service_id: service.id,
                amount: body.amount,
                created_at: new Date()

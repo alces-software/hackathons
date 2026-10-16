@@ -106,7 +106,7 @@ export default new OpenAPIHono().openapi(
             data: {
                balance: { increment: body.amount }
             }
-         })
+         });
 
          // Get service information
          const service = await tx.services
