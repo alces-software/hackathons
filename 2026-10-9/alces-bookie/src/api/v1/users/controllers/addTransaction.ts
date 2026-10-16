@@ -113,6 +113,7 @@ export default new OpenAPIHono().openapi(
                }
             }
          });
+         console.log('hello')
 
          // Get service information
          const service = await tx.services
