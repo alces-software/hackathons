@@ -7,34 +7,52 @@ datasource db {
 }
 
 model Ledger {
-  id            Int      @id @default(autoincrement())
-  username      String   @db.VarChar(255)
-  service       Int
-  beforeBalance Decimal  @db.Decimal(65, 2)
-  afterBalance  Decimal  @db.Decimal(65, 2)
-  timestamp     DateTime @db.DateTime(0)
-  Services      Services @relation(fields: [service], references: [id], onUpdate: Restrict, map: "fk_ledger_service_id")
-  Accounts      Users    @relation(fields: [username], references: [username], onUpdate: Restrict, map: "fk_ledger_username_username")
+  id                                          Int       @id @default(autoincrement())
+  sender_account_id                           Int?
+  receiver_account_id                         Int
+  service_id                                  Int?
+  amount                                      Decimal   @db.Decimal(20, 2)
+  created_at                                  DateTime  @default(now()) @db.DateTime(6)
+  Account_Ledger_receiver_account_idToAccount Account   @relation("Ledger_receiver_account_idToAccount", fields: [receiver_account_id], references: [id], onUpdate: Restrict, map: "fk_ledger_receiver")
+  Account_Ledger_sender_account_idToAccount   Account?  @relation("Ledger_sender_account_idToAccount", fields: [sender_account_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_ledger_sender")
+  Services                                    Services? @relation(fields: [service_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_ledger_service")
 
-  @@index([service], map: "fk_ledger_service_id")
-  @@index([username], map: "fk_ledger_username_username")
+  @@index([receiver_account_id], map: "fk_ledger_receiver")
+  @@index([sender_account_id], map: "fk_ledger_sender")
+  @@index([service_id], map: "fk_ledger_service")
 }
 
 model Services {
-  id      Int      @id @default(autoincrement())
-  name    String   @unique(map: "name") @db.VarChar(255)
-  token   String   @unique(map: "token") @db.VarChar(255)
-  balance Decimal  @default(4000.00) @db.Decimal(65, 2)
-  Ledger  Ledger[]
+  id         Int      @id @default(autoincrement())
+  name       String   @unique(map: "name") @db.VarChar(255)
+  token      String   @unique(map: "token") @db.VarChar(255)
+  account_id Int?     @unique(map: "account_id")
+  Ledger     Ledger[]
+  Account    Account? @relation(fields: [account_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_service_account")
 }
 
 model Users {
-  id       Int      @id @default(autoincrement())
-  username String   @unique(map: "username") @db.VarChar(255)
-  password String   @db.VarChar(255)
-  winnings Decimal  @default(0.00) @db.Decimal(65, 2)
-  loses    Decimal  @default(0.00) @db.Decimal(65, 2)
-  balance  Decimal  @default(500.00) @db.Decimal(65, 2)
-  debt     Decimal  @default(0.00) @db.Decimal(65, 2)
-  Ledger   Ledger[]
+  id         Int     @id @default(autoincrement())
+  username   String  @unique(map: "username") @db.VarChar(255)
+  password   String  @db.VarChar(255)
+  winnings   Decimal @default(0.00) @db.Decimal(20, 2)
+  losses     Decimal @default(0.00) @db.Decimal(20, 2)
+  debt       Decimal @default(0.00) @db.Decimal(20, 2)
+  account_id Int     @unique(map: "account_id")
+  Account    Account @relation(fields: [account_id], references: [id], onUpdate: Restrict, map: "fk_user_account")
+}
+
+model Account {
+  id                                         Int            @id @default(autoincrement())
+  balance                                    Decimal        @default(0.00) @db.Decimal(20, 2)
+  status                                     Account_status @default(active)
+  Ledger_Ledger_receiver_account_idToAccount Ledger[]       @relation("Ledger_receiver_account_idToAccount")
+  Ledger_Ledger_sender_account_idToAccount   Ledger[]       @relation("Ledger_sender_account_idToAccount")
+  Services                                   Services?
+  Users                                      Users?
+}
+
+enum Account_status {
+  active
+  closed
 }

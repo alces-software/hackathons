@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 
+import { env } from '../../../../lib/env';
 import { ConflictErrorSchema, InternalServerErrorSchema } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
 import { ensureServiceDoesntExist } from '../lib/helpers';
@@ -55,7 +56,12 @@ export default new OpenAPIHono().openapi(
          return await tx.services.create({
             data: {
                name: body.name,
-               token: randomBytes(16).toString('hex')
+               token: randomBytes(16).toString('hex'),
+               Account: {
+                  create: {
+                     balance: env.SERVICE_START_CASH
+                  }
+               }
             }
          });
       });

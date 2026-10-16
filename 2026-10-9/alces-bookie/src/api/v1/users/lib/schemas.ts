@@ -9,5 +9,5 @@ export const UserReturnSchema = z.object({
    balance: z.number(),
    debt: z.number(),
    winnings: z.number(),
-   loses: z.number()
+   losses: z.number()
 });

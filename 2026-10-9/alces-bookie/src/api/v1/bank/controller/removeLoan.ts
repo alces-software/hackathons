@@ -48,13 +48,13 @@ export default new OpenAPIHono().openapi(
 
       await prisma.$transaction(async (tx) => {
          // Ensure the user exists
-         const user = await ensureUserExists(body.username, tx, {});
+         const user = await ensureUserExists(body.username, tx, { Account: true });
 
          // Make sure the user credentials match
          await ensureUserCredentialsMatch(body.username, body.password, tx);
 
          // Make sure the user has enough money
-         if (user.balance.minus(body.amount).lessThan(0)) {
+         if (user.Account.balance.minus(body.amount).lessThan(0)) {
             throw new APIError(APIErrorCode.BadRequest, {
                error: `${user.username} does not have enough to pay that amount`
             });
@@ -81,7 +81,13 @@ export default new OpenAPIHono().openapi(
          await tx.users.update({
             where: { username: user.username },
             data: {
-               balance: { decrement: body.amount },
+               Account: {
+                  update: {
+                     data: {
+                        balance: { decrement: body.amount }
+                     }
+                  }
+               },
                debt: { decrement: body.amount }
             }
          });
@@ -92,7 +98,13 @@ export default new OpenAPIHono().openapi(
                username: bank.username
             },
             data: {
-               balance: { increment: body.amount }
+               Account: {
+                  update: {
+                     data: {
+                        balance: { increment: body.amount }
+                     }
+                  }
+               }
             }
          });
 
@@ -116,10 +128,10 @@ export default new OpenAPIHono().openapi(
          // Add ledger
          await tx.ledger.create({
             data: {
-               username: user.username,
-               service: service?.id,
-               beforeBalance: user.balance,
-               afterBalance: user.balance.minus(body.amount),
+               sender_account_id: user.account_id,
+               receiver_account_id: bank.account_id,
+               service_id: service.id,
+               amount: body.amount,
                timestamp: new Date()
             }
          });

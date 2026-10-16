@@ -40,7 +40,7 @@ export default async function MePage() {
       {standing !== null && (
         <dl className="sheet mt-8 grid grid-cols-3 px-4 py-3 sm:px-6">
           <Stat label="winnings" value={standing.winnings} tone="credit" />
-          <Stat label="losses" value={standing.loses} tone="debit" />
+          <Stat label="losses" value={standing.losses} tone="debit" />
           <Stat label="bank debt" value={standing.debt} tone="debit" />
         </dl>
       )}
@@ -100,7 +100,7 @@ async function loadStanding(me: string): Promise<User | null> {
 async function loadEntries(me: string): Promise<Txn[] | null> {
   try {
     const all = await fetchAll<Txn>("/transactions", 60, 100);
-    return all.filter((t) => t.username === me);
+    return all.filter((t) => t.sender === me || t.receiver === me);
   } catch (e) {
     if (e instanceof ApiError) return null;
     throw e;

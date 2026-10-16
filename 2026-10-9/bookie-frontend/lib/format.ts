@@ -35,16 +35,16 @@ export function fmtTimestamp(iso: string): string {
 /** Oldest first — the order the book was written in. Equal timestamps keep
  *  the order the core handed over, so a transfer's two entries stay paired. */
 export function byTimestampAsc(
-  a: { timestamp: string },
-  b: { timestamp: string },
+  a: { createdAt: string },
+  b: { createdAt: string },
 ): number {
-  return Date.parse(a.timestamp) - Date.parse(b.timestamp);
+  return Date.parse(a.createdAt) - Date.parse(b.createdAt);
 }
 
 /** Newest first — the teasers and the ledger itself. */
 export function byTimestampDesc(
-  a: { timestamp: string },
-  b: { timestamp: string },
+  a: { createdAt: string },
+  b: { createdAt: string },
 ): number {
-  return Date.parse(b.timestamp) - Date.parse(a.timestamp);
+  return Date.parse(b.createdAt) - Date.parse(a.createdAt);
 }

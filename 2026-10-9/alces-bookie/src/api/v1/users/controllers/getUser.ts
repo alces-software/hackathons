@@ -4,6 +4,7 @@ import { InternalServerErrorSchema, NotFoundErrorSchema } from '../../../../lib/
 import { prisma } from '../../../../lib/prisma';
 import { UsernameParamSchema } from '../../../../lib/schema/param';
 import { ensureUserExists } from '../lib/helpers';
+import { UserDefaultInclude } from '../lib/includes';
 import { UserReturnSchema } from '../lib/schemas';
 import { serializeUser } from '../lib/serializers';
 
@@ -36,7 +37,7 @@ export default new OpenAPIHono().openapi(
 
       // Get the user information
       const user = await prisma.$transaction(async (tx) => {
-         return await ensureUserExists(username, tx, {});
+         return await ensureUserExists(username, tx, UserDefaultInclude);
       });
 
       return c.json(serializeUser(user), 200);

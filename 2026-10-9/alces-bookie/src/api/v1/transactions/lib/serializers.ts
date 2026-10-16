@@ -1,7 +1,7 @@
 import { z } from '@hono/zod-openapi';
 import { Prisma } from '@prisma/client';
 
-import { transactionInclude } from './includes';
+import { TransactionDefaultInclude } from './includes';
 import { TransactionReturnSchema } from './schemas';
 
 /**
@@ -10,17 +10,17 @@ import { TransactionReturnSchema } from './schemas';
  * @returns The serialized data
  */
 export function serializeTransaction(
-   transaction: Prisma.LedgerGetPayload<{ include: typeof transactionInclude }>
+   transaction: Prisma.LedgerGetPayload<{ include: typeof TransactionDefaultInclude }>
 ): z.infer<typeof TransactionReturnSchema> {
    return {
       id: transaction.id,
-      username: transaction.username,
-      timestamp: transaction.timestamp,
-      before: transaction.beforeBalance.toNumber(),
-      after: transaction.afterBalance.toNumber(),
+      sender: transaction.Account_Ledger_sender_account_idToAccount?.Users?.username ?? null,
+      receiver: transaction.Account_Ledger_receiver_account_idToAccount.Users?.username ?? null,
+      createdAt: transaction.created_at,
+      amount: transaction.amount.toNumber(),
       service: {
-         id: transaction.id,
-         name: transaction.Services.name
+         id: transaction.service_id,
+         name: transaction.Services?.name ?? null
       }
    };
 }

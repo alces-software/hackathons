@@ -1,6 +1,7 @@
 import { z } from '@hono/zod-openapi';
 import { Prisma } from '@prisma/client';
 
+import { ServicesDefaultInclude } from './includes';
 import { ServiceReturnSchema } from './schemas';
 
 /**
@@ -9,11 +10,11 @@ import { ServiceReturnSchema } from './schemas';
  * @returns The serialized data
  */
 export function serializeService(
-   service: Prisma.ServicesGetPayload<Prisma.UsersDefaultArgs>
+   service: Prisma.ServicesGetPayload<{ include: typeof ServicesDefaultInclude }>
 ): z.infer<typeof ServiceReturnSchema> {
    return {
       id: service.id,
       name: service.name,
-      balance: service.balance.toNumber()
+      balance: service.Account?.balance.toNumber() ?? null
    };
 }

@@ -8,7 +8,7 @@ import {
 } from '../../../../lib/pagination/schemas';
 import { paginationOptions, serializePagination } from '../../../../lib/pagination/serializers';
 import { prisma } from '../../../../lib/prisma';
-import { transactionInclude } from '../lib/includes';
+import { TransactionDefaultInclude } from '../lib/includes';
 import { TransactionReturnSchema } from '../lib/schemas';
 import { serializeTransaction } from '../lib/serializers';
 
@@ -48,7 +48,7 @@ export default new OpenAPIHono().openapi(
             await tx.ledger.findMany({
                where,
                orderBy: { id: query.order },
-               include: transactionInclude,
+               include: TransactionDefaultInclude,
                ...paginationOptions(query.page, query.limit)
             }),
             await tx.ledger.count({ where })

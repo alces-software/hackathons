@@ -27,7 +27,7 @@ services:
       - ./:/app/src
     command: ./run.sh
     environment:
-      # Server-side reads go out to the core on the host's :3000
+      # Server-side reads go out to the core on the VM
       API_URL: http://10.151.0.85:3000/api/v1
       # Baked into the client bundle while the container builds
       NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://10.151.0.85:3000/api/v1/ws}

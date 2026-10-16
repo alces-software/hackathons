@@ -3,7 +3,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { InternalServerErrorSchema, NotFoundErrorSchema } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
 import { ensureTransactionExists } from '../lib/helpers';
-import { transactionInclude } from '../lib/includes';
+import { TransactionDefaultInclude } from '../lib/includes';
 import { TransactionReturnSchema } from '../lib/schemas';
 import { serializeTransaction } from '../lib/serializers';
 
@@ -39,7 +39,7 @@ export default new OpenAPIHono().openapi(
 
       // Get the transaction information
       const transaction = await prisma.$transaction(async (tx) => {
-         return await ensureTransactionExists(id, tx, transactionInclude);
+         return await ensureTransactionExists(id, tx, TransactionDefaultInclude);
       });
 
       return c.json(serializeTransaction(transaction), 200);

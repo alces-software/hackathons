@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 
+import { env } from '../../../../lib/env';
 import { ConflictErrorSchema, InternalServerErrorSchema } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
 import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
@@ -41,7 +42,12 @@ export default new OpenAPIHono().openapi(
          await tx.users.create({
             data: {
                username: body.username,
-               password: body.password
+               password: body.password,
+               Account: {
+                  create: {
+                     balance: env.PLAYER_START_CASH
+                  }
+               }
             }
          });
       });

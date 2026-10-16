@@ -8,6 +8,7 @@ import {
 } from '../../../../lib/pagination/schemas';
 import { paginationOptions, serializePagination } from '../../../../lib/pagination/serializers';
 import { prisma } from '../../../../lib/prisma';
+import { ServicesDefaultInclude } from '../lib/includes';
 import { ServiceReturnSchema } from '../lib/schemas';
 import { serializeService } from '../lib/serializers';
 
@@ -45,7 +46,8 @@ export default new OpenAPIHono().openapi(
          return [
             await tx.services.findMany({
                where,
-               ...paginationOptions(query.page, query.limit)
+               ...paginationOptions(query.page, query.limit),
+               include: ServicesDefaultInclude
             }),
             await tx.services.count({ where })
          ];
