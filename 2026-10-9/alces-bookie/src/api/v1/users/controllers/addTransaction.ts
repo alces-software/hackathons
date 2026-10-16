@@ -77,6 +77,7 @@ export default new OpenAPIHono().openapi(
             });
          }
 
+         console.log("sender")
          // Take money off sender
          await tx.account.update({
             where: { id: sender.account_id },
@@ -84,10 +85,12 @@ export default new OpenAPIHono().openapi(
                balance: { decrement: body.amount }
             }
          });
+         console.log("sender")
 
          // Ensure destination user exists
          const receiver = await ensureUserExists(username, tx, {});
 
+         console.log("receiver")
          // Update the receivers money
          await tx.account.update({
             where: { id: receiver.account_id },
@@ -95,6 +98,7 @@ export default new OpenAPIHono().openapi(
                balance: { increment: body.amount - transactionFee }
             }
          });
+         console.log("receiver")
 
          const bank = tx.users.findUnique({
             where: { username: env.BANK_USERNAME },
