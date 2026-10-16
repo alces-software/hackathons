@@ -78,18 +78,10 @@ export default new OpenAPIHono().openapi(
          }
 
          // Take money off sender
-         await tx.users.update({
-            where: {
-               username: sender.username
-            },
+         await tx.account.update({
+            where: { id: sender.account_id },
             data: {
-               Account: {
-                  update: {
-                     data: {
-                        balance: { decrement: body.amount }
-                     }
-                  }
-               }
+               balance: { decrement: body.amount }
             }
          });
 
@@ -97,18 +89,10 @@ export default new OpenAPIHono().openapi(
          const receiver = await ensureUserExists(username, tx, {});
 
          // Update the receivers money
-         await tx.users.update({
-            where: {
-               username: receiver.username
-            },
+         await tx.account.update({
+            where: { id: receiver.account_id },
             data: {
-               Account: {
-                  update: {
-                     data: {
-                        balance: { increment: body.amount - transactionFee }
-                     }
-                  }
-               }
+               balance: { increment: body.amount - transactionFee }
             }
          });
 
