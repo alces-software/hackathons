@@ -4,6 +4,7 @@ import { authenticate } from '../../../../lib/auth';
 import APIError, { APIErrorCode } from '../../../../lib/errors/apiError';
 import { InternalServerErrorSchema, UnauthorisedErrorSchema } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
+import { takeMoney } from '../lib/helpers';
 import { bountyReturnSchema } from '../lib/schemas';
 import { serializeBounty } from '../lib/serializers';
 
@@ -51,9 +52,13 @@ export default new OpenAPIHono().openapi(
       }
 
       // Take money through hold
+      const tookMoney = await takeMoney(username, password, price);
+
+      if (!tookMoney) {
+         throw new APIError(APIErrorCode.InternalServerError, { error: 'Could not take money' });
+      }
 
       // Create bounty table
-
       const newBounty = await prisma.bounty.create({
          data: {
             patron: username,

@@ -12,3 +12,5 @@ export const bountyReturnSchema = z.object({
 });
 
 export type Bounty = z.infer<typeof bountyReturnSchema>;
+
+// Virtual stu, if you're here, Hello :)
