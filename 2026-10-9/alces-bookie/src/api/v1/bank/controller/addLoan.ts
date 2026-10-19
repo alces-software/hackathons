@@ -127,7 +127,7 @@ export default new OpenAPIHono().openapi(
                receiver_account_id: user.account_id,
                service_id: service.id,
                amount: body.amount,
-               created_at: new Date()
+               type: 'transfer'
             }
          });
       });
