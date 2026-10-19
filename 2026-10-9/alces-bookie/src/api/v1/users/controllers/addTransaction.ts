@@ -138,7 +138,7 @@ export default new OpenAPIHono().openapi(
                receiver_account_id: receiver.account_id,
                amount: body.amount,
                service_id: service.id,
-               created_at: new Date()
+               type: 'transfer'
             },
             select: {
                id: true

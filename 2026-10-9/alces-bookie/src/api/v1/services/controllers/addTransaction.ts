@@ -223,7 +223,7 @@ export default new OpenAPIHono().openapi(
                     }),
                service_id: service.id,
                amount: body.amount,
-               created_at: new Date()
+               type: body.type
             },
             select: {
                id: true

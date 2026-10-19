@@ -18,6 +18,7 @@ export function serializeTransaction(
       receiver: transaction.Account_Ledger_receiver_account_idToAccount.Users?.username ?? null,
       createdAt: transaction.created_at,
       amount: transaction.amount.toNumber(),
+      type: transaction.type,
       service: {
          id: transaction.service_id,
          name: transaction.Services?.name ?? null

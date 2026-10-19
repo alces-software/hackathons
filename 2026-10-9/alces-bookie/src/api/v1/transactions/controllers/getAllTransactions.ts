@@ -26,7 +26,10 @@ export default new OpenAPIHono().openapi(
                .int({ error: 'Service ID must be a whole number' })
                .min(1, { error: 'Service ID must be more than 0' })
                .optional(),
-            order: z.enum(['asc', 'desc']).default('desc')
+            order: z.enum(['asc', 'desc']).default('desc'),
+            transactionTypes: z
+               .array(z.enum(['transfer', 'win', 'return', 'loss', 'hold']))
+               .default(['transfer', 'loss', 'win'])
          })
       },
       responses: {
@@ -49,6 +52,11 @@ export default new OpenAPIHono().openapi(
          const where: Prisma.LedgerWhereInput = {
             ...(query.serviceID !== undefined && {
                service_id: query.serviceID
+            }),
+            ...(query.transactionTypes !== undefined && {
+               type: {
+                  in: query.transactionTypes
+               }
             })
          };
 

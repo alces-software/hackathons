@@ -7,15 +7,16 @@ datasource db {
 }
 
 model Ledger {
-  id                                          Int       @id @default(autoincrement())
+  id                                          Int         @id @default(autoincrement())
   sender_account_id                           Int?
   receiver_account_id                         Int
   service_id                                  Int?
-  amount                                      Decimal   @db.Decimal(20, 2)
-  created_at                                  DateTime  @default(now()) @db.DateTime(6)
-  Account_Ledger_receiver_account_idToAccount Accounts  @relation("Ledger_receiver_account_idToAccount", fields: [receiver_account_id], references: [id], onUpdate: Restrict, map: "fk_ledger_receiver")
-  Account_Ledger_sender_account_idToAccount   Accounts? @relation("Ledger_sender_account_idToAccount", fields: [sender_account_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_ledger_sender")
-  Services                                    Services? @relation(fields: [service_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_ledger_service")
+  amount                                      Decimal     @db.Decimal(20, 2)
+  type                                        Ledger_type
+  created_at                                  DateTime    @default(now()) @db.DateTime(6)
+  Account_Ledger_receiver_account_idToAccount Accounts    @relation("Ledger_receiver_account_idToAccount", fields: [receiver_account_id], references: [id], onUpdate: Restrict, map: "fk_ledger_receiver")
+  Account_Ledger_sender_account_idToAccount   Accounts?   @relation("Ledger_sender_account_idToAccount", fields: [sender_account_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_ledger_sender")
+  Services                                    Services?   @relation(fields: [service_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_ledger_service")
 
   @@index([receiver_account_id], map: "fk_ledger_receiver")
   @@index([sender_account_id], map: "fk_ledger_sender")
@@ -55,4 +56,12 @@ model Accounts {
 enum Services_type {
   bank
   other
+}
+
+enum Ledger_type {
+  transfer
+  win
+  return
+  loss
+  hold
 }

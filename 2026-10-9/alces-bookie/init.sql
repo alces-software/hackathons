@@ -49,6 +49,7 @@ CREATE TABLE Ledger (
     receiver_account_id INT NOT NULL,
     service_id INT,
     amount DECIMAL(20, 2) NOT NULL,
+    type ENUM("transfer", "win", "return", "loss", "hold") NOT NULL,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
 
     CONSTRAINT chk_ledger_amount
