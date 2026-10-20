@@ -8,7 +8,7 @@ import getService from './controllers/getService';
 
 export default new OpenAPIHono()
    .route('/transaction', addTransaction)
+   .route('/:name/:serviceToken', deleteService)
    .route('/:name', getService)
    .route('/', addService)
-   .route('/', deleteService)
    .route('/', getAllServices);
