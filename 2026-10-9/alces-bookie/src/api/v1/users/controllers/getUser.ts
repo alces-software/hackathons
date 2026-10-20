@@ -2,7 +2,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 
 import { InternalServerErrorSchema, NotFoundErrorSchema } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
-import { UsernameParamSchema } from '../../../../lib/schema/param';
+import { ParamUsernameSchema } from '../../../../lib/schema/param';
 import { ensureUserExists } from '../lib/helpers';
 import { UserDefaultInclude } from '../lib/includes';
 import { UserReturnSchema } from '../lib/schemas';
@@ -16,7 +16,7 @@ export default new OpenAPIHono().openapi(
       tags: ['Users'],
       request: {
          params: z.object({
-            ...UsernameParamSchema
+            username: ParamUsernameSchema
          })
       },
       responses: {

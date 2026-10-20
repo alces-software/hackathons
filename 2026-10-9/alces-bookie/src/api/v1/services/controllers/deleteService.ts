@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 
 import { InternalServerErrorSchema, NotFoundErrorSchema } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
+import { ParamServiceNameSchema, ParamServiceTokenSchema } from '../../../../lib/schema/param';
 import { ensureServiceExists } from '../lib/helpers';
 
 export default new OpenAPIHono().openapi(
@@ -12,15 +13,8 @@ export default new OpenAPIHono().openapi(
       tags: ['Services'],
       request: {
          params: z.object({
-            name: z
-               .string({ error: 'Name must be a string' })
-               .trim()
-               .min(4, { error: 'Name must be more than 4 characters' })
-               .max(25, { error: 'Name cannot be more than 25 characters' }),
-            serviceToken: z
-               .string({ error: 'Service token must be a string' })
-               .trim()
-               .length(32, { error: 'Service token must be 32 characters long' })
+            name: ParamServiceNameSchema,
+            serviceToken: ParamServiceTokenSchema
          })
       },
       responses: {

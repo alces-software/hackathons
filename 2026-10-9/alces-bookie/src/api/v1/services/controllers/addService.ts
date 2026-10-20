@@ -5,6 +5,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { env } from '../../../../lib/env';
 import { ConflictErrorSchema, InternalServerErrorSchema } from '../../../../lib/errors/schemas';
 import { prisma } from '../../../../lib/prisma';
+import { JSONServiceNameSchema } from '../../../../lib/schema/json';
 import { ensureServiceDoesntExist } from '../lib/helpers';
 
 export default new OpenAPIHono().openapi(
@@ -18,11 +19,7 @@ export default new OpenAPIHono().openapi(
             content: {
                'application/json': {
                   schema: z.object({
-                     name: z
-                        .string({ error: 'Name must be a string' })
-                        .trim()
-                        .min(4, { error: 'Name must be more than 4 characters' })
-                        .max(25, { error: 'Name cannot be more than 25 characters' })
+                     name: JSONServiceNameSchema
                   })
                }
             }

@@ -19,7 +19,8 @@ export default new OpenAPIHono().openapi(
             content: {
                'application/json': {
                   schema: z.object({
-                     balance: z.number()
+                     balance: z.number(),
+                     outstandingDebt: z.number()
                   })
                }
             }
@@ -28,9 +29,21 @@ export default new OpenAPIHono().openapi(
       }
    }),
    async (c) => {
-      const bank = await prisma.$transaction(async (tx) => {
+      const [bank, outstandingDebt] = await prisma.$transaction(async (tx) => {
          // Get the bank from the database
-         return await ensureServiceExists(env.BANK_USERNAME, tx, ServicesDefaultInclude);
+         return [
+            await ensureServiceExists(env.BANK_USERNAME, tx, ServicesDefaultInclude),
+            await tx.users.aggregate({
+               where: {
+                  debt: {
+                     gt: 0
+                  }
+               },
+               _sum: {
+                  debt: true
+               }
+            })
+         ];
       });
 
       // Make sure the bank has an account
@@ -40,7 +53,8 @@ export default new OpenAPIHono().openapi(
 
       return c.json(
          {
-            balance: bank.Account.balance.toNumber()
+            balance: bank.Account.balance.toNumber(),
+            outstandingDebt: outstandingDebt._sum.debt?.toNumber() ?? 0
          },
          200
       );

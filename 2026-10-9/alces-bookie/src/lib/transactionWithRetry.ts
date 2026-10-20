@@ -30,7 +30,8 @@ export async function transactionWithRetry<T>(
          });
       } catch (error) {
          const isRetryable =
-            error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2034' || error.code === 'P2039');
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            (error.code === 'P2034' || error.code === 'P2039');
 
          if (!isRetryable || attempt >= maxAttempts) {
             throw error;

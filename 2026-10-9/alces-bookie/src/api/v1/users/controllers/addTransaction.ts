@@ -9,8 +9,8 @@ import {
    UnauthorisedErrorSchema
 } from '../../../../lib/errors/schemas';
 import { publish } from '../../../../lib/publisher';
-import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
-import { UsernameParamSchema } from '../../../../lib/schema/param';
+import { JSONAmountSchema, JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
+import { ParamUsernameSchema } from '../../../../lib/schema/param';
 import { transactionWithRetry } from '../../../../lib/transactionWithRetry';
 import { ensureServiceExists } from '../../services/lib/helpers';
 import { ServicesDefaultInclude } from '../../services/lib/includes';
@@ -25,17 +25,14 @@ export default new OpenAPIHono().openapi(
       tags: ['Users', 'Transactions'],
       request: {
          params: z.object({
-            ...UsernameParamSchema
+            username: ParamUsernameSchema
          }),
          body: {
             content: {
                'application/json': {
                   schema: z.object({
                      ...JSONUsernameAndPasswordSchema,
-                     amount: z
-                        .number({ error: 'Amount must be a number' })
-                        .min(0, { error: 'Amount must be more than 0' })
-                        .transform((value) => Number(value.toFixed(2)))
+                     amount: JSONAmountSchema
                   })
                }
             }

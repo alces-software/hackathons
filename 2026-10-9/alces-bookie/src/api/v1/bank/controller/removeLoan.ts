@@ -8,7 +8,7 @@ import {
    NotFoundErrorSchema,
    UnauthorisedErrorSchema
 } from '../../../../lib/errors/schemas';
-import { JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
+import { JSONAmountSchema, JSONUsernameAndPasswordSchema } from '../../../../lib/schema/json';
 import { transactionWithRetry } from '../../../../lib/transactionWithRetry';
 import { ensureServiceExists } from '../../services/lib/helpers';
 import { ServicesDefaultInclude } from '../../services/lib/includes';
@@ -27,10 +27,7 @@ export default new OpenAPIHono().openapi(
                'application/json': {
                   schema: z.object({
                      ...JSONUsernameAndPasswordSchema,
-                     amount: z
-                        .number({ error: 'Amount must be a number' })
-                        .min(1, { error: 'Amount must be more than 0' })
-                        .transform((value) => Number(value.toFixed(2)))
+                     amount: JSONAmountSchema
                   })
                }
             }

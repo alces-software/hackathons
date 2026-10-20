@@ -10,7 +10,13 @@ import {
    UnauthorisedErrorSchema
 } from '../../../../lib/errors/schemas';
 import { publish } from '../../../../lib/publisher';
-import { JSONPasswordSchema, JSONUsernameSchema } from '../../../../lib/schema/json';
+import {
+   JSONAmountSchema,
+   JSONPasswordSchema,
+   JSONServiceTokenSchema,
+   JSONTransactionTypeSchema,
+   JSONUsernameSchema
+} from '../../../../lib/schema/json';
 import { transactionWithRetry } from '../../../../lib/transactionWithRetry';
 import { ensureUserCredentialsMatch, ensureUserExists } from '../../users/lib/helpers';
 import { UserDefaultInclude } from '../../users/lib/includes';
@@ -30,20 +36,9 @@ export default new OpenAPIHono().openapi(
                   schema: z.object({
                      username: JSONUsernameSchema,
                      password: JSONPasswordSchema.optional(),
-                     serviceToken: z
-                        .string({ error: 'Service token must be a string' })
-                        .trim()
-                        .length(32, { error: 'Service token must be 32 characters long' }),
-                     amount: z
-                        .number({ error: 'Amount must be a number' })
-                        .min(0, { error: 'Amount must be more than 0' })
-                        .transform((value) => Number(value.toFixed(2)))
-                        .refine((value) => value > 0, {
-                           error: 'Amount must be at least 0.01'
-                        }),
-                     type: z.enum(['win', 'loss', 'hold', 'return'], {
-                        error: 'The type must be either a win, loss, hold, return'
-                     })
+                     serviceToken: JSONServiceTokenSchema,
+                     amount: JSONAmountSchema,
+                     type: JSONTransactionTypeSchema
                   })
                }
             }
@@ -133,9 +128,8 @@ export default new OpenAPIHono().openapi(
             }
          });
 
-         let debtRepayment = new Prisma.Decimal(0);
-
          // Bank takes a cut if debt is present and the pay is a win
+         let debtRepayment = new Prisma.Decimal(0);
          if (body.type === 'win' && user.debt.greaterThan(0)) {
             const amount = new Prisma.Decimal(body.amount);
             debtRepayment = Prisma.Decimal.min(
