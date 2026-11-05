@@ -19,6 +19,7 @@ const envSchema = z.object({
    DEBT_LIMIT: z.coerce.number().min(0).default(1000),
    LOAN_INTEREST: z.coerce.number().min(0).max(1).default(0.1),
    LOAN_REPAY: z.coerce.number().min(0).max(1).default(0.1),
+   ACHIEVEMENT_PAYOUT: z.coerce.number().min(1).default(5),
 
    // Bank
    BANK_USERNAME: z.string().default('bank'),

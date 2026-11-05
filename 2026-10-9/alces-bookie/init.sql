@@ -85,5 +85,6 @@ VALUES
     ('Bank', '1', @bank_account_id, 'bank'),
     ('Transfer', '2', null, 'bank'),
     ('Loan', '3', null, 'bank');
+    ('Achievement', '4', null, 'bank');
 
 COMMIT;
