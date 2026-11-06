@@ -1,27 +1,43 @@
-import { Args, Command, Flags } from '@oclif/core';
+import { Command } from '@oclif/core';
 
+import ParserObj from '../../lib/parser.js';
+import { writeFile } from 'node:fs/promises';
 export default class Level_1 extends Command {
-   static override args = {
-      file: Args.string({ description: 'file to read' })
-   };
-   static override description = 'describe the command here';
-   static override examples = ['<%= config.bin %> <%= command.id %>'];
-   static override flags = {
-      // flag with no value (-f, --force)
-      force: Flags.boolean({ char: 'f' }),
-      // flag with a value (-n, --name=VALUE)
-      name: Flags.string({ char: 'n', description: 'name to print' })
-   };
+   static override description = 'Play through level 1 of Slurm Learn';
 
    public async run(): Promise<void> {
-      const { args, flags } = await this.parse(Level_1);
+      await this.parse(Level_1);
+      // Setup:
 
-      const name = flags.name ?? 'world';
+      const script = `#!/bin/bash
+#SBATCH --job-name=firstJob
+#SBATCH --output=jobOutput.txt
+
+echo "Job 1 executed successfully"
+`;
+      await writeFile('/job1.sbatch', script, 'utf8');
+
+      // Issue challenge:
       this.log(
-         `hello ${name} from /Users/alex/Documents/Alces Projects/hackathons/2026-11-6/SlurmLearn/src/commands/level/1.ts`
+         'There is a job file in this directory. Find it using "ls" and run it using sbatch <filename>'
       );
-      if (args.file && flags.force) {
-         this.log(`you input --force and --file: ${args.file}`);
-      }
+
+      const parser = new ParserObj(
+         (x: string) => {
+            const out = x.slice(0, -1);
+            this.log(out);
+            if (out === 'hello') {
+               this.log('Well Done!');
+               parser.stop();
+            }
+         },
+         (x) => {
+            this.log(x);
+         }
+      );
+
+      await parser.runConsole();
+
+      // Perform any cleanup:
    }
 }
