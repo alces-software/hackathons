@@ -4,7 +4,7 @@ import { createInterface, type Interface } from 'node:readline';
 import { promisify } from 'node:util';
 
 type StrCallback = (x: string) => void;
-type ArrayCallback = (x: string[]) => boolean;
+type ArrayCallback = (x: string[]) => void;
 
 // eslint-disable-next-line @typescript-eslint/strict-void-return
 const execAsync = promisify(exec);
