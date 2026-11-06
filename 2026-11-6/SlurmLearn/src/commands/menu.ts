@@ -3,6 +3,8 @@ import { cancel, CANCEL_SYMBOL, select } from '@clack/prompts';
 import { Command } from '@oclif/core';
 
 export default class Menu extends Command {
+   static override readonly description: 'An interactive menu to select levels';
+
    public async run(): Promise<void> {
       await this.parse(Menu);
 
@@ -12,8 +14,8 @@ export default class Menu extends Command {
             message: 'Select the action to perform',
             options: [
                {
-                  label: 'Walk through',
-                  value: 'walkThrough'
+                  label: 'Walkthrough',
+                  value: 'Walkthrough'
                },
                {
                   label: 'Level 1',
@@ -45,6 +47,11 @@ export default class Menu extends Command {
          if (action === CANCEL_SYMBOL || (typeof action === 'string' && action === 'exit')) {
             cancel('Exiting main menu');
             this.exit(0);
+         } else if (typeof action === 'string' && action === 'Walkthrough') {
+            for (let i = 0; i < 5; i++) {
+               console.clear();
+               await this.config.runCommand(`level:${i}`);
+            }
          } else if (typeof action === 'string' && /^[1-5]$/v.test(action)) {
             console.clear();
             await this.config.runCommand(`level:${action}`);
