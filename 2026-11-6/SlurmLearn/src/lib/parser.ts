@@ -64,7 +64,7 @@ export default class ParserObj {
             }
 
             if (command) {
-               await this.execute(command);
+               await this.execute(line.trim());
             }
 
             // Don't display another prompt if stopped
