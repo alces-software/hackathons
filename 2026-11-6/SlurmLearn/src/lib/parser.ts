@@ -16,7 +16,6 @@ export default class ParserObj {
    private rl: Interface | undefined;
    private stopped = false;
 
-   // eslint-disable-next-line unicorn/consistent-boolean-name
    constructor(onStdout: StrCallback, onStderr: StrCallback, onAnswer?: ArrayCallback) {
       this.onStdout = onStdout;
       this.onStderr = onStderr;
