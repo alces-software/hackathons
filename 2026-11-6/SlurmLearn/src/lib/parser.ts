@@ -4,7 +4,7 @@ import { createInterface, type Interface } from 'node:readline';
 import { promisify } from 'node:util';
 
 type StrCallback = (x: string) => void;
-type ArrayCallback = (x: string[]) => void;
+type ArrayCallback = (x: string[]) => boolean;
 
 // eslint-disable-next-line @typescript-eslint/strict-void-return
 const execAsync = promisify(exec);
@@ -16,6 +16,7 @@ export default class ParserObj {
    private rl: Interface | undefined;
    private stopped = false;
 
+   // eslint-disable-next-line unicorn/consistent-boolean-name
    constructor(onStdout: StrCallback, onStderr: StrCallback, onAnswer?: ArrayCallback) {
       this.onStdout = onStdout;
       this.onStderr = onStderr;
@@ -60,7 +61,7 @@ export default class ParserObj {
 
             if (command === 'answer' && this.onAnswer !== undefined) {
                this.onAnswer(args);
-               return;
+               continue;
             }
 
             if (command) {
