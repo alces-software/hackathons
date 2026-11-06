@@ -33,8 +33,8 @@
       "typescript": "^5"
    },
    "oclif": {
-      "bin": "taac",
-      "dirname": "taac",
+      "bin": "slurm-lean",
+      "dirname": "slurm-lean",
       "commands": "./dist/commands",
       "plugins": [
          "@oclif/plugin-help"
