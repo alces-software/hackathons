@@ -1,25 +1,33 @@
 import { ux } from '@oclif/core';
-import { exec, type ExecException } from 'node:child_process';
+import { exec, type ExecException, execSync } from 'node:child_process';
 import { createInterface, type Interface } from 'node:readline';
 import { promisify } from 'node:util';
 
 type StrCallback = (x: string) => void;
 type ArrayCallback = (x: string[]) => void;
+export type HandoffHandler = (command: string) => boolean;
 
 // eslint-disable-next-line @typescript-eslint/strict-void-return
 const execAsync = promisify(exec);
 
 export default class ParserObj {
+   private readonly canHandoff: HandoffHandler | undefined;
    private readonly onAnswer: ArrayCallback | undefined;
    private readonly onStderr: StrCallback;
    private readonly onStdout: StrCallback;
    private rl: Interface | undefined;
    private stopped = false;
 
-   constructor(onStdout: StrCallback, onStderr: StrCallback, onAnswer?: ArrayCallback) {
+   constructor(
+      onStdout: StrCallback,
+      onStderr: StrCallback,
+      onAnswer?: ArrayCallback,
+      canHandoff?: HandoffHandler
+   ) {
       this.onStdout = onStdout;
       this.onStderr = onStderr;
       this.onAnswer = onAnswer;
+      this.canHandoff = canHandoff;
    }
 
    private get prompt(): string {
@@ -48,6 +56,9 @@ export default class ParserObj {
       rl.setPrompt(this.prompt);
       rl.prompt();
 
+      // Set when a command is handed to the real terminal (e.g. nano) instead of being captured
+      let rawCommand: string | undefined;
+
       try {
          for await (const line of rl) {
             if (this.stopped) break;
@@ -64,6 +75,11 @@ export default class ParserObj {
             }
 
             if (command) {
+               if (this.canHandoff?.(line.trim())) {
+                  rawCommand = line.trim();
+                  break;
+               }
+
                await this.execute(line.trim());
             }
 
@@ -76,6 +92,17 @@ export default class ParserObj {
       } finally {
          rl.close();
          this.rl = undefined;
+      }
+
+      if (rawCommand !== undefined && !this.stopped) {
+         // Hand the whole terminal over to the command (e.g. nano) until it exits
+         try {
+            execSync(rawCommand, { stdio: 'inherit' });
+         } catch {
+            // Non-zero exit or missing binary: just continue once it returns
+         }
+
+         await this.runConsole();
       }
    }
 

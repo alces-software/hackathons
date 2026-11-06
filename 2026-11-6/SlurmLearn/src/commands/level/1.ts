@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { unlink, writeFile } from 'node:fs/promises';
 
 import ParserObj from '../../lib/parser.js';
+import { text } from '@clack/prompts';
 
 export default class Level1 extends Command {
    static override readonly description = 'Play through level 1 of Slurm Learn';
@@ -80,5 +81,10 @@ echo "Job 1 executed successfully"
       await unlink('job1.sbatch').catch(() => undefined);
       await unlink('jobOutput.txt').catch(() => undefined);
       await unlink('jobOutput2.txt').catch(() => undefined);
+
+      await text({
+         message: 'Press enter to continue...',
+         placeholder: ' '
+      });
    }
 }
