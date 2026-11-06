@@ -3,11 +3,11 @@ import { writeFile } from 'node:fs/promises';
 
 import ParserObj from '../../lib/parser.js';
 
-export default class Level_1 extends Command {
-   static override description = 'Play through level 1 of Slurm Learn';
+export default class Level1 extends Command {
+   static override readonly description = 'Play through level 1 of Slurm Learn';
 
    public async run(): Promise<void> {
-      await this.parse(Level_1);
+      await this.parse(Level1);
       // Setup:
       let stage = 1;
 

@@ -4,19 +4,22 @@ import { createInterface, type Interface } from 'node:readline';
 import { promisify } from 'node:util';
 
 type StrCallback = (x: string) => void;
+type ArrayCallback = (x: string[]) => void;
 
 // eslint-disable-next-line @typescript-eslint/strict-void-return
 const execAsync = promisify(exec);
 
 export default class ParserObj {
+   private readonly onAnswer: ArrayCallback | undefined;
    private readonly onStderr: StrCallback;
    private readonly onStdout: StrCallback;
    private rl: Interface | undefined;
    private stopped = false;
 
-   constructor(onStdout: StrCallback, onStderr: StrCallback) {
+   constructor(onStdout: StrCallback, onStderr: StrCallback, onAnswer?: ArrayCallback) {
       this.onStdout = onStdout;
       this.onStderr = onStderr;
+      this.onAnswer = onAnswer;
    }
 
    private get prompt(): string {
@@ -30,7 +33,7 @@ export default class ParserObj {
       );
    }
 
-   async runConsole(): Promise<void> {
+   async runConsole(answer?: string): Promise<void> {
       this.stopped = false;
 
       const rl = createInterface({
@@ -49,10 +52,15 @@ export default class ParserObj {
          for await (const line of rl) {
             if (this.stopped) break;
 
-            const command = line.trim();
+            const [command, ...args] = line.trim().split(' ');
 
             if (command === 'exit') {
                break;
+            }
+
+            if (command === 'answer' && this.onAnswer !== undefined) {
+               this.onAnswer(args);
+               return;
             }
 
             if (command) {
