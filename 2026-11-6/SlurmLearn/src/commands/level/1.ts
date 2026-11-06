@@ -1,7 +1,8 @@
 import { Command } from '@oclif/core';
+import { writeFile } from 'node:fs/promises';
 
 import ParserObj from '../../lib/parser.js';
-import { writeFile } from 'node:fs/promises';
+
 export default class Level_1 extends Command {
    static override description = 'Play through level 1 of Slurm Learn';
 
@@ -15,7 +16,7 @@ export default class Level_1 extends Command {
 
 echo "Job 1 executed successfully"
 `;
-      await writeFile('/job1.sbatch', script, 'utf8');
+      await writeFile('job1.sbatch', script, 'utf8');
 
       // Issue challenge:
       this.log(
