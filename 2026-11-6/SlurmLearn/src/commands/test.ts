@@ -1,6 +1,6 @@
 import { Command } from '@oclif/core';
 
-import level_1_1 from '../levels/1-1.js';
+import ParserObj from '../lib/parser.js';
 
 export default class Test extends Command {
    static override description = 'describe the command here';
@@ -9,6 +9,25 @@ export default class Test extends Command {
    public async run(): Promise<void> {
       await this.parse(Test);
 
-      await level_1_1(this.log.bind(this));
+      // Issue challenge:
+      this.log('Run a command that prints "hello" to the console');
+
+      const parser = new ParserObj(
+         (x: string) => {
+            const out = x.slice(0, -1);
+            this.log(out);
+            if (out === 'hello') {
+               this.log('Well Done!');
+               parser.stop();
+            }
+         },
+         (x) => {
+            this.log(x);
+         }
+      );
+
+      await parser.runConsole();
+
+      // Perform any cleanup:
    }
 }
