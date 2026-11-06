@@ -9,6 +9,7 @@ export default class Level_1 extends Command {
    public async run(): Promise<void> {
       await this.parse(Level_1);
       // Setup:
+      let stage = 1;
 
       const script = `#!/bin/bash
 #SBATCH --job-name=firstJob
@@ -27,9 +28,29 @@ echo "Job 1 executed successfully"
          (x: string) => {
             const out = x.slice(0, -1);
             this.log(out);
-            if (out === 'hello') {
-               this.log('Well Done!');
-               parser.stop();
+
+            switch (stage) {
+               case 1: {
+                  const pattern = /^Submitted batch job <\d+>$/v;
+
+                  const isPattern = pattern.test(out);
+                  if (isPattern) {
+                     this.log('Well Done!');
+                     stage += 1;
+                     this.log('Find the output file and cat it');
+                  }
+
+                  break;
+               }
+
+               case 2: {
+                  const isFlag = out === 'Job 1 executed successfully';
+
+                  if (isFlag) {
+                     this.log('Well Done');
+                     parser.stop();
+                  }
+               }
             }
          },
          (x) => {
