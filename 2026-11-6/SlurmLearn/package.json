@@ -1,0 +1,58 @@
+{
+   "name": "slurm-learn",
+   "version": "0.0.1",
+   "description": "A CLI tool for learning how to use slurm",
+   "main": "dist/index.js",
+   "types": "dist/index.d.ts",
+   "bin": {
+      "sl": "bin/run.js"
+   },
+   "files": [
+      "bin",
+      "dist",
+      "oclif.manifest.json"
+   ],
+   "engines": {
+      "node": ">=24.0.0"
+   },
+   "dependencies": {
+      "@oclif/core": "^5.0.0",
+      "@oclif/plugin-help": "^7.0.0",
+      "cli-table3": "^0.6.5",
+      "env-paths": "^4"
+   },
+   "devDependencies": {
+      "@eslint/config-helpers": "^0.7.0",
+      "eslint": "^10.10.0",
+      "eslint-config-oclif": "^7.1.7",
+      "eslint-config-prettier": "^10",
+      "eslint-plugin-unused-imports": "^4.4.1",
+      "oclif": "^6.0.0",
+      "prettier": "^3",
+      "shx": "^0.4.0",
+      "typescript": "^5"
+   },
+   "oclif": {
+      "bin": "taac",
+      "dirname": "taac",
+      "commands": "./dist/commands",
+      "plugins": [
+         "@oclif/plugin-help"
+      ]
+   },
+   "scripts": {
+      "build": "shx rm -rf dist && tsc -b && shx mkdir -p dist/assets && shx cp -r src/assets/setup_scripts dist/assets/ && shx cp -r src/assets/templates dist/assets/ && shx cp -r src/assets/docker dist/assets/",
+      "lint": "eslint src/",
+      "lint:fix": "eslint src/ --fix",
+      "format": "prettier . --write",
+      "prepack": "oclif manifest && oclif readme",
+      "postpack": "shx rm -f oclif.manifest.json"
+   },
+   "prettier": {
+      "semi": true,
+      "singleQuote": true,
+      "trailingComma": "none",
+      "printWidth": 100,
+      "tabWidth": 3
+   }
+}
