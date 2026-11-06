@@ -46,9 +46,9 @@ sleep 5000
             if (x.join(' ').trim() === stdout.trim()) {
                this.log(`That is correct the Job ID is ${stdout}`);
                parser.stop();
+            } else {
+               this.log('That is not correct the try again');
             }
-
-            this.log('That is not correct the try again');
          }
       );
 
