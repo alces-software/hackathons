@@ -1,3 +1,6 @@
+# REQUIREMENTS
+- Node.js (version 24 or higher)
+
 # HOW TO INSTALL
 1. Clone the repository to your local machine using the following command:
    ```
