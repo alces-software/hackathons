@@ -43,6 +43,7 @@ sleep 5000
             this.log(x);
          },
          (x) => {
+            this.log(x.join(' '), stdout)
             if (x.join(' ') === stdout) {
                this.log(`That is correct the Job ID is ${stdout}`);
                parser.stop();
@@ -55,5 +56,7 @@ sleep 5000
       await parser.runConsole();
 
       // Perform any cleanup:
+
+      await asyncExec(`scancel ${stdout}`);
    }
 }
