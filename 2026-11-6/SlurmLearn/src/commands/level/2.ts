@@ -48,7 +48,7 @@ sleep 5000
                parser.stop();
             }
 
-            console.log('That is not correct the try again');
+            this.log('That is not correct the try again');
          }
       );
 
