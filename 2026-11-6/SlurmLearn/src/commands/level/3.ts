@@ -21,7 +21,7 @@ const findProblem = (stage: number): string | undefined => {
    const directives = new Set<string>();
 
    for (const line of content.split('\n')) {
-      const match = /^#SBATCH\s+--([\w-]+)/v.exec(line.trim());
+      const match = /^#SBATCH\s+--([\w\-]+)/v.exec(line.trim());
       if (match) directives.add(match[1]);
    }
 

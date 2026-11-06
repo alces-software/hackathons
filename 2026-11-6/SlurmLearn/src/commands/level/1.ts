@@ -1,9 +1,9 @@
+import { text } from '@clack/prompts';
 import { Command } from '@oclif/core';
 import { existsSync } from 'node:fs';
 import { unlink, writeFile } from 'node:fs/promises';
 
 import ParserObj from '../../lib/parser.js';
-import { text } from '@clack/prompts';
 
 export default class Level1 extends Command {
    static override readonly description = 'Play through level 1 of Slurm Learn';
