@@ -18,6 +18,7 @@
    "dependencies": {
       "@clack/prompts": "^1.8.1",
       "@oclif/core": "^5.0.0",
+      "@oclif/plugin-autocomplete": "^4.0.6",
       "@oclif/plugin-help": "^7.0.0",
       "cli-table3": "^0.6.5",
       "env-paths": "^4",
@@ -39,12 +40,12 @@
       "dirname": "slurm-lean",
       "commands": "./dist/commands",
       "plugins": [
-         "@oclif/plugin-help"
+         "@oclif/plugin-help",
+         "@oclif/plugin-autocomplete"
       ]
    },
    "scripts": {
-      "build": "shx rm -rf dist && tsc -b && shx mkdir -p dist/assets && shx cp -r src/assets/setup_scripts dist/assets/ && shx cp -r src/assets/templates dist/assets/ && shx cp -r src/assets/docker dist/assets/",
-      "lint": "eslint src/",
+      "build": "shx rm -rf dist && tsc -b",
       "lint:fix": "eslint src/ --fix",
       "format": "prettier . --write",
       "prepack": "oclif manifest && oclif readme",
