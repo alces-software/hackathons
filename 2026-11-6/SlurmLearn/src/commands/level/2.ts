@@ -12,10 +12,12 @@ export default class Level2 extends Command {
 
    public async run(): Promise<void> {
       await this.parse(Level2);
+      const randomName = `${generate(1) as string}-${generate(1) as string}`;
+
       // Setup:
 
       const script = `#!/bin/bash
-#SBATCH --job-name=${generate(1) as string}-${generate(1) as string}
+#SBATCH --job-name=${randomName}
 #SBATCH --output=jobOutput.txt
 
 echo "Job 2 executed successfully"
@@ -29,7 +31,8 @@ sleep 5000
 
       // Issue challenge:
       this.log(
-         'There is a job running with the name find_me using squeue and the flag --name find then ID of the Job\nuse the command `answer <your answer>` to submit your answer'
+         `There is a job running with the name ${randomName} using squeue and the flag --name find then ID of the Job\n` +
+         `use the command 'answer <your answer>' to submit your answer`
       );
 
       const parser = new ParserObj(
