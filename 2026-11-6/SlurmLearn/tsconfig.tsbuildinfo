@@ -1,0 +1,1 @@
+{"root":["./src/index.ts","./src/commands/test.ts","./src/commands/hello/world.ts","./src/lib/parser.ts"],"version":"5.9.3"}

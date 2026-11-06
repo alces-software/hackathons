@@ -1,7 +1,12 @@
 import { ux } from '@oclif/core';
+import { exec, type ExecException } from 'node:child_process';
 import { createInterface, type Interface } from 'node:readline';
+import { promisify } from 'node:util';
 
 type StrCallback = (x: string) => void;
+
+// eslint-disable-next-line @typescript-eslint/strict-void-return
+const execAsync = promisify(exec);
 
 export default class ParserObj {
    private readonly onStderr: StrCallback;
@@ -16,7 +21,7 @@ export default class ParserObj {
    private get prompt(): string {
       return (
          [
-            ux.colorize('green', '[user@project'),
+            ux.colorize('green', '[explorer@SlurmLearn'),
             ux.colorize('blue', '~'),
             ux.colorize('green', ']'),
             ux.colorize('bold', '$')
@@ -53,20 +58,24 @@ export default class ParserObj {
 
    private async execute(command: string): Promise<void> {
       try {
-         const [name, ...args] = command.split(/\s+/v);
+         const { stderr, stdout } = await execAsync(command);
 
-         switch (name) {
-            case 'help': {
-               this.onStdout('Available commands: help, exit');
-               break;
-            }
-
-            default: {
-               this.onStderr(`Unknown command: ${name}`);
-            }
+         if (stdout) {
+            this.onStdout(stdout);
          }
-      } catch (error) {
-         this.onStderr(error instanceof Error ? error.message : String(error));
+
+         if (stderr) {
+            this.onStderr(stderr);
+         }
+      } catch (error: unknown) {
+         const execError = error as ExecException;
+         if (execError.stdout) {
+            this.onStdout(execError.stdout);
+         }
+
+         if (execError.stderr) {
+            this.onStderr(execError.stderr);
+         }
       }
    }
 }
