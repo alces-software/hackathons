@@ -12,24 +12,28 @@ export default class Menu extends Command {
             message: 'Select the action to perform',
             options: [
                {
+                  label: 'Walk through',
+                  value: 'walkThrough'
+               },
+               {
                   label: 'Level 1',
-                  value: 'level1'
+                  value: '1'
                },
                {
                   label: 'Level 2',
-                  value: 'level2'
+                  value: '2'
                },
                {
                   label: 'Level 3',
-                  value: 'level3'
+                  value: '3'
                },
                {
                   label: 'Level 4',
-                  value: 'level4'
+                  value: '4'
                },
                {
                   label: 'Level 5',
-                  value: 'level5'
+                  value: '5'
                },
                {
                   label: 'Exit',
@@ -41,9 +45,9 @@ export default class Menu extends Command {
          if (action === CANCEL_SYMBOL || (typeof action === 'string' && action === 'exit')) {
             cancel('Exiting main menu');
             this.exit(0);
-         } else if (typeof action === 'string' && /^level[1-5]$/v.test(action)) {
+         } else if (typeof action === 'string' && /^[1-5]$/v.test(action)) {
             console.clear();
-            await this.config.runCommand('test');
+            await this.config.runCommand(`level:${action}`);
          }
       }
    }
