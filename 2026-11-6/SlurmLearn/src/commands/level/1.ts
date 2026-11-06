@@ -31,7 +31,7 @@ echo "Job 1 executed successfully"
 
             switch (stage) {
                case 1: {
-                  const pattern = /^Submitted batch job <\d+>$/v;
+                  const pattern = /^Submitted batch job \d+$/v;
 
                   const isPattern = pattern.test(out);
                   if (isPattern) {
