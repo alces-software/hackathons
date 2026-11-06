@@ -1,1 +1,1 @@
-{"root":["./src/index.ts","./src/commands/menu.ts","./src/commands/test.ts","./src/commands/hello/world.ts","./src/lib/parser.ts"],"version":"5.9.3"}
+{"root":["./src/index.ts","./src/commands/menu.ts","./src/commands/test.ts","./src/commands/level/1.ts","./src/commands/level/2.ts","./src/commands/level/3.ts","./src/lib/parser.ts"],"version":"5.9.3"}

@@ -1,6 +1,6 @@
 import { Command } from '@oclif/core';
 import { exec } from 'node:child_process';
-import { writeFile } from 'node:fs/promises';
+import { unlink, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 
 import ParserObj from '../../lib/parser.js';
@@ -32,12 +32,7 @@ sleep 5000
 
       const parser = new ParserObj(
          (x: string) => {
-            const out = x.slice(0, -1);
-            this.log(out);
-            if (out === 'hello') {
-               this.log('Well Done!');
-               parser.stop();
-            }
+            this.log(x.slice(0, -1));
          },
          (x) => {
             this.log(x);
@@ -45,7 +40,10 @@ sleep 5000
          (x) => {
             if (x.join(' ').trim() === stdout.trim()) {
                this.log(`That is correct the Job ID is ${stdout}`);
-               parser.stop();
+               this.log('You will be sent back to the main menu now');
+               setTimeout(() => {
+                  parser.stop();
+               }, 1500);
             }
 
             this.log('That is not correct the try again');
@@ -57,5 +55,6 @@ sleep 5000
       // Perform any cleanup:
 
       await asyncExec(`scancel ${stdout}`);
+      await unlink('job2.sbatch');
    }
 }
