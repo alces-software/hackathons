@@ -21,12 +21,13 @@ echo "Job 2 executed successfully"
 sleep 5000
 `;
       await writeFile('job2.sbatch', script, 'utf8');
+      // eslint-disable-next-line @typescript-eslint/strict-void-return
       const asyncExec = promisify(execSync);
       const jobID = await asyncExec('sbatch --parsable job2.sbatch');
 
       // Issue challenge:
       this.log(
-         'There is a job running with the name find_me using squeue and the flag --name find then ID of the Job'
+         'There is a job running with the name find_me using squeue and the flag --name find then ID of the Job\nuse the command `answer <your answer>` to submit your answer'
       );
 
       const parser = new ParserObj(
@@ -40,6 +41,14 @@ sleep 5000
          },
          (x) => {
             this.log(x);
+         },
+         (x) => {
+            if (x.join(' ') === jobID) {
+               this.log(`That is correct the Job ID is ${jobID}`);
+               parser.stop();
+            }
+
+            console.log('That is not correct the try again');
          }
       );
 
