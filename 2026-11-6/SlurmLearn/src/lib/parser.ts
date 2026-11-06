@@ -11,7 +11,8 @@ const execAsync = promisify(exec);
 export default class ParserObj {
    private readonly onStderr: StrCallback;
    private readonly onStdout: StrCallback;
-   private rl!: Interface;
+   private rl: Interface | undefined;
+   private stopped = false;
 
    constructor(onStdout: StrCallback, onStderr: StrCallback) {
       this.onStdout = onStdout;
@@ -30,30 +31,50 @@ export default class ParserObj {
    }
 
    async runConsole(): Promise<void> {
-      this.rl = createInterface({
+      this.stopped = false;
+
+      const rl = createInterface({
          historySize: 100,
          input: process.stdin,
          output: process.stdout,
          terminal: true
       });
 
-      this.rl.setPrompt(this.prompt);
-      this.rl.prompt();
+      this.rl = rl;
 
-      for await (const line of this.rl) {
-         const command = line.trim();
+      rl.setPrompt(this.prompt);
+      rl.prompt();
 
-         if (command === 'exit') {
-            break;
+      try {
+         for await (const line of rl) {
+            if (this.stopped) break;
+
+            const command = line.trim();
+
+            if (command === 'exit') {
+               break;
+            }
+
+            if (command) {
+               await this.execute(command);
+            }
+
+            // Don't display another prompt if stopped
+            if (this.stopped) break;
+
+            rl.setPrompt(this.prompt);
+            rl.prompt();
          }
-
-         if (command) {
-            await this.execute(command);
-         }
-
-         this.rl.setPrompt(this.prompt);
-         this.rl.prompt();
+      } finally {
+         rl.close();
+         this.rl = undefined;
       }
+   }
+
+   // Stop the console
+   stop(): void {
+      this.stopped = true;
+      this.rl?.close();
    }
 
    private async execute(command: string): Promise<void> {
@@ -69,6 +90,7 @@ export default class ParserObj {
          }
       } catch (error: unknown) {
          const execError = error as ExecException;
+
          if (execError.stdout) {
             this.onStdout(execError.stdout);
          }
