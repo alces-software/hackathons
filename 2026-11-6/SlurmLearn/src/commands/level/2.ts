@@ -1,5 +1,5 @@
 import { Command } from '@oclif/core';
-import { execSync } from 'node:child_process';
+import { exec } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 
@@ -22,8 +22,8 @@ sleep 5000
 `;
       await writeFile('job2.sbatch', script, 'utf8');
       // eslint-disable-next-line @typescript-eslint/strict-void-return
-      const asyncExec = promisify(execSync);
-      const jobID = await asyncExec('sbatch --parsable job2.sbatch');
+      const asyncExec = promisify(exec);
+      const { stderr, stdout } = await asyncExec('sbatch --parsable job2.sbatch');
 
       // Issue challenge:
       this.log(
@@ -43,8 +43,9 @@ sleep 5000
             this.log(x);
          },
          (x) => {
-            if (x.join(' ') === jobID) {
-               this.log(`That is correct the Job ID is ${jobID}`);
+            this.log(x.join(' '), stdout)
+            if (x.join(' ') === stdout) {
+               this.log(`That is correct the Job ID is ${stdout}`);
                parser.stop();
             }
 
@@ -55,5 +56,7 @@ sleep 5000
       await parser.runConsole();
 
       // Perform any cleanup:
+
+      await asyncExec(`scancel ${stdout}`);
    }
 }
