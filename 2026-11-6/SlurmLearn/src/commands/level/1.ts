@@ -1,5 +1,6 @@
 import { Command } from '@oclif/core';
-import { writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { unlink, writeFile } from 'node:fs/promises';
 
 import ParserObj from '../../lib/parser.js';
 
@@ -48,6 +49,21 @@ echo "Job 1 executed successfully"
 
                   if (isFlag) {
                      this.log('Well Done');
+                     this.log(
+                        'Now run the job again, but use a flag to change the output file: use -o (or --output=) to send output to jobOutput2.txt, then cat it'
+                     );
+                     stage += 1;
+                  }
+
+                  break;
+               }
+
+               case 3: {
+                  const isFlag =
+                     out === 'Job 1 executed successfully' && existsSync('jobOutput2.txt');
+
+                  if (isFlag) {
+                     this.log('Well Done!');
                      parser.stop();
                   }
                }
@@ -61,5 +77,8 @@ echo "Job 1 executed successfully"
       await parser.runConsole();
 
       // Perform any cleanup:
+      await unlink('job1.sbatch').catch(() => undefined);
+      await unlink('jobOutput.txt').catch(() => undefined);
+      await unlink('jobOutput2.txt').catch(() => undefined);
    }
 }
