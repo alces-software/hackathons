@@ -16,10 +16,12 @@
       "node": ">=24.0.0"
    },
    "dependencies": {
+      "@clack/prompts": "^1.8.1",
       "@oclif/core": "^5.0.0",
       "@oclif/plugin-help": "^7.0.0",
       "cli-table3": "^0.6.5",
-      "env-paths": "^4"
+      "env-paths": "^4",
+      "picocolors": "^1.1.1"
    },
    "devDependencies": {
       "@eslint/config-helpers": "^0.7.0",
