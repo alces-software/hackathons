@@ -1,7 +1,9 @@
+import { text } from '@clack/prompts';
 import { Command } from '@oclif/core';
 import { exec } from 'node:child_process';
 import { unlink, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
+import { generate } from 'random-words';
 
 import ParserObj from '../../lib/parser.js';
 
@@ -13,7 +15,7 @@ export default class Level2 extends Command {
       // Setup:
 
       const script = `#!/bin/bash
-#SBATCH --job-name=find_me
+#SBATCH --job-name=${generate(1) as string}-${generate(1) as string}
 #SBATCH --output=jobOutput.txt
 
 echo "Job 2 executed successfully"
@@ -40,10 +42,7 @@ sleep 5000
          (x) => {
             if (x.join(' ').trim() === stdout.trim()) {
                this.log(`That is correct the Job ID is ${stdout}`);
-               this.log('You will be sent back to the main menu now');
-               setTimeout(() => {
-                  parser.stop();
-               }, 1500);
+               parser.stop();
             }
 
             this.log('That is not correct the try again');
@@ -56,5 +55,10 @@ sleep 5000
 
       await asyncExec(`scancel ${stdout}`);
       await unlink('job2.sbatch');
+
+      await text({
+         message: 'Press enter to continue...',
+         placeholder: ' '
+      });
    }
 }
