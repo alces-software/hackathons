@@ -60,7 +60,7 @@ export default class ParserObj {
 
             if (command === 'answer' && this.onAnswer !== undefined) {
                this.onAnswer(args);
-               return;
+               continue;
             }
 
             if (command) {
