@@ -1,0 +1,21 @@
+sacct-reporter 1.0 — INSTALL
+============================
+
+1. Prerequisites
+
+      gcc 4.1 and make
+      yum install sacct-metrics-devel    (the one extra package)
+
+   If yum cannot find the package, your mirror is stale — see your
+   sysadmin.
+
+2. Build
+
+      ./build.sh
+
+3. Run
+
+      ./sacct-reporter report --csv month.csv
+
+There is no step 4. The build is deterministic: same box, same tools,
+same binary, every rebuild — see the README notes.

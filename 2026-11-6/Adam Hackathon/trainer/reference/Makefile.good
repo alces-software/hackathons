@@ -1,0 +1,36 @@
+# trainer/reference/Makefile.good — the FIXED reference Makefile (trainer-only; never ships)
+#
+# = the tag's Makefile with exactly two lines changed:
+#   CFLAGS: -std=gnu89 added        (T4's fix)
+#   LDLIBS:  -lz added              (T5's fix — lie L4 falls here)
+# Rung 5's neighbour build reproduces from this shape; diff any climber's
+# fixed Makefile against this one. $(pkg-config --libs zlib) is the
+# equivalent teaching route (T5-H3) — plain -lz is kept here because it
+# builds even where pkg-config is thin.
+
+# sacct-reporter 1.0 (classic edition)
+# hand-made Makefile — no autoconf nonsense like those fancy 2010 kids have
+
+CC      = gcc
+CFLAGS  = -O2 -Wall -std=gnu89
+LDLIBS  = -lz   # zlib is third-party — the link line must say so
+OBJS    = main.o report.o metrics.o
+
+all: acsacct
+
+acsacct: $(OBJS)
+	$(CC) -o $@ $(OBJS) $(LDLIBS)
+
+main.o: main.c acsacct.h
+	$(CC) $(CFLAGS) -c main.c
+
+report.o: report.c acsacct.h
+	$(CC) $(CFLAGS) -c report.c
+
+metrics.o: metrics.c acsacct.h
+	$(CC) $(CFLAGS) -c metrics.c
+
+clean:
+	rm -f acsacct hello *.o
+
+.PHONY: all clean

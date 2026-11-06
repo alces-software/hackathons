@@ -1,0 +1,4 @@
+# build outputs only — the .csv.gz dumps are committed, they must ship with the tarball
+*.o
+hello
+acsacct

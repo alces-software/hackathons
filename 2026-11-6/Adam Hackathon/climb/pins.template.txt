@@ -1,0 +1,9 @@
+# pins.txt — the reproducibility contract. One fact per rung, in the order you learned them.
+# Rung 5 ships these lines with build.sh: a stranger rebuilds from them alone.
+# The README promised "nothing to pin down" — you now know better.
+#
+# -- rung 2a, the compiler you ACTUALLY used (exact version string; the README's gcc 4.1 died decades ago):
+# -- rung 2b, every third-party package the build needed (name = version; "none" is not an answer):
+# -- rung 3, the dialect flag and the link line, exactly as your fixed Makefile reads them:
+# -- rung 4, the optimisation flags you kept for the shipped build — and in one sentence, why:
+# (write your lines below as each rung's check.sh goes green)
