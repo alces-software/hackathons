@@ -6,10 +6,11 @@ import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBal
 
 type Color = "red" | "yellow" | "green" | "blue" | "wild";
 type PlayColor = Exclude<Color, "wild">;
-type Value = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "skip" | "reverse" | "draw2" | "wild" | "draw4";
+type Value = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "skip" | "reverse" | "draw2" | "wild" | "draw4" | "draw6" | "draw10" | "switch";
 type Card = { id: number; color: Color; value: Value };
 type Who = "player" | "ai";
 type GameMode = "ai" | "local";
+type Ruleset = "regular" | "no-mercy";
 type Game = {
   deck: Card[];
   player: Card[];
@@ -20,16 +21,18 @@ type Game = {
   started: boolean;
   winner: "You" | "AI" | "Player 2" | null;
   drawnId: number | null; // after drawing a playable card, only that card may be played (or you pass)
+  pendingDraw: number;
   message: string;
   stake: number;
   mode: GameMode;
+  ruleset: Ruleset;
 };
 
 const colors: PlayColor[] = ["red", "yellow", "green", "blue"];
 const WIN_PROFIT_RATE = 0.95;
 const colorLabels: Record<Color, string> = { red: "Red", yellow: "Yellow", green: "Green", blue: "Blue", wild: "Wild" };
-const valueLabels: Record<Value, string> = { "0": "0", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9", skip: "⊘", reverse: "↺", draw2: "+2", wild: "★", draw4: "+4" };
-const valueNames: Record<Value, string> = { "0": "0", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9", skip: "Skip", reverse: "Reverse", draw2: "+2", wild: "", draw4: "+4" };
+const valueLabels: Record<Value, string> = { "0": "0", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9", skip: "⊘", reverse: "↺", draw2: "+2", wild: "★", draw4: "+4", draw6: "+6", draw10: "+10", switch: "⇄" };
+const valueNames: Record<Value, string> = { "0": "0", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9", skip: "Skip", reverse: "Reverse", draw2: "+2", wild: "", draw4: "+4", draw6: "+6", draw10: "+10", switch: "Hand switch" };
 
 // Self-contained card colours (no dependency on global CSS).
 const cardStyle: Record<Color, string> = {
@@ -42,8 +45,8 @@ const cardStyle: Record<Color, string> = {
 
 const emptyGame: Game = {
   deck: [], player: [], ai: [], discard: [], color: "blue", turn: "player", started: false,
-  winner: null, drawnId: null, message: "Start a new game to deal the cards.", stake: 0,
-  mode: "ai",
+  winner: null, drawnId: null, pendingDraw: 0, message: "Start a new game to deal the cards.", stake: 0,
+  mode: "ai", ruleset: "regular",
 };
 
 function shuffle(cards: Card[]) {
@@ -55,7 +58,7 @@ function shuffle(cards: Card[]) {
   return deck;
 }
 
-function makeDeck() {
+function makeDeck(ruleset: Ruleset) {
   let id = 0;
   const deck: Card[] = [];
   colors.forEach((color) => {
@@ -66,24 +69,39 @@ function makeDeck() {
   });
   for (let copy = 0; copy < 4; copy += 1) {
     deck.push({ id: id++, color: "wild", value: "wild" }, { id: id++, color: "wild", value: "draw4" });
+    if (ruleset === "no-mercy") {
+      deck.push(
+        { id: id++, color: "wild", value: "draw6" },
+        { id: id++, color: "wild", value: "draw10" },
+      );
+      colors.forEach((color) => deck.push({ id: id++, color, value: "switch" }));
+    }
   }
   return shuffle(deck);
 }
 
 function describe(card: Card) {
-  return card.color === "wild" ? `Wild${card.value === "draw4" ? " +4" : ""}` : `${colorLabels[card.color]} ${valueNames[card.value]}`;
+  return card.color === "wild" ? `Wild${drawAmount(card.value) > 0 ? ` +${drawAmount(card.value)}` : ""}` : `${colorLabels[card.color]} ${valueNames[card.value]}`;
 }
 
-function canPlay(card: Card, top: Card, activeColor: PlayColor) {
+function drawAmount(value: Value) {
+  return value === "draw2" ? 2 : value === "draw4" ? 4 : value === "draw6" ? 6 : value === "draw10" ? 10 : 0;
+}
+
+function canPlay(card: Card, top: Card, activeColor: PlayColor, pendingDraw = 0, ruleset: Ruleset = "regular") {
+  if (pendingDraw > 0) {
+    const amount = drawAmount(card.value);
+    return amount > 0 && (ruleset === "no-mercy" ? amount >= pendingDraw : amount === pendingDraw);
+  }
   return card.color === "wild" || card.color === activeColor || card.value === top.value;
 }
 
-function newGame(stake: number, mode: GameMode): Game {
-  const shuffled = makeDeck();
+function newGame(stake: number, mode: GameMode, ruleset: Ruleset): Game {
+  const shuffled = makeDeck(ruleset);
   const rest = shuffled.slice(14);
   // Start on a plain number card so no action card has to be resolved before the first turn.
   const [start] = rest.splice(rest.findIndex((card) => /^\d$/.test(card.value)), 1);
-  return { ...emptyGame, deck: rest, player: shuffled.slice(0, 7), ai: shuffled.slice(7, 14), discard: [start], color: start.color as PlayColor, started: true, stake, mode, message: "Your turn — play a matching card or draw." };
+  return { ...emptyGame, deck: rest, player: shuffled.slice(0, 7), ai: shuffled.slice(7, 14), discard: [start], color: start.color as PlayColor, started: true, stake, mode, ruleset, message: "Your turn — play a matching card or draw." };
 }
 
 // Moves cards from the deck to a hand, reshuffling the discard pile (keeping its top card) if the deck runs out.
@@ -104,7 +122,7 @@ function drawCards(g: Game, who: Who, count: number): Game {
   return who === "player" ? { ...g, deck, discard, player: hand } : { ...g, deck, discard, ai: hand };
 }
 
-// Plays a card for either side and applies skip / reverse / +2 / +4 (reverse acts as a skip with two players).
+// Plays a card for either side and applies the selected ruleset's action cards.
 function playCard(g: Game, who: Who, card: Card, chosen?: PlayColor): Game {
   const other: Who = who === "player" ? "ai" : "player";
   const opponentLabel = g.mode === "local" ? "Player 2" : "AI";
@@ -119,11 +137,15 @@ function playCard(g: Game, who: Who, card: Card, chosen?: PlayColor): Game {
 
   let text = `${actor} played ${label}.`;
   let skip = false;
-  if (card.value === "draw2" || card.value === "draw4") {
-    const amount = card.value === "draw2" ? 2 : 4;
-    next = drawCards(next, other, amount);
-    skip = true;
-    text += ` ${victim} draw${victim === "You" ? "" : "s"} ${amount} and lose${victim === "You" ? "" : "s"} a turn.`;
+  if (card.value === "draw2" || card.value === "draw4" || card.value === "draw6" || card.value === "draw10") {
+    const amount = drawAmount(card.value);
+    next = { ...next, pendingDraw: g.pendingDraw + amount };
+    text += ` ${victim} must stack a ${valueLabels[card.value]} or draw ${next.pendingDraw}.`;
+  } else if (card.value === "switch" && g.ruleset === "no-mercy") {
+    next = who === "player"
+      ? { ...next, player: g.ai, ai: hand }
+      : { ...next, player: hand, ai: g.player };
+    text += ` ${actor} switched hands with ${victim}.`;
   } else if (card.value === "skip" || card.value === "reverse") {
     skip = true;
     text += ` ${victim} ${victim === "You" ? "are" : "is"} skipped.`;
@@ -136,17 +158,20 @@ function aiMove(g: Game): Game {
   if (!g.started || g.winner || g.turn !== "ai") return g;
   const top = g.discard[g.discard.length - 1];
   let state = g;
-  const hand = g.ai.filter((card) => canPlay(card, top, g.color));
+  const hand = g.ai.filter((card) => canPlay(card, top, g.color, g.pendingDraw, g.ruleset));
   if (hand.length === 0) {
-    state = drawCards(g, "ai", 1);
+    const drawCount = g.pendingDraw > 0 ? g.pendingDraw : 1;
+    state = drawCards(g, "ai", drawCount);
     if (state.ai.length === g.ai.length) return { ...state, turn: "player", message: "The deck is empty — your turn." };
+    if (g.ruleset === "no-mercy" && state.ai.length >= 25) return { ...state, winner: "You", pendingDraw: 0, message: "The AI reached 25 cards — No Mercy knockout!" };
     const drawn = state.ai[state.ai.length - 1];
-    if (!canPlay(drawn, top, g.color)) return { ...state, turn: "player", message: "The AI drew a card. Your turn." };
+    if (g.pendingDraw > 0) return { ...state, turn: "player", pendingDraw: 0, message: `The AI drew ${drawCount} cards. Your turn.` };
+    if (!canPlay(drawn, top, g.color, 0, g.ruleset)) return { ...state, turn: "player", pendingDraw: 0, message: "The AI drew a card. Your turn." };
     // Keep the AI turn active so the drawn card is visible before its next move.
-    return { ...state, turn: "ai", message: "AI drew a playable card..." };
+    return { ...state, turn: "ai", message: g.pendingDraw > 0 ? "AI drew a playable card to stack..." : "AI drew a playable card..." };
   }
   // Prefer action cards, then numbers, and keep wilds for when nothing else fits.
-  const rank = (card: Card) => ({ draw2: 5, skip: 4, reverse: 3, wild: 1, draw4: 0 } as Partial<Record<Value, number>>)[card.value] ?? 2;
+  const rank = (card: Card) => ({ draw10: 9, draw6: 8, draw4: 7, draw2: 6, switch: 5, skip: 4, reverse: 3, wild: 1 } as Partial<Record<Value, number>>)[card.value] ?? 0;
   const chosen = [...hand].sort((a, b) => rank(b) - rank(a))[0];
   let wildColor: PlayColor | undefined;
   if (chosen.color === "wild") {
@@ -182,6 +207,7 @@ export default function Uno() {
   const [balance, setBalance] = useBankingBalance();
   const [bet, setBet] = useState(25);
   const [aiDelay, setAiDelay] = useState(5000);
+  const [ruleset, setRuleset] = useState<Ruleset>("regular");
   const [mode] = useState<GameMode>("ai");
 
   const inProgress = g.started && !g.winner;
@@ -229,18 +255,22 @@ export default function Uno() {
     }
     setPendingWild(null);
     setPendingWildWho(null);
-    setG(newGame(bet, mode));
+    setG(newGame(bet, mode, ruleset));
   }
 
   function isPlayable(card: Card, who: Who = "player") {
     const turnIsActive = who === "player" ? playerTurn : localOpponentTurn;
     if (!turnIsActive || !top) return false;
     if (g.drawnId !== null && card.id !== g.drawnId) return false;
-    return canPlay(card, top, g.color);
+    return canPlay(card, top, g.color, g.pendingDraw, g.ruleset);
   }
 
   function handlePlay(card: Card, who: Who = "player") {
     if (!isPlayable(card, who)) return;
+    if (card.value === "switch" && g.ruleset === "no-mercy") {
+      setG(playCard(g, who, card, g.color));
+      return;
+    }
     if (card.color === "wild") { setPendingWild(card); setPendingWildWho(who); return; }
     setG(playCard(g, who, card));
   }
@@ -254,17 +284,34 @@ export default function Uno() {
 
   function drawCard() {
     const who: Who = playerTurn ? "player" : localOpponentTurn ? "ai" : "player";
-    if (!isPlayable(g[who][0] ?? { id: -1, color: "wild", value: "wild" }, who) && (who === "player" ? !playerTurn : !localOpponentTurn)) return;
+    if (!playerTurn && !localOpponentTurn) return;
     if (g.drawnId !== null) return;
-    const state = drawCards(g, who, 1);
+    const drawCount = g.pendingDraw > 0 ? g.pendingDraw : 1;
+    const state = drawCards(g, who, drawCount);
     if (state[who].length === g[who].length) {
-      setG({ ...state, turn: who === "player" ? "ai" : "player", message: who === "player" ? (g.mode === "local" ? "Nothing left to draw — pass the device to Player 2." : "Nothing left to draw — AI's turn.") : "Nothing left to draw — your turn." });
+      setG({ ...state, pendingDraw: 0, turn: who === "player" ? "ai" : "player", message: who === "player" ? (g.mode === "local" ? "Nothing left to draw — pass the device to Player 2." : "Nothing left to draw — AI's turn.") : "Nothing left to draw — your turn." });
+      return;
+    }
+    if (g.ruleset === "no-mercy" && state[who].length >= 25) {
+      const winner = who === "player" ? "AI" : g.mode === "local" ? "Player 2" : "AI";
+      setG({ ...state, winner, pendingDraw: 0, message: `${who === "player" ? "You" : "The AI"} reached 25 cards — No Mercy knockout!` });
       return;
     }
     const drawn = state[who][state[who].length - 1];
     const name = who === "player" ? "You" : "Player 2";
-    if (canPlay(drawn, top, g.color)) setG({ ...state, drawnId: drawn.id, message: `${name} drew ${describe(drawn)} — play it, or keep it and pass.` });
-    else setG({ ...state, turn: who === "player" ? "ai" : "player", message: who === "player" ? (g.mode === "local" ? `You drew ${describe(drawn)}. Pass the device to Player 2.` : `You drew ${describe(drawn)}. AI is thinking...`) : `Player 2 drew ${describe(drawn)}. Your turn.` });
+    if (g.pendingDraw > 0) {
+      setG({ ...state, pendingDraw: 0, turn: who === "player" ? "ai" : "player", message: who === "player" ? (g.mode === "local" ? `You drew ${drawCount} cards. Pass the device to Player 2.` : `You drew ${drawCount} cards. AI is thinking...`) : `Player 2 drew ${drawCount} cards. Your turn.` });
+    } else if (canPlay(drawn, top, g.color, 0, g.ruleset)) {
+      setG({ ...state, drawnId: drawn.id, message: `${name} drew ${describe(drawn)} — play it, or keep it and pass.` });
+    } else {
+      setG({
+        ...state,
+        turn: who === "player" ? "ai" : "player",
+        message: who === "player"
+          ? (g.mode === "local" ? `You drew ${describe(drawn)}. Pass the device to Player 2.` : `You drew ${describe(drawn)}. AI is thinking...`)
+          : `The AI drew ${describe(drawn)}. Your turn.`,
+      });
+    }
   }
 
   function pass() {
@@ -277,7 +324,7 @@ export default function Uno() {
     <main className="relative min-h-screen overflow-hidden bg-[#071426] text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(37,99,235,0.32),_transparent_35%),radial-gradient(circle_at_bottom_left,_rgba(14,116,144,0.2),_transparent_32%)]" />
       <nav className="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-10"><Link href="/" className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400 text-2xl text-[#071426]">🫎</span><span className="font-serif text-xl font-bold">Alces Casino</span></Link><Link href="/" className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15">Exit to lodge</Link></nav>
-      <section className="relative mx-auto max-w-6xl px-6 pb-16 pt-10 lg:px-10"><div className="mb-8"><p className="text-xs font-bold uppercase tracking-[0.25em] text-sky-300">Player vs AI</p><h1 className="mt-2 font-serif text-4xl font-bold sm:text-5xl">UNO</h1><p className="mt-2 text-sm text-sky-100/65">Match colors or symbols, play your wild cards, and empty your hand first.</p></div>
+      <section className="relative mx-auto max-w-6xl px-6 pb-16 pt-10 lg:px-10"><div className="mb-8"><p className="text-xs font-bold uppercase tracking-[0.25em] text-sky-300">Player vs AI</p><h1 className="mt-2 font-serif text-4xl font-bold sm:text-5xl">UNO</h1><p className="mt-2 text-sm text-sky-100/65">{ruleset === "no-mercy" ? "UNO No Mercy — stack +2, +4, +6 and +10 penalties, switch hands, and survive the 25-card knockout." : "Regular UNO — match colors or symbols, stack +2 and +4 cards, and empty your hand first."}</p></div>
         <section className="rounded-3xl border border-sky-300/20 bg-[#0b2741]/90 p-5 shadow-2xl sm:p-8">
           <div className="mb-6 flex flex-col justify-between gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-start"><div><p className="text-xs uppercase tracking-wider text-sky-100/55">Banking balance</p><p className="mt-1 text-2xl font-bold text-sky-200">{balance.toFixed(2)} <span className="text-sm font-normal text-sky-100/55">moose bucks</span></p><p className="mt-2 text-xs text-sky-100/55">UNO returns 95% of a winning profit plus your original stake.</p></div><div className="flex items-center gap-3"><div className="rounded-xl border border-white/10 bg-slate-950/40 px-4 py-3"><p className="text-xs uppercase tracking-wider text-sky-100/55">AI hand</p><p className="mt-1 text-xl font-bold text-sky-200">{g.ai.length} cards</p></div><button onClick={startGame} disabled={inProgress} className="rounded-xl bg-sky-400 px-5 py-3 text-sm font-bold text-[#071426] hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-40">{inProgress ? "Game in progress" : "New game"}</button></div></div>
           <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
@@ -305,8 +352,16 @@ export default function Uno() {
             </div>
             <aside className="space-y-4">
               <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+                <label htmlFor="uno-ruleset" className="text-xs font-bold uppercase tracking-wider text-sky-100/65">Ruleset</label>
+                <select id="uno-ruleset" value={ruleset} onChange={(event) => setRuleset(event.target.value as Ruleset)} disabled={inProgress} className="mt-2 w-full rounded-lg border border-sky-200/20 bg-slate-900 px-3 py-2 text-sm font-semibold text-white outline-none focus:border-sky-400">
+                  <option value="regular">Regular UNO</option>
+                  <option value="no-mercy">UNO No Mercy</option>
+                </select>
+                <p className="mt-2 text-xs text-sky-100/45">{ruleset === "no-mercy" ? "Includes +6, +10, hand switch, higher-card stacking, and knockout at 25 cards." : "Classic deck with +2 and +4 stacking."}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
                 <p className="text-xs font-bold uppercase tracking-wider text-sky-100/65">Game status</p>
-                <p className="mt-2 text-sm text-sky-100/65">{!g.started ? "Waiting to start" : g.winner ? "Game over" : g.turn === "player" ? "Your turn" : "AI turn"} · {g.player.length} cards left</p>
+                <p className="mt-2 text-sm text-sky-100/65">{!g.started ? "Waiting to start" : g.winner ? "Game over" : g.turn === "player" ? "Your turn" : "AI turn"} · {g.player.length} cards left · {g.started ? (g.ruleset === "no-mercy" ? "No Mercy" : "Regular") : ruleset === "no-mercy" ? "No Mercy selected" : "Regular selected"}</p>
                 <button onClick={pass} disabled={!playerTurn || g.drawnId === null} className="mt-3 w-full rounded-xl border border-sky-300/40 px-5 py-3 text-sm font-semibold text-sky-100 hover:bg-sky-300/10 disabled:cursor-not-allowed disabled:opacity-30">Keep &amp; pass</button>
               </div>
               <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
