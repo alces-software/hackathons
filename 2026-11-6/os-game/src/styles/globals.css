@@ -1,0 +1,1129 @@
+:root {
+    color-scheme: dark;
+    font-family: "Avenir Next", "Trebuchet MS", Arial, sans-serif;
+    font-synthesis: none;
+    --ink: #eef1ff;
+    --muted: #a6abc5;
+    --accent: #a489ff;
+    --accent-soft: rgba(164, 137, 255, 0.2);
+    --surface: #0c1021;
+    --surface-high: #141a31;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--ink);
+    background:
+        radial-gradient(circle at 52% -15%, rgba(83, 69, 159, 0.34), transparent 40%),
+        radial-gradient(circle at 8% 75%, rgba(50, 61, 128, 0.22), transparent 33%),
+        linear-gradient(165deg, #080a16 0%, #050713 65%, #03040b 100%);
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+#app {
+    --accent: #a489ff;
+    --accent-soft: rgba(164, 137, 255, 0.2);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    min-height: 100vh;
+    padding: 38px 24px 42px;
+    overflow: hidden;
+}
+
+#app.level-1 {
+    --accent: #ff876b;
+    --accent-soft: rgba(255, 112, 82, 0.2);
+}
+
+#app.level-2 {
+    --accent: #65e9d8;
+    --accent-soft: rgba(86, 227, 211, 0.2);
+}
+
+#app::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.16;
+    background-image:
+        linear-gradient(rgba(164, 137, 255, 0.18) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(164, 137, 255, 0.18) 1px, transparent 1px);
+    background-size: 82px 82px;
+    mask-image: linear-gradient(to bottom, transparent, black 22%, black 75%, transparent);
+}
+
+.game-heading {
+    width: min(1050px, 100%);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 28px;
+}
+
+.game-heading-title {
+    min-width: 0;
+}
+
+.heading-kicker,
+.status-kicker,
+.status-caption,
+.frame-bar,
+.frame-controls,
+.game-footnote,
+.lesson-topline,
+.back-link,
+.practical-header > span,
+.quiz-counter {
+    font-family: "Avenir Next Condensed", "Arial Narrow", "Avenir Next", sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.heading-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--accent);
+    font-size: 12px;
+}
+
+.signal-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    animation: signal-pulse 1.8s ease-in-out infinite;
+}
+
+.kicker-line {
+    display: inline-block;
+    width: 42px;
+    height: 1px;
+    background: var(--accent);
+    opacity: 0.65;
+}
+
+.game-heading h1 {
+    margin: 10px 0 4px;
+    font-family: "Avenir Next Condensed", "Arial Narrow", Impact, sans-serif;
+    font-size: clamp(44px, 6vw, 78px);
+    font-weight: 900;
+    letter-spacing: 0.035em;
+    line-height: 0.95;
+    text-transform: uppercase;
+    text-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+}
+
+.game-heading h1 span {
+    color: var(--accent);
+    text-shadow: 0 0 30px var(--accent-soft);
+}
+
+.level-name {
+    margin: 13px 0 0;
+    color: #e4e6fa;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.level-name span {
+    color: var(--accent);
+    padding: 0 4px;
+}
+
+.mission-copy {
+    max-width: 570px;
+    margin: 7px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.mission-status {
+    flex: 0 0 218px;
+    padding: 17px 18px 15px;
+    border: 1px solid var(--accent-soft);
+    background: linear-gradient(145deg, rgba(27, 33, 65, 0.95), rgba(9, 12, 29, 0.95));
+    box-shadow: inset 3px 0 var(--accent), 0 16px 40px rgba(0, 0, 0, 0.25);
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+}
+
+.status-kicker {
+    display: block;
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.mission-status strong {
+    display: block;
+    margin: 6px 0 8px;
+    color: #fff;
+    font-family: "Avenir Next Condensed", "Arial Narrow", Impact, sans-serif;
+    font-size: 34px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.mission-status small {
+    color: var(--accent);
+    font-size: 18px;
+}
+
+.progress-track {
+    height: 4px;
+    overflow: hidden;
+    background: #30354e;
+}
+
+.progress-track span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    box-shadow: 0 0 14px var(--accent);
+    transition: width 0.35s ease;
+}
+
+.status-caption {
+    display: block;
+    margin-top: 9px;
+    color: var(--accent);
+    font-size: 9px;
+}
+
+.game-frame {
+    position: relative;
+    width: min(1050px, 100%);
+    padding: 7px;
+    border: 1px solid var(--accent);
+    background: #0a0d1c;
+    box-shadow:
+        0 0 0 6px rgba(12, 16, 36, 0.82),
+        0 30px 90px rgba(0, 0, 0, 0.65),
+        0 0 55px var(--accent-soft);
+    clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+}
+
+.frame-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    min-height: 34px;
+    padding: 5px 12px 10px;
+    color: #d7d9ed;
+    font-size: 10px;
+}
+
+.frame-bar span:first-child {
+    color: var(--accent);
+}
+
+.frame-bar .signal-dot {
+    margin-right: 7px;
+    vertical-align: middle;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border: 1px solid rgba(208, 217, 255, 0.22);
+    background: #080b16;
+}
+
+#game-container canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+#game-container::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.13;
+    background: repeating-linear-gradient(to bottom, transparent 0, transparent 4px, rgba(0, 0, 0, 0.26) 5px);
+}
+
+.frame-controls {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px 26px;
+    padding: 12px 10px 9px;
+    color: #a9aecb;
+    font-size: 10px;
+}
+
+.frame-controls span {
+    white-space: nowrap;
+}
+
+.frame-controls b {
+    margin-right: 7px;
+    color: var(--accent);
+}
+
+.frame-controls em {
+    margin: 0 3px;
+    font-style: normal;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+kbd {
+    display: inline-block;
+    min-width: 22px;
+    padding: 3px 5px;
+    border: 1px solid rgba(210, 213, 245, 0.27);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: #171b34;
+    color: #f4f1ff;
+    font: 700 11px "Avenir Next", sans-serif;
+    text-align: center;
+}
+
+.game-footnote {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    width: min(1050px, 100%);
+    color: #6e779d;
+    font-size: 10px;
+}
+
+.game-footnote span:first-child {
+    color: var(--accent);
+}
+
+.lesson-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    overflow-y: auto;
+    background: radial-gradient(circle at center, rgba(42, 33, 91, 0.54), rgba(2, 3, 12, 0.92) 68%);
+    backdrop-filter: blur(8px);
+}
+
+.lesson-dialog {
+    position: relative;
+    width: min(680px, 100%);
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    padding: 30px 36px 34px;
+    border: 1px solid var(--accent);
+    background:
+        radial-gradient(circle at 90% 0, var(--accent-soft), transparent 38%),
+        linear-gradient(155deg, #171d37, #0b1023 70%);
+    color: #f3f2ff;
+    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.7), 0 0 55px var(--accent-soft);
+    clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+    animation: panel-enter 0.24s ease-out both;
+}
+
+.lesson-dialog:focus {
+    outline: none;
+}
+
+.lesson-dialog::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 140px;
+    height: 3px;
+    background: var(--accent);
+    box-shadow: 0 0 20px var(--accent);
+}
+
+.lesson-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--accent);
+    font-size: 11px;
+}
+
+.lesson-topline i {
+    padding: 0 5px;
+    font-style: normal;
+}
+
+.close-button {
+    display: grid;
+    place-items: center;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid rgba(195, 201, 243, 0.4);
+    background: #1d2340;
+    color: #fff;
+    font-size: 25px;
+    line-height: 1;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.close-button:hover {
+    border-color: var(--accent);
+    background: #34385c;
+}
+
+.lesson-emblem {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    margin-top: 22px;
+    border: 1px solid var(--accent);
+    transform: rotate(45deg);
+    color: var(--accent);
+    font-size: 29px;
+    text-shadow: 0 0 16px var(--accent);
+}
+
+.lesson-emblem span {
+    transform: rotate(-45deg);
+}
+
+.lesson-dialog h2 {
+    margin: 25px 0 20px;
+    font-family: "Avenir Next Condensed", "Arial Narrow", Impact, sans-serif;
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 900;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+.lesson-material {
+    margin-bottom: 26px;
+    padding: 2px 0 2px 18px;
+    border-left: 2px solid var(--accent);
+}
+
+.lesson-material p {
+    margin: 0 0 16px;
+    color: #c8cee4;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.lesson-material p:last-child {
+    margin-bottom: 0;
+}
+
+.quiz-question {
+    margin: 0 0 18px;
+    color: #eef0ff;
+    font-size: 19px;
+    font-weight: 800;
+    line-height: 1.45;
+}
+
+.answer-choices {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.choice {
+    min-width: 115px;
+    padding: 11px 18px;
+    border: 1px solid rgba(188, 194, 230, 0.35);
+    background: #151c33;
+    color: #e7eaff;
+    font-weight: 800;
+    transition: border-color 0.2s, transform 0.2s, background 0.2s;
+}
+
+.choice:hover,
+.choice.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    transform: translateY(-2px);
+}
+
+.text-answer {
+    display: block;
+    margin-bottom: 18px;
+    color: #b8bfdc;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+.text-answer input {
+    display: block;
+    width: 100%;
+    margin-top: 9px;
+    padding: 13px 15px;
+    border: 1px solid #525a85;
+    border-radius: 2px;
+    outline: none;
+    background: #090e21;
+    color: #fff;
+    font-size: 16px;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+.text-answer input::placeholder {
+    color: #737c9f;
+}
+
+.text-answer input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.answer-feedback {
+    margin: 12px 0 20px;
+    padding: 13px 15px;
+    border-left: 3px solid;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.answer-feedback.correct {
+    border-color: #69ecc7;
+    background: rgba(55, 195, 156, 0.13);
+    color: #bffbea;
+}
+
+.answer-feedback.incorrect {
+    border-color: #ff9b77;
+    background: rgba(255, 128, 91, 0.12);
+    color: #ffd9c9;
+}
+
+.quiz-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.primary-button,
+.secondary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 42px;
+    padding: 10px 18px;
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.primary-button {
+    border: 1px solid var(--accent);
+    background: linear-gradient(120deg, #664cbb, #986ee9);
+    color: #fff;
+    box-shadow: 0 8px 24px var(--accent-soft);
+}
+
+.level-1 .primary-button {
+    background: linear-gradient(120deg, #ae4537, #e07550);
+}
+
+.level-2 .primary-button {
+    background: linear-gradient(120deg, #177f81, #31b9a8);
+}
+
+.primary-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px var(--accent-soft);
+}
+
+.secondary-button {
+    border: 1px solid #656b98;
+    background: #1b2240;
+    color: #dfe1fa;
+}
+
+.secondary-button:hover:not(:disabled) {
+    background: #293253;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+    outline: 2px solid #e5d3ff;
+    outline-offset: 3px;
+}
+
+.practical-page {
+    --accent: #a489ff;
+    --accent-soft: rgba(164, 137, 255, 0.22);
+    width: min(1180px, 100%);
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: 34px 24px 70px;
+}
+
+.installation-page {
+    --accent: #ff8d70;
+    --accent-soft: rgba(255, 126, 93, 0.22);
+}
+
+.automation-page {
+    --accent: #65e9d8;
+    --accent-soft: rgba(86, 227, 211, 0.22);
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 22px;
+    padding: 8px 11px;
+    border: 1px solid rgba(164, 137, 255, 0.35);
+    color: #c8bcff;
+    font-size: 11px;
+    text-decoration: none;
+}
+
+.back-link:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.installation-page .back-link {
+    border-color: rgba(255, 152, 111, 0.38);
+    color: #ffcfb4;
+}
+
+.automation-page .back-link {
+    border-color: rgba(91, 224, 207, 0.38);
+    color: #b8fff4;
+}
+
+.practical-header {
+    position: relative;
+    min-height: 270px;
+    margin-bottom: 24px;
+    padding: 44px 48px;
+    overflow: hidden;
+    border: 1px solid rgba(174, 145, 255, 0.55);
+    background:
+        linear-gradient(90deg, rgba(7, 9, 23, 0.96) 0%, rgba(12, 12, 31, 0.88) 43%, rgba(8, 10, 28, 0.28) 100%),
+        url("/assets/arena-level0.png") center 55% / cover;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.38);
+    clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px));
+}
+
+.installation-page .practical-header {
+    border-color: rgba(255, 156, 112, 0.6);
+    background:
+        linear-gradient(90deg, rgba(19, 7, 10, 0.96) 0%, rgba(35, 12, 17, 0.9) 43%, rgba(28, 8, 9, 0.25) 100%),
+        url("/assets/arena-level1.png") center 55% / cover;
+}
+
+.automation-page .practical-header {
+    border-color: rgba(104, 238, 220, 0.6);
+    background:
+        linear-gradient(90deg, rgba(5, 19, 24, 0.96) 0%, rgba(7, 29, 35, 0.89) 43%, rgba(4, 21, 29, 0.22) 100%),
+        url("/assets/arena-level2.png") center 55% / cover;
+}
+
+.practical-header::after {
+    content: "";
+    position: absolute;
+    left: 48px;
+    bottom: 25px;
+    width: 90px;
+    height: 3px;
+    background: var(--accent);
+    box-shadow: 0 0 20px var(--accent);
+}
+
+.practical-header > span {
+    color: #c5aeff;
+    font-size: 11px;
+}
+
+.installation-page .practical-header > span {
+    color: #ffb89c;
+}
+
+.automation-page .practical-header > span {
+    color: #a4ffee;
+}
+
+.practical-header h1 {
+    max-width: 680px;
+    margin: 10px 0 12px;
+    font-family: "Avenir Next Condensed", "Arial Narrow", Impact, sans-serif;
+    font-size: clamp(40px, 5vw, 66px);
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.practical-header p {
+    max-width: 610px;
+    margin: 0;
+    color: #d3d6ed;
+    line-height: 1.55;
+}
+
+.practical-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(270px, 0.85fr);
+    align-items: start;
+    gap: 22px;
+}
+
+.practical-instructions,
+.terminal-launch,
+.practical-quiz {
+    border: 1px solid rgba(155, 147, 226, 0.38);
+    background:
+        radial-gradient(circle at 100% 0, rgba(108, 84, 194, 0.13), transparent 40%),
+        linear-gradient(150deg, #151b34, #0b1021 76%);
+    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.27);
+}
+
+.installation-page .practical-instructions,
+.installation-page .terminal-launch,
+.installation-page .practical-quiz {
+    border-color: rgba(255, 143, 103, 0.37);
+    background:
+        radial-gradient(circle at 100% 0, rgba(186, 77, 47, 0.13), transparent 40%),
+        linear-gradient(150deg, #261824, #110d1c 76%);
+}
+
+.automation-page .practical-instructions,
+.automation-page .terminal-launch,
+.automation-page .practical-quiz {
+    border-color: rgba(98, 222, 205, 0.37);
+    background:
+        radial-gradient(circle at 100% 0, rgba(45, 170, 151, 0.12), transparent 40%),
+        linear-gradient(150deg, #122a34, #09131f 76%);
+}
+
+.practical-instructions {
+    padding: 28px;
+}
+
+.practical-instructions h1,
+.practical-instructions h2,
+.terminal-launch h2,
+.practical-quiz h2 {
+    margin: 0 0 18px;
+    font-family: "Avenir Next Condensed", "Arial Narrow", Impact, sans-serif;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.practical-instructions p {
+    color: #bfc5df;
+    line-height: 1.55;
+}
+
+.practical-instructions p:last-child {
+    margin-bottom: 0;
+}
+
+.practical-page code {
+    padding: 2px 5px;
+    border: 1px solid rgba(161, 140, 252, 0.3);
+    background: #1d2141;
+    color: #d1c4ff;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.9em;
+    overflow-wrap: anywhere;
+}
+
+.installation-page code {
+    border-color: rgba(255, 160, 113, 0.35);
+    background: #30202b;
+    color: #ffd2b9;
+}
+
+.automation-page code {
+    border-color: rgba(106, 229, 211, 0.32);
+    background: #14303b;
+    color: #a8fff0;
+}
+
+.installation-page .practical-instructions a {
+    color: #ffbb99;
+    text-decoration-color: rgba(255, 187, 153, 0.6);
+    text-underline-offset: 3px;
+}
+
+.challenge-steps {
+    counter-reset: task-step;
+    padding: 0;
+    list-style: none;
+}
+
+.challenge-steps li {
+    position: relative;
+    min-height: 48px;
+    margin-bottom: 8px;
+    padding: 11px 12px 11px 49px;
+    border: 1px solid rgba(171, 177, 221, 0.18);
+    background: rgba(9, 13, 29, 0.66);
+    color: #d9ddf2;
+    font-size: 14px;
+    line-height: 1.55;
+    counter-increment: task-step;
+}
+
+.challenge-steps li::before {
+    content: counter(task-step, decimal-leading-zero);
+    position: absolute;
+    top: 11px;
+    left: 12px;
+    color: var(--accent);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.terminal-launch {
+    padding: 32px;
+}
+
+.terminal-launch-icon {
+    display: grid;
+    place-items: center;
+    width: 62px;
+    height: 62px;
+    margin-bottom: 25px;
+    border: 1px solid #8c7af2;
+    background: #1e2448;
+    box-shadow: 0 0 28px rgba(144, 116, 255, 0.24);
+    color: #b6adff;
+    font: 900 25px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.installation-page .terminal-launch-icon {
+    border-color: #ff8d70;
+    background: #3b202c;
+    box-shadow: 0 0 28px rgba(255, 130, 89, 0.22);
+    color: #ffd4ae;
+}
+
+.automation-page .terminal-launch-icon {
+    border-color: #65e9d8;
+    background: #153b43;
+    box-shadow: 0 0 28px rgba(87, 232, 209, 0.22);
+    color: #a4fff0;
+}
+
+.installation-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.installation-actions .primary-button,
+.installation-actions .secondary-button {
+    margin-top: 0;
+    text-decoration: none;
+}
+
+.installation-page .primary-button {
+    background: linear-gradient(120deg, #ad4737, #e07653);
+}
+
+.automation-page .primary-button {
+    background: linear-gradient(120deg, #177c81, #2bb9a6);
+}
+
+.terminal-launch > p {
+    color: #bdc4df;
+    line-height: 1.55;
+}
+
+.terminal-launch .terminal-success {
+    margin: 18px 0 0;
+    color: #aaf3d9;
+}
+
+.terminal-error {
+    margin: 16px 0 0;
+    padding: 11px 13px;
+    border-left: 3px solid #ff9b77;
+    background: rgba(255, 128, 91, 0.12);
+    color: #ffd9c9;
+    line-height: 1.5;
+}
+
+.practical-quiz {
+    margin-top: 22px;
+    padding: 30px;
+}
+
+.practical-quiz h2 {
+    margin-bottom: 10px;
+}
+
+.practical-quiz h3 {
+    margin: 13px 0;
+    color: #f3f0ff;
+    font-size: 22px;
+}
+
+.practical-quiz p {
+    color: #c3cae4;
+}
+
+.practical-quiz .quiz-counter {
+    margin: 0;
+    color: var(--accent);
+    font-size: 11px;
+}
+
+.practical-quiz .quiz-hint {
+    margin: 0 0 22px;
+}
+
+.practical-quiz .text-answer {
+    max-width: 630px;
+}
+
+.automation-cleanup {
+    margin-top: 22px;
+}
+
+.automation-cleanup .practical-instructions h2 {
+    margin-top: 10px;
+}
+
+.automation-section > p,
+.automation-cleanup .practical-instructions > p {
+    max-width: 850px;
+    color: #c2d8dd;
+    line-height: 1.55;
+}
+
+.command-block {
+    margin: 20px 0 16px;
+    padding: 22px 24px;
+    overflow-x: auto;
+    border: 1px solid rgba(108, 229, 215, 0.34);
+    background: #07121e;
+    color: #b7fff3;
+    font: 14px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace;
+    tab-size: 2;
+}
+
+.command-block code {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    white-space: pre;
+}
+
+.automation-section .command-note {
+    margin-bottom: 0;
+    color: #a8c9cb;
+    font-size: 13px;
+}
+
+.flag-list {
+    margin: 0;
+}
+
+.flag-row {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+    gap: 16px;
+    padding: 15px 0;
+    border-top: 1px solid rgba(129, 226, 218, 0.2);
+}
+
+.flag-row dt,
+.flag-row dd {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.flag-row dd {
+    color: #c5d6df;
+}
+
+.resource-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 22px;
+}
+
+.resource-links a {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 18px;
+    border: 1px solid rgba(105, 231, 213, 0.45);
+    background: rgba(12, 45, 52, 0.72);
+    color: #e1fff9;
+    text-decoration: none;
+    transition: transform 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.resource-links a:hover {
+    transform: translateY(-3px);
+    border-color: #9bffed;
+    background: rgba(20, 73, 79, 0.8);
+}
+
+.resource-links strong {
+    font-size: 16px;
+}
+
+.resource-links span {
+    color: #a9d3d2;
+    font-size: 13px;
+}
+
+@keyframes signal-pulse {
+    50% { opacity: 0.45; box-shadow: 0 0 4px var(--accent); }
+}
+
+@keyframes panel-enter {
+    from { opacity: 0; transform: translateY(16px) scale(0.985); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .signal-dot,
+    .lesson-dialog {
+        animation: none;
+    }
+
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+    }
+}
+
+@media (max-width: 900px) {
+    .practical-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .flag-row {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    .game-heading {
+        align-items: start;
+        flex-direction: column;
+    }
+
+    .mission-status {
+        width: 100%;
+        flex-basis: auto;
+    }
+}
+
+@media (max-width: 640px) {
+    #app {
+        padding: 24px 13px 30px;
+        gap: 17px;
+    }
+
+    .game-heading h1 {
+        font-size: 45px;
+    }
+
+    .mission-copy {
+        font-size: 13px;
+    }
+
+    .frame-bar {
+        font-size: 8px;
+    }
+
+    .frame-controls {
+        justify-content: start;
+        gap: 8px 15px;
+    }
+
+    .game-footnote span:last-child {
+        display: none;
+    }
+
+    .lesson-dialog {
+        padding: 24px 20px 27px;
+    }
+
+    .practical-page {
+        padding: 20px 13px 42px;
+    }
+
+    .practical-header {
+        min-height: 255px;
+        padding: 32px 23px;
+    }
+
+    .practical-header::after {
+        left: 23px;
+        bottom: 18px;
+    }
+
+    .practical-instructions,
+    .terminal-launch,
+    .practical-quiz {
+        padding: 21px;
+    }
+
+    .resource-links {
+        grid-template-columns: 1fr;
+    }
+
+    .command-block {
+        padding: 16px;
+        font-size: 12px;
+    }
+}
