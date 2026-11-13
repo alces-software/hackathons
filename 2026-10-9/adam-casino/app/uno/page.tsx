@@ -6,7 +6,7 @@ import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBal
 
 type Color = "red" | "yellow" | "green" | "blue" | "wild";
 type PlayColor = Exclude<Color, "wild">;
-type Value = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "skip" | "reverse" | "draw2" | "wild" | "draw4" | "draw6" | "draw10" | "switch";
+type Value = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "skip" | "reverse" | "draw2" | "wild" | "draw4" | "draw6" | "draw10" | "switch" | "discardColor" | "drawColor";
 type Card = { id: number; color: Color; value: Value };
 type Who = "player" | "ai";
 type GameMode = "ai" | "local";
@@ -22,6 +22,7 @@ type Game = {
   winner: "You" | "AI" | "Player 2" | null;
   drawnId: number | null; // after drawing a playable card, only that card may be played (or you pass)
   pendingDraw: number;
+  pendingDrawColor: PlayColor | null;
   message: string;
   stake: number;
   mode: GameMode;
@@ -31,8 +32,8 @@ type Game = {
 const colors: PlayColor[] = ["red", "yellow", "green", "blue"];
 const WIN_PROFIT_RATE = 0.95;
 const colorLabels: Record<Color, string> = { red: "Red", yellow: "Yellow", green: "Green", blue: "Blue", wild: "Wild" };
-const valueLabels: Record<Value, string> = { "0": "0", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9", skip: "⊘", reverse: "↺", draw2: "+2", wild: "★", draw4: "+4", draw6: "+6", draw10: "+10", switch: "⇄" };
-const valueNames: Record<Value, string> = { "0": "0", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9", skip: "Skip", reverse: "Reverse", draw2: "+2", wild: "", draw4: "+4", draw6: "+6", draw10: "+10", switch: "Hand switch" };
+const valueLabels: Record<Value, string> = { "0": "0", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9", skip: "⊘", reverse: "↺", draw2: "+2", wild: "★", draw4: "+4", draw6: "+6", draw10: "+10", switch: "⇄", discardColor: "◈", drawColor: "☄" };
+const valueNames: Record<Value, string> = { "0": "0", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9", skip: "Skip", reverse: "Reverse", draw2: "+2", wild: "", draw4: "+4", draw6: "+6", draw10: "+10", switch: "Hand switch", discardColor: "Discard a color", drawColor: "Draw to a color" };
 
 // Self-contained card colours (no dependency on global CSS).
 const cardStyle: Record<Color, string> = {
@@ -46,7 +47,7 @@ const cardStyle: Record<Color, string> = {
 const emptyGame: Game = {
   deck: [], player: [], ai: [], discard: [], color: "blue", turn: "player", started: false,
   winner: null, drawnId: null, pendingDraw: 0, message: "Start a new game to deal the cards.", stake: 0,
-  mode: "ai", ruleset: "regular",
+  mode: "ai", ruleset: "regular", pendingDrawColor: null,
 };
 
 function shuffle(cards: Card[]) {
@@ -73,7 +74,9 @@ function makeDeck(ruleset: Ruleset) {
       deck.push(
         { id: id++, color: "wild", value: "draw6" },
         { id: id++, color: "wild", value: "draw10" },
+        { id: id++, color: "wild", value: "drawColor" },
       );
+      colors.forEach((color) => deck.push({ id: id++, color, value: "discardColor" }));
       colors.forEach((color) => deck.push({ id: id++, color, value: "switch" }));
     }
   }
@@ -81,14 +84,27 @@ function makeDeck(ruleset: Ruleset) {
 }
 
 function describe(card: Card) {
-  return card.color === "wild" ? `Wild${drawAmount(card.value) > 0 ? ` +${drawAmount(card.value)}` : ""}` : `${colorLabels[card.color]} ${valueNames[card.value]}`;
+  return card.color === "wild" ? `Wild${drawAmount(card.value) > 0 ? ` +${drawAmount(card.value)}` : ` ${valueNames[card.value]}`}` : `${colorLabels[card.color]} ${valueNames[card.value]}`;
 }
 
 function drawAmount(value: Value) {
   return value === "draw2" ? 2 : value === "draw4" ? 4 : value === "draw6" ? 6 : value === "draw10" ? 10 : 0;
 }
 
-function canPlay(card: Card, top: Card, activeColor: PlayColor, pendingDraw = 0, ruleset: Ruleset = "regular") {
+function drawUntilColor(g: Game, who: Who, color: PlayColor) {
+  let state = g;
+  let drawn = 0;
+  while (state.deck.length > 0) {
+    state = drawCards(state, who, 1);
+    drawn++;
+    const hand = state[who];
+    if (hand[hand.length - 1]?.color === color) break;
+  }
+  return { state, drawn };
+}
+
+function canPlay(card: Card, top: Card, activeColor: PlayColor, pendingDraw = 0, ruleset: Ruleset = "regular", pendingDrawColor: PlayColor | null = null) {
+  if (pendingDrawColor !== null) return false;
   if (pendingDraw > 0) {
     const amount = drawAmount(card.value);
     return amount > 0 && (ruleset === "no-mercy" ? amount >= pendingDraw : amount === pendingDraw);
@@ -130,7 +146,7 @@ function playCard(g: Game, who: Who, card: Card, chosen?: PlayColor): Game {
   const victim = who === "player" ? opponentLabel : "You";
   const hand = g[who].filter((item) => item.id !== card.id);
   const color: PlayColor = card.color === "wild" ? chosen ?? "blue" : card.color;
-  let next: Game = { ...g, discard: [...g.discard, card], color, drawnId: null };
+  let next: Game = { ...g, discard: [...g.discard, card], color, drawnId: null, pendingDrawColor: null };
   next = who === "player" ? { ...next, player: hand } : { ...next, ai: hand };
   const label = describe(card) + (card.color === "wild" ? `, choosing ${colorLabels[color]}` : "");
   if (hand.length === 0) return { ...next, winner: actor, message: `${actor} played ${label} and went out.` };
@@ -146,6 +162,14 @@ function playCard(g: Game, who: Who, card: Card, chosen?: PlayColor): Game {
       ? { ...next, player: g.ai, ai: hand }
       : { ...next, player: hand, ai: g.player };
     text += ` ${actor} switched hands with ${victim}.`;
+  } else if (card.value === "discardColor" && g.ruleset === "no-mercy") {
+    const targetHand = who === "player" ? next.player : next.ai;
+    const kept = targetHand.filter((item) => item.color !== color);
+    next = who === "player" ? { ...next, player: kept } : { ...next, ai: kept };
+    text += ` ${actor} discarded all ${colorLabels[color]} cards.`;
+  } else if (card.value === "drawColor" && g.ruleset === "no-mercy") {
+    next = { ...next, pendingDrawColor: color };
+    text += ` ${victim} must draw until finding a ${colorLabels[color]} card.`;
   } else if (card.value === "skip" || card.value === "reverse") {
     skip = true;
     text += ` ${victim} ${victim === "You" ? "are" : "is"} skipped.`;
@@ -158,8 +182,17 @@ function aiMove(g: Game): Game {
   if (!g.started || g.winner || g.turn !== "ai") return g;
   const top = g.discard[g.discard.length - 1];
   let state = g;
-  const hand = g.ai.filter((card) => canPlay(card, top, g.color, g.pendingDraw, g.ruleset));
+  const hand = g.ai.filter((card) => {
+    if (!canPlay(card, top, g.color, g.pendingDraw, g.ruleset, g.pendingDrawColor)) return false;
+    return card.value !== "switch" || g.ai.length > g.player.length;
+  });
   if (hand.length === 0) {
+    if (g.pendingDrawColor !== null) {
+      const colorDraw = drawUntilColor(g, "ai", g.pendingDrawColor);
+      state = { ...colorDraw.state, pendingDrawColor: null, turn: "player", message: `The AI drew ${colorDraw.drawn} cards until finding ${colorLabels[g.pendingDrawColor]}. Your turn.` };
+      if (state.ai.length >= 25 && g.ruleset === "no-mercy") return { ...state, winner: "You", message: "The AI reached 25 cards — No Mercy knockout!" };
+      return state;
+    }
     const drawCount = g.pendingDraw > 0 ? g.pendingDraw : 1;
     state = drawCards(g, "ai", drawCount);
     if (state.ai.length === g.ai.length) return { ...state, turn: "player", message: "The deck is empty — your turn." };
@@ -262,7 +295,7 @@ export default function Uno() {
     const turnIsActive = who === "player" ? playerTurn : localOpponentTurn;
     if (!turnIsActive || !top) return false;
     if (g.drawnId !== null && card.id !== g.drawnId) return false;
-    return canPlay(card, top, g.color, g.pendingDraw, g.ruleset);
+    return canPlay(card, top, g.color, g.pendingDraw, g.ruleset, g.pendingDrawColor);
   }
 
   function handlePlay(card: Card, who: Who = "player") {
@@ -286,6 +319,18 @@ export default function Uno() {
     const who: Who = playerTurn ? "player" : localOpponentTurn ? "ai" : "player";
     if (!playerTurn && !localOpponentTurn) return;
     if (g.drawnId !== null) return;
+    if (g.pendingDrawColor !== null) {
+      const color = g.pendingDrawColor;
+      const result = drawUntilColor(g, who, color);
+      const nextState: Game = { ...result.state, pendingDrawColor: null, turn: who === "player" ? "ai" : "player", message: `${who === "player" ? "You" : "The AI"} drew ${result.drawn} cards until finding ${colorLabels[color]}.` };
+      if (g.ruleset === "no-mercy" && nextState[who].length >= 25) {
+        const winner = who === "player" ? "AI" : "You";
+        setG({ ...nextState, winner, message: `${who === "player" ? "You" : "The AI"} reached 25 cards — No Mercy knockout!` });
+      } else {
+        setG(nextState);
+      }
+      return;
+    }
     const drawCount = g.pendingDraw > 0 ? g.pendingDraw : 1;
     const state = drawCards(g, who, drawCount);
     if (state[who].length === g[who].length) {
