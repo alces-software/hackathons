@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
+import { bankingLoss, bankingPayout, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
 import {
   browserRng,
   COIN_VALUE_PENCE,
@@ -202,13 +202,17 @@ export default function CoinPusherPage() {
 
     const finishAt = session.steps.length * stepMs + 900;
     later(() => {
+      // The stake is consumed at drop time; only what the machine pushes into
+      // the tray is credited. Anything else is the machine's profit, so the
+      // held stake is settled as a loss rather than returned.
       const won = session.winPence;
       const settle = won > 0
-        ? bankingReturn(stake).then(() => bankingPayout(round2(won / 100))).then(() => syncBankingBalance(setBalance)).then(() => {
-          setMessage(`You pushed ${pence(won)} over the edge — winnings credited plus your £${stake.toFixed(2)} stake returned.`);
+        ? bankingPayout(round2(won / 100)).then(() => syncBankingBalance(setBalance)).then(() => {
+          const net = round2(won / 100) - stake;
+          setMessage(`${pence(won)} pushed into the tray — ${net >= 0 ? `net profit £${net.toFixed(2)}` : `net loss £${Math.abs(net).toFixed(2)}`} overall.`);
         })
-        : bankingReturn(stake).then(() => bankingLoss(stake)).then(() => syncBankingBalance(setBalance)).then(() => {
-          setMessage("Nothing fell. Your coins joined the pile — better luck next time.");
+        : bankingLoss(stake).then(() => syncBankingBalance(setBalance)).then(() => {
+          setMessage(`Nothing fell. Your ${stake.toFixed(2)} in coins joined the pile — better luck next time.`);
         });
       settle.catch((error) => setMessage(error instanceof Error ? error.message : "Settlement failed.")).finally(() => setRunning(false));
     }, finishAt);
@@ -242,7 +246,7 @@ export default function CoinPusherPage() {
       <section className="relative mx-auto max-w-6xl px-6 pb-16 pt-10 lg:px-10">
         <div className="mb-8"><p className="text-xs font-bold uppercase tracking-[0.25em] text-sky-300">Casino floor</p><h1 className="mt-2 font-serif text-4xl font-bold sm:text-5xl">2p Machine</h1><p className="mt-2 text-sm text-sky-100/65">The classic coin pusher · 2p a coin · Gold tokens pay 10p · Return to player ~93%</p></div>
         <section className="rounded-3xl border border-sky-300/20 bg-[#0b2741]/90 p-5 shadow-2xl sm:p-8">
-          <div className="mb-6 flex flex-col justify-between gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-start"><div><p className="text-xs uppercase tracking-wider text-sky-100/65">Banking balance</p><p className="mt-1 text-2xl font-bold text-sky-200">{balance.toFixed(2)} <span className="text-sm font-normal text-sky-100/55">moose bucks</span></p></div><p className="max-w-sm text-sm text-sky-100/55">Every 2p is held when you drop it and settled once the pile stops moving.</p></div>
+          <div className="mb-6 flex flex-col justify-between gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-start"><div><p className="text-xs uppercase tracking-wider text-sky-100/65">Banking balance</p><p className="mt-1 text-2xl font-bold text-sky-200">{balance.toFixed(2)} <span className="text-sm font-normal text-sky-100/55">moose bucks</span></p></div><p className="max-w-sm text-sm text-sky-100/55">Every 2p is held when you drop it — you get back only what the machine pushes into the tray.</p></div>
           <div className="grid gap-8 py-2 lg:grid-cols-[1fr_280px]">
             <div className="flex min-h-80 flex-col items-center justify-center rounded-2xl border border-emerald-300/10 bg-[#0a3a36]/70 p-6">
               <div className="max-w-full overflow-x-auto pb-2" style={{ perspective: 1100 }}>

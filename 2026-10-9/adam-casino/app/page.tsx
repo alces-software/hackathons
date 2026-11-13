@@ -10,6 +10,8 @@ const games = [
   { name: "Slots", description: "Spin the reels and line up three moose for the jackpot.", icon: "🎰", accent: "from-amber-300 to-orange-600", href: "/slots" },
   { name: "2p Machine", description: "The classic coin pusher — drop 2p coins and shove the pile over the edge.", icon: "🪙", accent: "from-lime-300 to-emerald-600", href: "/coin-pusher" },
   { name: "Crash", description: "Ride the multiplier higher, then cash out before it crashes.", icon: "↗", accent: "from-orange-300 to-red-600", href: "/crash" },
+  { name: "Craps", description: "Roll the dice, make your point, and beat the seven-out.", icon: "🎲", accent: "from-rose-300 to-red-600", href: "/craps" },
+  { name: "Battleships", description: "Hunt the hidden fleet before your ammunition runs out.", icon: "⚓", accent: "from-cyan-300 to-blue-600", href: "/battleships" },
 ];
 
 export default function Home() {
