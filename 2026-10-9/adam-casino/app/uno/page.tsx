@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
+import type { UnoAction, UnoCard, UnoPlayColor, UnoRuleset } from "../../lib/unoMultiplayer";
 
 type Color = "red" | "yellow" | "green" | "blue" | "wild";
 type PlayColor = Exclude<Color, "wild">;
@@ -27,6 +28,34 @@ type Game = {
   stake: number;
   mode: GameMode;
   ruleset: Ruleset;
+};
+
+type MultiplayerView = {
+  code: string;
+  playerName: string;
+  players: { id: string; name: string }[];
+  spectators: { id: string; name: string }[];
+  role: "player" | "spectator";
+  hostId: string;
+  ruleset: UnoRuleset;
+  hand: UnoCard[];
+  opponent: { id: string; name: string } | null;
+  opponentCardCount: number;
+  deckCount: number;
+  top: UnoCard | null;
+  activeColor: UnoPlayColor;
+  isYourTurn: boolean;
+  drawnId: number | null;
+  pendingDraw: number;
+  pendingDrawColor: UnoPlayColor | null;
+  winner: string | null;
+  stake: number | null;
+  isReady: boolean;
+  readyCount: number;
+  bothPlayersReady: boolean;
+  settlementComplete: boolean;
+  settledCount: number;
+  message: string;
 };
 
 const colors: PlayColor[] = ["red", "yellow", "green", "blue"];
@@ -242,11 +271,47 @@ export default function Uno() {
   const [aiDelay, setAiDelay] = useState(5000);
   const [ruleset, setRuleset] = useState<Ruleset>("regular");
   const [mode] = useState<GameMode>("ai");
+  const [unoTab, setUnoTab] = useState<"multiplayer" | "local">("multiplayer");
+  const [multiplayerName, setMultiplayerName] = useState("");
+  const [multiplayerCode, setMultiplayerCode] = useState("");
+  const [multiplayerPlayerId, setMultiplayerPlayerId] = useState("");
+  const [multiplayerPlayerToken, setMultiplayerPlayerToken] = useState("");
+  const [multiplayer, setMultiplayer] = useState<MultiplayerView | null>(null);
+  const [multiplayerMessage, setMultiplayerMessage] = useState("");
+  const [multiplayerBet, setMultiplayerBet] = useState(25);
+  const [multiplayerRuleset, setMultiplayerRuleset] = useState<UnoRuleset>("regular");
+  const [settlingMultiplayer, setSettlingMultiplayer] = useState(false);
 
   const inProgress = g.started && !g.winner;
   const top = g.discard[g.discard.length - 1];
   const playerTurn = inProgress && g.turn === "player" && !pendingWild;
   const localOpponentTurn = inProgress && g.mode === "local" && g.turn === "ai" && !pendingWild;
+
+  useEffect(() => {
+    if (!multiplayerCode || !multiplayerPlayerId) return;
+    const source = new EventSource(`/api/uno/room?events=1&code=${encodeURIComponent(multiplayerCode)}&playerToken=${encodeURIComponent(multiplayerPlayerToken)}`);
+    source.onmessage = (event) => setMultiplayer(JSON.parse(event.data) as MultiplayerView);
+    return () => source.close();
+  }, [multiplayerCode, multiplayerPlayerId, multiplayerPlayerToken]);
+
+  useEffect(() => {
+    if (!multiplayer?.winner || multiplayer.stake === null || multiplayer.settlementComplete || settlingMultiplayer) return;
+    const ownPlayer = multiplayer.players.find((player) => player.id === multiplayerPlayerId);
+    if (!ownPlayer) return;
+    setSettlingMultiplayer(true);
+    const profit = multiplayer.stake * 0.95;
+    const settle = ownPlayer.name === multiplayer.winner
+      ? bankingReturn(multiplayer.stake).then(() => bankingPayout(profit))
+      : bankingReturn(multiplayer.stake).then(() => bankingLoss(multiplayer.stake!));
+    settle.then(() => syncBankingBalance(setBalance)).then(async () => {
+      const response = await fetch("/api/uno/room", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "move", code: multiplayer.code, playerToken: multiplayerPlayerToken, move: { type: "settle" } }) });
+      if (!response.ok) throw new Error("The server could not record the settlement.");
+      setMultiplayer(await response.json() as MultiplayerView);
+    }).catch((error) => {
+      setMultiplayerMessage(error instanceof Error ? error.message : "The multiplayer settlement failed.");
+      setSettlingMultiplayer(false);
+    });
+  }, [multiplayer, multiplayerPlayerId, multiplayerPlayerToken, settlingMultiplayer, setBalance]);
 
   useEffect(() => {
     if (!inProgress || g.mode !== "ai" || g.turn !== "ai") return;
@@ -289,6 +354,111 @@ export default function Uno() {
     setPendingWild(null);
     setPendingWildWho(null);
     setG(newGame(bet, mode, ruleset));
+  }
+
+  async function multiplayerRequest(body: { action: "create" | "join" | "spectate" | "move"; code?: string; playerId?: string; playerToken?: string; name?: string; ruleset?: UnoRuleset; move?: UnoAction }) {
+    const response = await fetch("/api/uno/room", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const result = await response.json() as { error?: string; playerId?: string; playerToken?: string; room?: MultiplayerView };
+    if (!response.ok) throw new Error(result.error || "The multiplayer request failed.");
+    if (result.playerId) setMultiplayerPlayerId(result.playerId);
+    if (result.playerToken) setMultiplayerPlayerToken(result.playerToken);
+    if (result.room) {
+      setMultiplayerCode(result.room.code);
+      setMultiplayer(result.room);
+      window.sessionStorage.setItem("alces-uno-room", result.room.code);
+      window.sessionStorage.setItem("alces-uno-player", result.playerId ?? multiplayerPlayerId);
+      window.sessionStorage.setItem("alces-uno-player-token", result.playerToken ?? multiplayerPlayerToken);
+    }
+  }
+
+  async function reconnectMultiplayerRoom() {
+    const savedCode = window.sessionStorage.getItem("alces-uno-room");
+    const savedPlayerId = window.sessionStorage.getItem("alces-uno-player");
+    const savedPlayerToken = window.sessionStorage.getItem("alces-uno-player-token");
+    if (!savedCode || !savedPlayerId || !savedPlayerToken) {
+      setMultiplayerMessage("There is no saved UNO room on this browser.");
+      return;
+    }
+    const response = await fetch(`/api/uno/room?code=${encodeURIComponent(savedCode)}&playerToken=${encodeURIComponent(savedPlayerToken)}`, { cache: "no-store" });
+    const result = await response.json() as MultiplayerView | { error?: string };
+    if (!response.ok || !("players" in result)) {
+      setMultiplayerMessage((result as { error?: string }).error || "That saved room is no longer available.");
+      window.sessionStorage.removeItem("alces-uno-room");
+      window.sessionStorage.removeItem("alces-uno-player");
+      window.sessionStorage.removeItem("alces-uno-player-token");
+      return;
+    }
+    setMultiplayerCode(savedCode);
+    setMultiplayerPlayerId(savedPlayerId);
+    setMultiplayerPlayerToken(savedPlayerToken);
+    setMultiplayer(result);
+    setMultiplayerMessage("Reconnected to the saved room.");
+  }
+
+  async function createMultiplayerRoom() {
+    try { await multiplayerRequest({ action: "create", name: multiplayerName, ruleset: multiplayerRuleset }); setMultiplayerMessage("Room created. Share the code with another player."); } catch (error) { setMultiplayerMessage(error instanceof Error ? error.message : "Could not create the room."); }
+  }
+
+  async function joinMultiplayerRoom() {
+    if (multiplayer && multiplayer.code === multiplayerCode) {
+      setMultiplayerMessage("You are already connected to this room.");
+      return;
+    }
+    try { await multiplayerRequest({ action: "join", code: multiplayerCode, playerToken: multiplayerPlayerToken, name: multiplayerName }); setMultiplayerMessage("Joined the room."); } catch (error) { setMultiplayerMessage(error instanceof Error ? error.message : "Could not join the room."); }
+  }
+
+  async function spectateMultiplayerRoom() {
+    try { await multiplayerRequest({ action: "spectate", code: multiplayerCode, name: multiplayerName }); setMultiplayerMessage("You are spectating this room."); } catch (error) { setMultiplayerMessage(error instanceof Error ? error.message : "Could not join as a spectator."); }
+  }
+
+  function leaveMultiplayerRoom() {
+    setMultiplayer(null);
+    setMultiplayerCode("");
+    setMultiplayerPlayerId("");
+    setMultiplayerPlayerToken("");
+    window.sessionStorage.removeItem("alces-uno-room");
+    window.sessionStorage.removeItem("alces-uno-player");
+    window.sessionStorage.removeItem("alces-uno-player-token");
+    setMultiplayerMessage("You left the room. Create or join another room.");
+  }
+
+  async function sendMultiplayerMove(move: UnoAction) {
+    if (!multiplayer) return;
+    try { await multiplayerRequest({ action: "move", code: multiplayer.code, playerToken: multiplayerPlayerToken, move }); } catch (error) { setMultiplayerMessage(error instanceof Error ? error.message : "That move could not be played."); }
+  }
+
+  async function readyMultiplayer() {
+    if (!multiplayer || multiplayer.isReady || multiplayerBet < 1 || multiplayerBet > 250) return;
+    if (multiplayer.stake !== null && multiplayerBet !== multiplayer.stake) {
+      setMultiplayerMessage(`This room requires a ${multiplayer.stake.toFixed(2)} moose buck stake.`);
+      return;
+    }
+    try {
+      await bankingStake(multiplayerBet, "uno", multiplayerBet * 1.95);
+      await syncBankingBalance(setBalance);
+      await sendMultiplayerMove({ type: "ready", stake: multiplayerBet });
+    } catch (error) {
+      setMultiplayerMessage(error instanceof Error ? error.message : "Could not place the multiplayer stake.");
+    }
+  }
+
+  function playMultiplayerCard(card: UnoCard) {
+    if (card.color !== "wild") {
+      void sendMultiplayerMove({ type: "play", cardId: card.id });
+      return;
+    }
+    const choice = window.prompt("Choose a color: red, yellow, green, or blue")?.toLowerCase();
+    if (choice && colors.includes(choice as PlayColor)) void sendMultiplayerMove({ type: "play", cardId: card.id, color: choice as PlayColor });
+  }
+
+  function multiplayerCardIsPlayable(card: UnoCard) {
+    if (!multiplayer?.isYourTurn || multiplayer.winner || multiplayer.drawnId !== null) return false;
+    if (multiplayer.pendingDrawColor !== null) return false;
+    if (multiplayer.pendingDraw > 0) {
+      const amount = drawAmount(card.value);
+      return amount > 0 && (multiplayer.ruleset === "no-mercy" ? amount >= multiplayer.pendingDraw : amount === multiplayer.pendingDraw);
+    }
+    return card.color === "wild" || card.color === multiplayer.activeColor || card.value === multiplayer.top?.value;
   }
 
   function isPlayable(card: Card, who: Who = "player") {
@@ -369,8 +539,18 @@ export default function Uno() {
     <main className="relative min-h-screen overflow-hidden bg-[#071426] text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(37,99,235,0.32),_transparent_35%),radial-gradient(circle_at_bottom_left,_rgba(14,116,144,0.2),_transparent_32%)]" />
       <nav className="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-10"><Link href="/" className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400 text-2xl text-[#071426]">🫎</span><span className="font-serif text-xl font-bold">Alces Casino</span></Link><Link href="/" className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15">Exit to lodge</Link></nav>
-      <section className="relative mx-auto max-w-6xl px-6 pb-16 pt-10 lg:px-10"><div className="mb-8"><p className="text-xs font-bold uppercase tracking-[0.25em] text-sky-300">Player vs AI</p><h1 className="mt-2 font-serif text-4xl font-bold sm:text-5xl">UNO</h1><p className="mt-2 text-sm text-sky-100/65">{ruleset === "no-mercy" ? "UNO No Mercy — stack +2, +4, +6 and +10 penalties, switch hands, and survive the 25-card knockout." : "Regular UNO — match colors or symbols, stack +2 and +4 cards, and empty your hand first."}</p></div>
-        <section className="rounded-3xl border border-sky-300/20 bg-[#0b2741]/90 p-5 shadow-2xl sm:p-8">
+      <section className="relative mx-auto max-w-6xl px-6 pb-16 pt-10 lg:px-10"><div className="mb-8"><p className="text-xs font-bold uppercase tracking-[0.25em] text-sky-300">UNO game room</p><h1 className="mt-2 font-serif text-4xl font-bold sm:text-5xl">UNO</h1><p className="mt-2 text-sm text-sky-100/65">Choose a table to play with a friend or locally against the AI.</p></div>
+        <div className="mb-8 flex max-w-md rounded-xl border border-white/10 bg-slate-950/40 p-1" role="tablist" aria-label="UNO game mode"><button role="tab" aria-selected={unoTab === "multiplayer"} onClick={() => setUnoTab("multiplayer")} className={`flex-1 rounded-lg px-4 py-3 text-sm font-bold transition ${unoTab === "multiplayer" ? "bg-emerald-300 text-[#092f2b]" : "text-sky-100/65 hover:bg-white/10 hover:text-white"}`}>Multiplayer</button><button role="tab" aria-selected={unoTab === "local"} onClick={() => setUnoTab("local")} className={`flex-1 rounded-lg px-4 py-3 text-sm font-bold transition ${unoTab === "local" ? "bg-sky-400 text-[#071426]" : "text-sky-100/65 hover:bg-white/10 hover:text-white"}`}>Local vs AI</button></div>
+        {unoTab === "multiplayer" && <section className="mb-8 rounded-3xl border border-emerald-300/20 bg-[#092f2b]/90 p-5 shadow-2xl sm:p-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div><p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-300">Self-hosted multiplayer</p><h2 className="mt-2 font-serif text-2xl font-bold">Play UNO with a friend</h2><p className="mt-2 max-w-xl text-sm text-emerald-100/65">Create a room on this server, share its code, and play regular UNO in real time. Your opponent never receives your hand.</p></div>
+            <div className="flex flex-col gap-2 sm:flex-row"><input value={multiplayerName} onChange={(event) => setMultiplayerName(event.target.value)} placeholder="Your name" disabled={!!multiplayer} className="rounded-lg border border-emerald-200/20 bg-slate-950/50 px-3 py-2 text-sm text-white outline-none focus:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-50" /><select value={multiplayerRuleset} onChange={(event) => setMultiplayerRuleset(event.target.value as UnoRuleset)} disabled={!!multiplayer} className="rounded-lg border border-emerald-200/20 bg-slate-900 px-3 py-2 text-sm font-semibold text-white outline-none focus:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"><option value="regular">Regular UNO</option><option value="no-mercy">UNO No Mercy</option></select><button onClick={createMultiplayerRoom} disabled={!!multiplayer || !multiplayerName.trim()} className="rounded-lg bg-emerald-300 px-4 py-2 text-sm font-bold text-[#092f2b] hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-40">Create room</button></div>
+          </div>
+          <div className="mt-5 flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row sm:items-center"><input value={multiplayerCode} onChange={(event) => setMultiplayerCode(event.target.value.toUpperCase())} placeholder="ROOM CODE" maxLength={6} disabled={!!multiplayer} className="w-full rounded-lg border border-emerald-200/20 bg-slate-950/50 px-3 py-2 font-mono text-sm uppercase tracking-widest text-white outline-none focus:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-50 sm:w-40" /><button onClick={joinMultiplayerRoom} disabled={!multiplayerCode || !multiplayerName.trim() || !!multiplayer} className="rounded-lg border border-emerald-300/50 px-4 py-2 text-sm font-bold text-emerald-100 hover:bg-emerald-300/10 disabled:cursor-not-allowed disabled:opacity-40">Join room</button><button onClick={() => void spectateMultiplayerRoom()} disabled={!multiplayerCode || !multiplayerName.trim() || !!multiplayer} className="rounded-lg border border-emerald-300/50 px-4 py-2 text-sm font-bold text-emerald-100 hover:bg-emerald-300/10 disabled:cursor-not-allowed disabled:opacity-40">Spectate</button><button onClick={() => void reconnectMultiplayerRoom()} disabled={!!multiplayer} className="rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-emerald-100/75 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40">Reconnect saved room</button>{multiplayer && <><span className="text-sm text-emerald-100/70">You: <strong className="text-emerald-200">{multiplayer.playerName}</strong> · Room <strong className="font-mono tracking-widest text-emerald-200">{multiplayer.code}</strong> · {multiplayer.players.length}/2 players · {multiplayer.spectators.length} watching</span><button onClick={leaveMultiplayerRoom} className="rounded-lg border border-red-300/40 px-4 py-2 text-sm font-semibold text-red-200 hover:bg-red-300/10">Leave room</button></>}</div>
+          {multiplayer && multiplayer.players.length === 2 && <div className="mt-6 rounded-2xl border border-emerald-300/10 bg-[#071f1d]/80 p-5"><div className="flex items-center justify-between text-sm text-emerald-100/70"><span>{multiplayer.role === "spectator" ? `Spectating · ${multiplayer.spectators.length} watching` : `${multiplayer.opponent?.name ?? "Opponent"}: ${multiplayer.opponentCardCount} cards`}</span><span>{multiplayer.role === "spectator" ? "Spectator view" : multiplayer.winner ? `${multiplayer.settledCount}/2 settled` : multiplayer.bothPlayersReady ? (multiplayer.isYourTurn ? "Your turn" : "Opponent's turn") : `${multiplayer.readyCount}/2 ready`}</span></div>{multiplayer.role === "player" && !multiplayer.bothPlayersReady && <div className="mt-5 flex flex-col gap-3 rounded-xl border border-emerald-300/15 bg-slate-950/25 p-4 sm:flex-row sm:items-end"><div><label htmlFor="multiplayer-bet" className="text-xs font-bold uppercase tracking-wider text-emerald-100/65">{multiplayer.winner ? "Rematch stake" : "Stake"}</label>{multiplayer.stake !== null && <p className="mt-1 text-xs text-emerald-200">Room stake: {multiplayer.stake.toFixed(2)} moose bucks</p>}<div className="mt-2 flex items-center gap-2"><input id="multiplayer-bet" type="number" min="1" max="250" value={multiplayerBet || ""} onChange={(event) => setMultiplayerBet(Number(event.target.value) || 0)} disabled={multiplayer.isReady} className="w-32 rounded-lg border border-emerald-200/20 bg-slate-900 px-3 py-2 text-lg font-bold text-white outline-none focus:border-emerald-300" /><span className="text-sm text-emerald-100/65">moose bucks</span></div></div><button onClick={() => void readyMultiplayer()} disabled={multiplayer.isReady} className="rounded-lg bg-emerald-300 px-4 py-2 text-sm font-bold text-[#092f2b] disabled:cursor-not-allowed disabled:opacity-40">{multiplayer.isReady ? "Stake placed" : multiplayer.winner ? "Play rematch" : "Place stake & ready"}</button></div>}<div className="my-5 flex items-center justify-center gap-4"><CardView hidden /><CardView card={multiplayer.top ?? undefined} /><div className={`flex h-12 w-12 items-center justify-center rounded-full text-[10px] font-bold uppercase ${cardStyle[multiplayer.activeColor]}`}>{colorLabels[multiplayer.activeColor]}</div></div><div className="flex flex-wrap items-end justify-center gap-2">{multiplayer.hand.map((card) => <CardView key={card.id} card={card} onClick={() => playMultiplayerCard(card)} playable={multiplayerCardIsPlayable(card)} dim={!multiplayerCardIsPlayable(card)} />)}</div><div className="mt-5 flex justify-center gap-3"><button onClick={() => void sendMultiplayerMove({ type: "draw" })} disabled={multiplayer.role !== "player" || !multiplayer.bothPlayersReady || !multiplayer.isYourTurn || multiplayer.drawnId !== null || !!multiplayer.winner} className="rounded-lg border border-emerald-300/50 px-4 py-2 text-sm font-bold text-emerald-100 disabled:opacity-40">Draw</button><button onClick={() => void sendMultiplayerMove({ type: "pass" })} disabled={multiplayer.role !== "player" || !multiplayer.bothPlayersReady || !multiplayer.isYourTurn || multiplayer.drawnId === null || !!multiplayer.winner} className="rounded-lg border border-emerald-300/50 px-4 py-2 text-sm font-bold text-emerald-100 disabled:opacity-40">Pass</button></div><p className="mt-4 text-center text-sm text-emerald-100" aria-live="polite">{multiplayer.winner ? `${multiplayer.winner} wins!` : multiplayer.message}</p></div>}
+          {multiplayerMessage && <p className="mt-4 text-sm text-emerald-200" aria-live="polite">{multiplayerMessage}</p>}
+        </section>}
+        {unoTab === "local" && <section className="rounded-3xl border border-sky-300/20 bg-[#0b2741]/90 p-5 shadow-2xl sm:p-8">
           <div className="mb-6 flex flex-col justify-between gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-start"><div><p className="text-xs uppercase tracking-wider text-sky-100/55">Banking balance</p><p className="mt-1 text-2xl font-bold text-sky-200">{balance.toFixed(2)} <span className="text-sm font-normal text-sky-100/55">moose bucks</span></p><p className="mt-2 text-xs text-sky-100/55">UNO returns 95% of a winning profit plus your original stake.</p></div><div className="flex items-center gap-3"><div className="rounded-xl border border-white/10 bg-slate-950/40 px-4 py-3"><p className="text-xs uppercase tracking-wider text-sky-100/55">AI hand</p><p className="mt-1 text-xl font-bold text-sky-200">{g.ai.length} cards</p></div><button onClick={startGame} disabled={inProgress} className="rounded-xl bg-sky-400 px-5 py-3 text-sm font-bold text-[#071426] hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-40">{inProgress ? "Game in progress" : "New game"}</button></div></div>
           <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
             <div>
@@ -424,7 +604,7 @@ export default function Uno() {
               </div>
             </aside>
           </div>
-        </section>
+        </section>}
       </section>
     </main>
   );

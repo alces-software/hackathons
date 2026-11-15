@@ -13,8 +13,11 @@ services:
       BANKING_SERVICE_TOKEN: ${BANKING_SERVICE_TOKEN:?Set BANKING_SERVICE_TOKEN in .env}
       CASINO_USERNAME: ${CASINO_USERNAME:-AlcesCasino}
       CASINO_PASSWORD: ${CASINO_PASSWORD:?Set CASINO_PASSWORD in .env}
+      UNO_SESSION_SECRET: ${UNO_SESSION_SECRET:?Set UNO_SESSION_SECRET in .env}
     ports:
       - "3000:3000"
+    volumes:
+      - casino-data:/data
     restart: unless-stopped
     init: true
     healthcheck:
@@ -27,3 +30,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+
+volumes:
+  casino-data:

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
+import MultiplayerBattleships from "./MultiplayerBattleships";
 
 const SIZE = 8;
 const MAX_BET = 250;
@@ -142,6 +143,7 @@ function Crosshair({ className = "text-white" }: { className?: string }) {
 
 
 export default function Battleships() {
+  const [gameTab, setGameTab] = useState<"local" | "multiplayer">("multiplayer");
   const [balance, setBalance] = useBankingBalance();
   const [bet, setBet] = useState(25);
   const [phase, setPhase] = useState<Phase>("setup");
@@ -738,7 +740,14 @@ export default function Battleships() {
           <p className="mt-2 text-sm text-sky-100/65">Hide your fleet, then out-hunt the enemy — the first to sink every ship wins.</p>
         </div>
 
-        <section className="rounded-3xl border border-sky-300/20 bg-[#0b2741]/90 p-5 shadow-2xl sm:p-8">
+        <div className="mb-8 flex max-w-md rounded-xl border border-white/10 bg-slate-950/40 p-1" role="tablist" aria-label="Battleships game mode">
+          <button role="tab" aria-selected={gameTab === "multiplayer"} onClick={() => setGameTab("multiplayer")} className={`flex-1 rounded-lg px-4 py-3 text-sm font-bold ${gameTab === "multiplayer" ? "bg-emerald-300 text-[#092f2b]" : "text-sky-100/65 hover:bg-white/10"}`}>Multiplayer</button>
+          <button role="tab" aria-selected={gameTab === "local"} onClick={() => setGameTab("local")} className={`flex-1 rounded-lg px-4 py-3 text-sm font-bold ${gameTab === "local" ? "bg-sky-400 text-[#071426]" : "text-sky-100/65 hover:bg-white/10"}`}>Local vs AI</button>
+        </div>
+
+        {gameTab === "multiplayer" && <MultiplayerBattleships />}
+
+        {gameTab === "local" && <section className="rounded-3xl border border-sky-300/20 bg-[#0b2741]/90 p-5 shadow-2xl sm:p-8">
           <div className="mb-6 flex flex-col justify-between gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-start">
             <div className="flex gap-8">
               <div>
@@ -940,7 +949,7 @@ export default function Battleships() {
               )}
             </div>
           </div>
-        </section>
+        </section>}
       </section>
     </main>
   );
