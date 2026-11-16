@@ -7,7 +7,7 @@ export type UnoPlayColor = Exclude<UnoColor, "wild">;
 export type UnoValue = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "skip" | "reverse" | "draw2" | "wild" | "draw4" | "draw6" | "draw10" | "switch" | "discardColor" | "drawColor";
 export type UnoCard = { id: number; color: UnoColor; value: UnoValue };
 export type UnoRuleset = "regular" | "no-mercy";
-export type UnoAction = { type: "play"; cardId: number; color?: UnoPlayColor } | { type: "draw" } | { type: "pass" } | { type: "ready"; stake: number } | { type: "settle" } | { type: "configure"; ruleset: UnoRuleset };
+export type UnoAction = { type: "play"; cardId: number; color?: UnoPlayColor; targetPlayerId?: string } | { type: "draw" } | { type: "pass" } | { type: "ready"; stake: number } | { type: "settle" } | { type: "configure"; ruleset: UnoRuleset };
 export type UnoPlayer = { id: string; name: string };
 
 export type UnoRoom = {
@@ -305,8 +305,12 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
     if (room.drawnId !== null) throw new Error("Play the card you drew, or pass.");
     if (room.pendingDrawColor !== null) {
       let drawn = 0;
-      while (room.deck.length > 0 && room.hands[playerId].every((card) => card.color !== room.pendingDrawColor)) {
+      let lastDrawnColor: UnoColor | null = null;
+      while (room.deck.length > 0 && lastDrawnColor !== room.pendingDrawColor) {
+        const before = room.hands[playerId].length;
         drawCards(room, playerId, 1);
+        if (room.hands[playerId].length === before) break;
+        lastDrawnColor = room.hands[playerId][room.hands[playerId].length - 1].color;
         drawn += 1;
       }
       room.pendingDrawColor = null;
@@ -356,6 +360,10 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
     const card = hand[cardIndex];
     if (!card || !canPlay(card, top, room)) throw new Error("That card cannot be played.");
     if (card.color === "wild" && !action.color) throw new Error("Choose a color for the wild card.");
+    const switchTarget = card.value === "switch" && room.ruleset === "no-mercy"
+      ? room.players.find((roomPlayer) => roomPlayer.id === action.targetPlayerId && roomPlayer.id !== playerId)
+      : null;
+    if (card.value === "switch" && room.ruleset === "no-mercy" && !switchTarget) throw new Error("Choose another player to switch hands with.");
     hand.splice(cardIndex, 1);
     const wentOut = hand.length === 0; // judged before Hand Switch swaps the arrays
     room.discard.push(card);
@@ -365,10 +373,9 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
     if (card.value === "drawColor" && room.ruleset === "no-mercy") room.pendingDrawColor = room.activeColor;
     if (card.value === "discardColor" && room.ruleset === "no-mercy") room.hands[playerId] = hand.filter((item) => item.color !== room.activeColor);
     if (card.value === "switch" && room.ruleset === "no-mercy") {
-      const next = nextPlayer(room, playerId);
-      const nextHand = room.hands[next.id];
-      room.hands[next.id] = room.hands[playerId];
-      room.hands[playerId] = nextHand;
+      const targetHand = room.hands[switchTarget!.id];
+      room.hands[switchTarget!.id] = room.hands[playerId];
+      room.hands[playerId] = targetHand;
     }
     const emptiedByDiscardColor = card.value === "discardColor" && room.ruleset === "no-mercy" && room.hands[playerId].length === 0;
     if (wentOut || emptiedByDiscardColor) {
@@ -412,6 +419,9 @@ export function viewUnoRoom(room: UnoRoom, playerId: string) {
     top: room.discard[room.discard.length - 1] ?? null,
     activeColor: room.activeColor,
     isYourTurn: isPlayer && room.turn === playerId,
+    currentTurn: room.players.find((player) => player.id === room.turn)?.name ?? "Unknown player",
+    direction: room.direction,
+    turnOrder: room.players.map((player) => player.name),
     drawnId: room.drawnId,
     pendingDraw: room.pendingDraw,
     pendingDrawColor: room.pendingDrawColor,
