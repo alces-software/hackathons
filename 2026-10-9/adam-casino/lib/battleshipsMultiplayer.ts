@@ -30,6 +30,7 @@ export type BattleshipRoom = {
   turn: string;
   winner: string | null;
   winnerId: string | null;
+  lastShot: { playerId: string; cell: number; hit: boolean; sunkShip: string | null } | null;
   round: number;
   message: string;
   updatedAt: number;
@@ -71,6 +72,7 @@ function load() {
       room.settledPlayers ??= [];
       room.stake ??= null;
       room.round ??= 0;
+      room.lastShot ??= null;
       room.winnerId ??= room.winner ? room.players.find((player) => player.name === room.winner)?.id ?? null : null;
       rooms.set(room.code, room);
     });
@@ -124,6 +126,7 @@ function resetRound(room: BattleshipRoom) {
   room.stake = null;
   room.winner = null;
   room.winnerId = null;
+  room.lastShot = null;
   room.turn = room.players[0].id;
   room.round += 1;
   room.message = "Rematch! Place your fleets, then both players must ready up.";
@@ -147,6 +150,7 @@ export function createBattleshipRoom(rawName: string) {
     turn: id,
     winner: null,
     winnerId: null,
+    lastShot: null,
     round: 0,
     message: "Waiting for another player to join.",
     updatedAt: Date.now(),
@@ -236,7 +240,11 @@ export function applyBattleshipAction(room: BattleshipRoom, id: string, action: 
   const targetShips = room.ships[other.id];
   const hit = targetShips.some((ship) => ship.cells.includes(action.cell));
   shooterShots[action.cell] = hit ? "hit" : "miss";
-  room.message = `${player.name} fired at ${String.fromCharCode(65 + (action.cell % 8))}${Math.floor(action.cell / 8) + 1}: ${hit ? "hit" : "miss"}.`;
+  const sunkShip = hit
+    ? targetShips.find((ship) => ship.cells.includes(action.cell) && ship.cells.every((cell) => shooterShots[cell] === "hit"))?.name ?? null
+    : null;
+  room.lastShot = { playerId: id, cell: action.cell, hit, sunkShip };
+  room.message = `${player.name} fired at ${String.fromCharCode(65 + (action.cell % 8))}${Math.floor(action.cell / 8) + 1}: ${sunkShip ? `hit and sank the ${sunkShip}!` : hit ? "hit." : "miss."}`;
   if (sunk(targetShips, shooterShots)) {
     room.winner = player.name;
     room.winnerId = id;
@@ -254,6 +262,20 @@ export function viewBattleshipRoom(room: BattleshipRoom, id: string) {
   const opponent = room.players.find((item) => item.id !== id) ?? null;
   const ownShips = player ? room.ships[id] : [];
   const ownShots = player ? room.shots[id] : emptyBoard();
+  const battleOn = room.readyPlayers.length === 2 && !room.winner;
+  const shotCount = room.players.reduce((total, member) => total + room.shots[member.id].filter((cell) => cell !== "water").length, 0);
+  const lastShooter = room.lastShot ? room.players.find((member) => member.id === room.lastShot!.playerId) : undefined;
+  // Only reveal enemy ships that are fully sunk (or every ship once the round is over).
+  const enemyFleet = player && opponent
+    ? BATTLESHIP_FLEET.map((definition) => {
+        const ship = room.ships[opponent.id].find((item) => item.name === definition.name);
+        const isSunk = !!ship && ship.cells.every((cell) => ownShots[cell] === "hit");
+        return { name: definition.name, length: definition.length, sunk: isSunk, cells: isSunk ? ship!.cells : [] };
+      })
+    : [];
+  const revealedEnemyCells = room.winner && player && opponent
+    ? room.ships[opponent.id].flatMap((ship) => ship.cells).filter((cell) => ownShots[cell] !== "hit")
+    : [];
   return {
     code: room.code,
     role: spectator ? "spectator" : "player",
@@ -266,6 +288,16 @@ export function viewBattleshipRoom(room: BattleshipRoom, id: string) {
     ownShots,
     opponentShotCount: player && opponent ? room.shots[opponent.id].filter((cell) => cell !== "water").length : 0,
     opponentHitCount: player && opponent ? room.shots[opponent.id].filter((cell) => cell === "hit").length : 0,
+    opponentShots: player && opponent ? room.shots[opponent.id] : emptyBoard(),
+    enemyFleet,
+    revealedEnemyCells,
+    turnName: battleOn ? room.players.find((member) => member.id === room.turn)?.name ?? null : null,
+    lastShot: room.lastShot && lastShooter
+      ? { byYou: lastShooter.id === id, byName: lastShooter.name, cell: room.lastShot.cell, hit: room.lastShot.hit, sunkShip: room.lastShot.sunkShip, n: shotCount }
+      : null,
+    watch: spectator
+      ? room.players.map((member, index) => ({ name: member.name, targetName: room.players[1 - index]?.name ?? "Opponent", shots: room.shots[member.id] }))
+      : [],
     opponentFleetPlaced: player && opponent ? room.ships[opponent.id].length === BATTLESHIP_FLEET.length : false,
     readyCount: room.readyPlayers.length,
     isReady: room.readyPlayers.includes(id),
