@@ -135,9 +135,10 @@ function drawUntilColor(g: Game, who: Who, color: PlayColor) {
 function canPlay(card: Card, top: Card, activeColor: PlayColor, pendingDraw = 0, ruleset: Ruleset = "regular", pendingDrawColor: PlayColor | null = null) {
   if (pendingDrawColor !== null) return false;
   if (pendingDraw > 0) {
-    const amount = drawAmount(card.value);
-    return amount > 0 && (ruleset === "no-mercy" ? amount >= pendingDraw : amount === pendingDraw);
-  }
+  const amount = drawAmount(card.value);
+  const topAmount = drawAmount(top.value);
+  return amount > 0 && (ruleset === "no-mercy" ? amount >= topAmount : amount === topAmount);
+}
   return card.color === "wild" || card.color === activeColor || card.value === top.value;
 }
 
@@ -412,6 +413,7 @@ export default function Uno() {
   }
 
   function leaveMultiplayerRoom() {
+    setMultiplayerPendingWild(null);
     setMultiplayer(null);
     setMultiplayerCode("");
     setMultiplayerPlayerId("");
@@ -442,24 +444,33 @@ export default function Uno() {
     }
   }
 
+  const [multiplayerPendingWild, setMultiplayerPendingWild] = useState<UnoCard | null>(null);
+
   function playMultiplayerCard(card: UnoCard) {
-    if (card.color !== "wild") {
-      void sendMultiplayerMove({ type: "play", cardId: card.id });
-      return;
-    }
-    const choice = window.prompt("Choose a color: red, yellow, green, or blue")?.toLowerCase();
-    if (choice && colors.includes(choice as PlayColor)) void sendMultiplayerMove({ type: "play", cardId: card.id, color: choice as PlayColor });
+  if (!multiplayerCardIsPlayable(card)) return;
+  if (card.color === "wild") {
+    setMultiplayerPendingWild(card);
+    return;
   }
+  void sendMultiplayerMove({ type: "play", cardId: card.id });
+}
 
   function multiplayerCardIsPlayable(card: UnoCard) {
     if (!multiplayer?.isYourTurn || multiplayer.winner || multiplayer.drawnId !== null) return false;
     if (multiplayer.pendingDrawColor !== null) return false;
     if (multiplayer.pendingDraw > 0) {
       const amount = drawAmount(card.value);
-      return amount > 0 && (multiplayer.ruleset === "no-mercy" ? amount >= multiplayer.pendingDraw : amount === multiplayer.pendingDraw);
+      const topAmount = multiplayer.top ? drawAmount(multiplayer.top.value) : 0;
+      return amount > 0 && (multiplayer.ruleset === "no-mercy" ? amount >= topAmount : amount === topAmount);
     }
     return card.color === "wild" || card.color === multiplayer.activeColor || card.value === multiplayer.top?.value;
   }
+
+  function chooseMultiplayerColor(color: PlayColor) {
+  if (!multiplayerPendingWild) return;
+  void sendMultiplayerMove({ type: "play", cardId: multiplayerPendingWild.id, color });
+  setMultiplayerPendingWild(null);
+}
 
   function isPlayable(card: Card, who: Who = "player") {
     const turnIsActive = who === "player" ? playerTurn : localOpponentTurn;
@@ -535,6 +546,7 @@ export default function Uno() {
     setG({ ...g, drawnId: null, turn: who === "player" ? "ai" : "player", message: who === "player" ? (g.mode === "local" ? "You kept the card. Pass the device to Player 2." : "You kept the card. AI is thinking...") : "Player 2 kept the card. Your turn." });
   }
 
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#071426] text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(37,99,235,0.32),_transparent_35%),radial-gradient(circle_at_bottom_left,_rgba(14,116,144,0.2),_transparent_32%)]" />
@@ -543,11 +555,20 @@ export default function Uno() {
         <div className="mb-8 flex max-w-md rounded-xl border border-white/10 bg-slate-950/40 p-1" role="tablist" aria-label="UNO game mode"><button role="tab" aria-selected={unoTab === "multiplayer"} onClick={() => setUnoTab("multiplayer")} className={`flex-1 rounded-lg px-4 py-3 text-sm font-bold transition ${unoTab === "multiplayer" ? "bg-emerald-300 text-[#092f2b]" : "text-sky-100/65 hover:bg-white/10 hover:text-white"}`}>Multiplayer</button><button role="tab" aria-selected={unoTab === "local"} onClick={() => setUnoTab("local")} className={`flex-1 rounded-lg px-4 py-3 text-sm font-bold transition ${unoTab === "local" ? "bg-sky-400 text-[#071426]" : "text-sky-100/65 hover:bg-white/10 hover:text-white"}`}>Local vs AI</button></div>
         {unoTab === "multiplayer" && <section className="mb-8 rounded-3xl border border-emerald-300/20 bg-[#092f2b]/90 p-5 shadow-2xl sm:p-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div><p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-300">Self-hosted multiplayer</p><h2 className="mt-2 font-serif text-2xl font-bold">Play UNO with a friend</h2><p className="mt-2 max-w-xl text-sm text-emerald-100/65">Create a room on this server, share its code, and play regular UNO in real time. Your opponent never receives your hand.</p></div>
+            <div><p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-300">Self-hosted multiplayer</p><h2 className="mt-2 font-serif text-2xl font-bold">Play UNO with a friend</h2><p className="mt-2 max-w-xl text-sm text-emerald-100/65">Create a room on this server, share its code, and play regular UNO or UNO No Mercy in real time. Your opponent never receives your hand.</p></div>
             <div className="flex flex-col gap-2 sm:flex-row"><input value={multiplayerName} onChange={(event) => setMultiplayerName(event.target.value)} placeholder="Your name" disabled={!!multiplayer} className="rounded-lg border border-emerald-200/20 bg-slate-950/50 px-3 py-2 text-sm text-white outline-none focus:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-50" /><select value={multiplayerRuleset} onChange={(event) => setMultiplayerRuleset(event.target.value as UnoRuleset)} disabled={!!multiplayer} className="rounded-lg border border-emerald-200/20 bg-slate-900 px-3 py-2 text-sm font-semibold text-white outline-none focus:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"><option value="regular">Regular UNO</option><option value="no-mercy">UNO No Mercy</option></select><button onClick={createMultiplayerRoom} disabled={!!multiplayer || !multiplayerName.trim()} className="rounded-lg bg-emerald-300 px-4 py-2 text-sm font-bold text-[#092f2b] hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-40">Create room</button></div>
           </div>
           <div className="mt-5 flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row sm:items-center"><input value={multiplayerCode} onChange={(event) => setMultiplayerCode(event.target.value.toUpperCase())} placeholder="ROOM CODE" maxLength={6} disabled={!!multiplayer} className="w-full rounded-lg border border-emerald-200/20 bg-slate-950/50 px-3 py-2 font-mono text-sm uppercase tracking-widest text-white outline-none focus:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-50 sm:w-40" /><button onClick={joinMultiplayerRoom} disabled={!multiplayerCode || !multiplayerName.trim() || !!multiplayer} className="rounded-lg border border-emerald-300/50 px-4 py-2 text-sm font-bold text-emerald-100 hover:bg-emerald-300/10 disabled:cursor-not-allowed disabled:opacity-40">Join room</button><button onClick={() => void spectateMultiplayerRoom()} disabled={!multiplayerCode || !multiplayerName.trim() || !!multiplayer} className="rounded-lg border border-emerald-300/50 px-4 py-2 text-sm font-bold text-emerald-100 hover:bg-emerald-300/10 disabled:cursor-not-allowed disabled:opacity-40">Spectate</button><button onClick={() => void reconnectMultiplayerRoom()} disabled={!!multiplayer} className="rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-emerald-100/75 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40">Reconnect saved room</button>{multiplayer && <><span className="text-sm text-emerald-100/70">You: <strong className="text-emerald-200">{multiplayer.playerName}</strong> · Room <strong className="font-mono tracking-widest text-emerald-200">{multiplayer.code}</strong> · {multiplayer.players.length}/2 players · {multiplayer.spectators.length} watching</span><button onClick={leaveMultiplayerRoom} className="rounded-lg border border-red-300/40 px-4 py-2 text-sm font-semibold text-red-200 hover:bg-red-300/10">Leave room</button></>}</div>
-          {multiplayer && multiplayer.players.length === 2 && <div className="mt-6 rounded-2xl border border-emerald-300/10 bg-[#071f1d]/80 p-5"><div className="flex items-center justify-between text-sm text-emerald-100/70"><span>{multiplayer.role === "spectator" ? `Spectating · ${multiplayer.spectators.length} watching` : `${multiplayer.opponent?.name ?? "Opponent"}: ${multiplayer.opponentCardCount} cards`}</span><span>{multiplayer.role === "spectator" ? "Spectator view" : multiplayer.winner ? `${multiplayer.settledCount}/2 settled` : multiplayer.bothPlayersReady ? (multiplayer.isYourTurn ? "Your turn" : "Opponent's turn") : `${multiplayer.readyCount}/2 ready`}</span></div>{multiplayer.role === "player" && !multiplayer.bothPlayersReady && <div className="mt-5 flex flex-col gap-3 rounded-xl border border-emerald-300/15 bg-slate-950/25 p-4 sm:flex-row sm:items-end"><div><label htmlFor="multiplayer-bet" className="text-xs font-bold uppercase tracking-wider text-emerald-100/65">{multiplayer.winner ? "Rematch stake" : "Stake"}</label>{multiplayer.stake !== null && <p className="mt-1 text-xs text-emerald-200">Room stake: {multiplayer.stake.toFixed(2)} moose bucks</p>}<div className="mt-2 flex items-center gap-2"><input id="multiplayer-bet" type="number" min="1" max="250" value={multiplayerBet || ""} onChange={(event) => setMultiplayerBet(Number(event.target.value) || 0)} disabled={multiplayer.isReady} className="w-32 rounded-lg border border-emerald-200/20 bg-slate-900 px-3 py-2 text-lg font-bold text-white outline-none focus:border-emerald-300" /><span className="text-sm text-emerald-100/65">moose bucks</span></div></div><button onClick={() => void readyMultiplayer()} disabled={multiplayer.isReady} className="rounded-lg bg-emerald-300 px-4 py-2 text-sm font-bold text-[#092f2b] disabled:cursor-not-allowed disabled:opacity-40">{multiplayer.isReady ? "Stake placed" : multiplayer.winner ? "Play rematch" : "Place stake & ready"}</button></div>}<div className="my-5 flex items-center justify-center gap-4"><CardView hidden /><CardView card={multiplayer.top ?? undefined} /><div className={`flex h-12 w-12 items-center justify-center rounded-full text-[10px] font-bold uppercase ${cardStyle[multiplayer.activeColor]}`}>{colorLabels[multiplayer.activeColor]}</div></div><div className="flex flex-wrap items-end justify-center gap-2">{multiplayer.hand.map((card) => <CardView key={card.id} card={card} onClick={() => playMultiplayerCard(card)} playable={multiplayerCardIsPlayable(card)} dim={!multiplayerCardIsPlayable(card)} />)}</div><div className="mt-5 flex justify-center gap-3"><button onClick={() => void sendMultiplayerMove({ type: "draw" })} disabled={multiplayer.role !== "player" || !multiplayer.bothPlayersReady || !multiplayer.isYourTurn || multiplayer.drawnId !== null || !!multiplayer.winner} className="rounded-lg border border-emerald-300/50 px-4 py-2 text-sm font-bold text-emerald-100 disabled:opacity-40">Draw</button><button onClick={() => void sendMultiplayerMove({ type: "pass" })} disabled={multiplayer.role !== "player" || !multiplayer.bothPlayersReady || !multiplayer.isYourTurn || multiplayer.drawnId === null || !!multiplayer.winner} className="rounded-lg border border-emerald-300/50 px-4 py-2 text-sm font-bold text-emerald-100 disabled:opacity-40">Pass</button></div><p className="mt-4 text-center text-sm text-emerald-100" aria-live="polite">{multiplayer.winner ? `${multiplayer.winner} wins!` : multiplayer.message}</p></div>}
+          {multiplayer && multiplayer.players.length === 2 && <div className="mt-6 rounded-2xl border border-emerald-300/10 bg-[#071f1d]/80 p-5"><div className="flex items-center justify-between text-sm text-emerald-100/70"><span>{multiplayer.role === "spectator" ? `Spectating · ${multiplayer.spectators.length} watching` : `${multiplayer.opponent?.name ?? "Opponent"}: ${multiplayer.opponentCardCount} cards`}</span><span>{multiplayer.role === "spectator" ? "Spectator view" : multiplayer.winner ? `${multiplayer.settledCount}/2 settled` : multiplayer.bothPlayersReady ? (multiplayer.isYourTurn ? "Your turn" : "Opponent's turn") : `${multiplayer.readyCount}/2 ready`}</span></div>{multiplayer.role === "player" && !multiplayer.bothPlayersReady && <div className="mt-5 flex flex-col gap-3 rounded-xl border border-emerald-300/15 bg-slate-950/25 p-4 sm:flex-row sm:items-end"><div><label htmlFor="multiplayer-bet" className="text-xs font-bold uppercase tracking-wider text-emerald-100/65">{multiplayer.winner ? "Rematch stake" : "Stake"}</label>{multiplayer.stake !== null && <p className="mt-1 text-xs text-emerald-200">Room stake: {multiplayer.stake.toFixed(2)} moose bucks</p>}<div className="mt-2 flex items-center gap-2"><input id="multiplayer-bet" type="number" min="1" max="250" value={multiplayerBet || ""} onChange={(event) => setMultiplayerBet(Number(event.target.value) || 0)} disabled={multiplayer.isReady} className="w-32 rounded-lg border border-emerald-200/20 bg-slate-900 px-3 py-2 text-lg font-bold text-white outline-none focus:border-emerald-300" /><span className="text-sm text-emerald-100/65">moose bucks</span></div></div><button onClick={() => void readyMultiplayer()} disabled={multiplayer.isReady} className="rounded-lg bg-emerald-300 px-4 py-2 text-sm font-bold text-[#092f2b] disabled:cursor-not-allowed disabled:opacity-40">{multiplayer.isReady ? "Stake placed" : multiplayer.winner ? "Play rematch" : "Place stake & ready"}</button></div>}<div className="my-5 flex items-center justify-center gap-4"><CardView hidden /><CardView card={multiplayer.top ?? undefined} /><div className={`flex h-12 w-12 items-center justify-center rounded-full text-[10px] font-bold uppercase ${cardStyle[multiplayer.activeColor]}`}>{colorLabels[multiplayer.activeColor]}</div></div>
+            <div className="flex flex-wrap items-end justify-center gap-2">{multiplayer.hand.map((card) => <CardView key={card.id} card={card} onClick={() => playMultiplayerCard(card)} playable={multiplayerCardIsPlayable(card) && !multiplayerPendingWild} dim={!multiplayerCardIsPlayable(card)} />)}</div>
+            {multiplayerPendingWild && multiplayer.isYourTurn && (
+              <div className="mt-6 text-center" role="group" aria-label="Choose a color for your wild card">
+                <p className="mb-3 text-sm font-semibold text-emerald-100">Choose a color for your {describe(multiplayerPendingWild)}</p>
+                <div className="flex justify-center gap-3">{colors.map((color) => <button key={color} onClick={() => chooseMultiplayerColor(color)} className={`h-12 w-12 rounded-full border-4 border-white/80 text-xs font-bold shadow-lg transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 ${cardStyle[color]}`} aria-label={colorLabels[color]}>{colorLabels[color][0]}</button>)}</div>
+                <button onClick={() => setMultiplayerPendingWild(null)} className="mt-3 text-xs text-emerald-100/65 hover:text-white">Cancel</button>
+              </div>
+            )}
+            <div className="mt-5 flex justify-center gap-3"><button onClick={() => void sendMultiplayerMove({ type: "draw" })} disabled={multiplayer.role !== "player" || !multiplayer.bothPlayersReady || !multiplayer.isYourTurn || multiplayer.drawnId !== null || !!multiplayer.winner || !!multiplayerPendingWild} className="rounded-lg border border-emerald-300/50 px-4 py-2 text-sm font-bold text-emerald-100 disabled:opacity-40">Draw</button><button onClick={() => void sendMultiplayerMove({ type: "pass" })} disabled={multiplayer.role !== "player" || !multiplayer.bothPlayersReady || !multiplayer.isYourTurn || multiplayer.drawnId === null || !!multiplayer.winner || !!multiplayerPendingWild} className="rounded-lg border border-emerald-300/50 px-4 py-2 text-sm font-bold text-emerald-100 disabled:opacity-40">Pass</button></div><p className="mt-4 text-center text-sm text-emerald-100" aria-live="polite">{multiplayer.winner ? `${multiplayer.winner} wins!` : multiplayer.message}</p></div>}
           {multiplayerMessage && <p className="mt-4 text-sm text-emerald-200" aria-live="polite">{multiplayerMessage}</p>}
         </section>}
         {unoTab === "local" && <section className="rounded-3xl border border-sky-300/20 bg-[#0b2741]/90 p-5 shadow-2xl sm:p-8">

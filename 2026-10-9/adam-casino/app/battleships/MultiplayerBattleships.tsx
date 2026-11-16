@@ -20,6 +20,9 @@ type View = {
   isReady: boolean;
   isYourTurn: boolean;
   winner: string | null;
+  youWon: boolean;
+  hasSettled: boolean;
+  round: number;
   stake: number | null;
   settledCount: number;
   message: string;
@@ -77,6 +80,7 @@ export default function MultiplayerBattleships() {
   const [horizontal, setHorizontal] = useState(true);
   const [hover, setHover] = useState<number | null>(null);
   const [stake, setStake] = useState(25);
+  const [busy, setBusy] = useState(false);
   const [balance, setBalance] = useBankingBalance();
   const settledRef = useRef<string | null>(null);
 
@@ -106,13 +110,15 @@ export default function MultiplayerBattleships() {
   }, [canPlace]);
 
   // Settle the bank exactly once per finished round on this client.
+  // The server decides who won (youWon) and whether this player has already settled,
+  // so identical names or a page refresh can't cause a wrong or double settlement.
   useEffect(() => {
-    if (!view?.winner || view.role !== "player" || view.settledCount >= 2) return;
-    const key = `${view.code}:${view.winner}:${view.stake}`;
+    if (!view?.winner || view.role !== "player" || view.hasSettled || view.stake === null) return;
+    const key = `${view.code}:${view.round}`;
     if (settledRef.current === key) return;
     settledRef.current = key;
-    const won = view.winner === view.playerName;
-    const roundStake = view.stake ?? 0;
+    const won = view.youWon;
+    const roundStake = view.stake;
     bankingReturn(roundStake)
       .then(() => (won ? bankingPayout(roundStake) : bankingLoss(roundStake)))
       .then(() => syncBankingBalance(setBalance))
@@ -213,19 +219,44 @@ export default function MultiplayerBattleships() {
   }
 
   async function ready() {
-    if (!view || ships.length !== BATTLESHIP_FLEET.length || stake < 1 || stake > 250) return;
-    if (view.stake !== null && view.stake !== stake) {
+    if (!view || busy || ships.length !== BATTLESHIP_FLEET.length) return;
+    // The server rounds stakes to cents, so do the same here to keep both sides identical.
+    const roundStake = Math.round(stake * 100) / 100;
+    if (!Number.isFinite(roundStake) || roundStake < 1 || roundStake > 250) {
+      setMessage("Stake must be between 1 and 250 moose bucks.");
+      return;
+    }
+    if (view.stake !== null && view.stake !== roundStake) {
       setMessage(`Match the room stake of ${view.stake.toFixed(2)}.`);
       return;
     }
+    if (roundStake > balance) {
+      setMessage("You don't have enough moose bucks for that stake.");
+      return;
+    }
+    setBusy(true);
+    let staked = false;
     try {
       await request({ action: "move", code: view.code, playerToken: token, move: { type: "place", ships } });
-      await bankingStake(stake, "battleships", stake * 2);
+      await bankingStake(roundStake, "battleships", roundStake * 2);
+      staked = true;
       await syncBankingBalance(setBalance);
-      await request({ action: "move", code: view.code, playerToken: token, move: { type: "ready", stake } });
+      await request({ action: "move", code: view.code, playerToken: token, move: { type: "ready", stake: roundStake } });
+      staked = false; // the server accepted the stake, so it stays in play
       setMessage("");
     } catch (error) {
+      // If the stake was taken but the server rejected the ready-up, give it back.
+      if (staked) {
+        try {
+          await bankingReturn(roundStake);
+          await syncBankingBalance(setBalance);
+        } catch {
+          /* the original error below is more useful to show */
+        }
+      }
       setMessage(error instanceof Error ? error.message : "Could not place stake.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -268,7 +299,7 @@ export default function MultiplayerBattleships() {
         <div>
           <p className="text-xs uppercase tracking-wider text-emerald-200/65">Room {view.code} · {view.players.length}/2 players · {view.spectators.length} watching</p>
           <h2 className="mt-1 text-2xl font-bold">
-            {isSpectator ? "Spectator view" : view.winner ? `${view.winner} wins` : view.isYourTurn ? "Your turn" : "Opponent's turn"}
+            {isSpectator ? "Spectator view" : view.winner ? `${view.winner} wins` : view.isReady && view.readyCount < 2 ? "Waiting for opponent" : view.isYourTurn ? "Your turn" : view.readyCount === 2 ? "Opponent's turn" : "Place your fleet"}
           </h2>
         </div>
         <button onClick={leave} className="rounded-lg border border-red-300/40 px-3 py-2 text-sm text-red-200">Leave room</button>
@@ -301,7 +332,7 @@ export default function MultiplayerBattleships() {
           <h3 className="mb-2 font-bold">Your fleet</h3>
           <div className="grid grid-cols-8 gap-1" onMouseLeave={() => setHover(null)}>
             {emptyBoard().map((_, cell) => {
-              // Once readied, the server's copy of the fleet (with opponent hits) is the source of truth.
+              // Once readied, the server's copy of the fleet is the source of truth.
               const serverShip = view.ownShips.find((s) => s.cells.includes(cell));
               const ship = placing ? ownCells.get(cell) : serverShip ?? ownCells.get(cell);
               const previewing = placing && previewSet.has(cell);
@@ -370,10 +401,10 @@ export default function MultiplayerBattleships() {
             <button onClick={clearFleet} className="rounded border border-white/20 px-3 py-2 text-sm">Clear</button>
             <button
               onClick={() => void ready()}
-              disabled={ships.length !== BATTLESHIP_FLEET.length || view.players.length < 2}
+              disabled={busy || ships.length !== BATTLESHIP_FLEET.length || view.players.length < 2}
               className="rounded bg-emerald-300 px-4 py-2 text-sm font-bold text-[#092f2b] disabled:opacity-40"
             >
-              Place fleet &amp; ready
+              {busy ? "Placing stake…" : "Place fleet & ready"}
             </button>
           </div>
           {view.players.length < 2 && <p className="mt-2 text-xs text-emerald-100/65">Waiting for an opponent to join before you can ready up.</p>}

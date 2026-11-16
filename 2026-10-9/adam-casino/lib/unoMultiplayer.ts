@@ -122,8 +122,10 @@ function drawAmount(value: UnoValue) {
 function canPlay(card: UnoCard, top: UnoCard, room: UnoRoom) {
   if (room.pendingDrawColor !== null) return false;
   if (room.pendingDraw > 0) {
+    // Compare against the last draw card played, not the running total.
     const amount = drawAmount(card.value);
-    return amount > 0 && (room.ruleset === "no-mercy" ? amount >= room.pendingDraw : amount === room.pendingDraw);
+    const topAmount = drawAmount(top.value);
+    return amount > 0 && (room.ruleset === "no-mercy" ? amount >= topAmount : amount === topAmount);
   }
   if (room.drawnId !== null) return card.id === room.drawnId;
   if (room.deck.length === 0 && room.discard.length <= 1) return false;
@@ -252,6 +254,7 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
       room.activeColor = firstCard.color as UnoPlayColor;
       room.pendingDraw = 0;
       room.pendingDrawColor = null;
+      room.drawnId = null;
       room.winner = null;
       room.settledPlayers = [];
       room.turn = room.players[0].id;
@@ -284,6 +287,7 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
   const player = room.players.find((item) => item.id === playerId)!;
 
   if (action.type === "draw") {
+    if (room.drawnId !== null) throw new Error("Play the card you drew, or pass.");
     if (room.pendingDrawColor !== null) {
       let drawn = 0;
       while (room.deck.length > 0 && room.hands[playerId].every((card) => card.color !== room.pendingDrawColor)) {
@@ -291,6 +295,7 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
         drawn += 1;
       }
       room.pendingDrawColor = null;
+      room.drawnId = null;
       room.turn = otherPlayer.id;
       room.message = `${player.name} drew ${drawn} cards until finding the active color.`;
       if (room.ruleset === "no-mercy" && hand.length >= 25) {
@@ -301,18 +306,30 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
       saveRooms();
       return;
     }
-    const count = room.pendingDraw > 0 ? room.pendingDraw : drawAmount(top.value) || 1;
+
+    const forced = room.pendingDraw > 0;
+    const count = forced ? room.pendingDraw : 1; // never infer the count from the top card
     const handSizeBeforeDraw = hand.length;
     drawCards(room, playerId, count);
-    room.drawnId = room.hands[playerId].length > handSizeBeforeDraw ? room.hands[playerId][room.hands[playerId].length - 1].id : null;
-    if (room.pendingDraw > 0 || count > 1 || room.drawnId === null) {
-      room.pendingDraw = 0;
-      room.turn = otherPlayer.id;
-    }
-    room.message = `${player.name} drew ${count} card${count === 1 ? "" : "s"}.`;
+    const gained = hand.length - handSizeBeforeDraw;
+    room.pendingDraw = 0;
+    room.drawnId = null; // always reset so it can never leak to the other player
+
     if (room.ruleset === "no-mercy" && hand.length >= 25) {
       room.winner = otherPlayer.name;
       room.message = `${player.name} reached 25 cards and was knocked out.`;
+    } else if (forced || gained === 0) {
+      room.turn = otherPlayer.id;
+      room.message = gained === 0 ? `${player.name} had nothing left to draw.` : `${player.name} drew ${gained} cards.`;
+    } else {
+      const drawnCard = hand[hand.length - 1];
+      if (canPlay(drawnCard, top, room)) {
+        room.drawnId = drawnCard.id; // only now may the player keep it and pass
+        room.message = `${player.name} drew a card and may play it or pass.`;
+      } else {
+        room.turn = otherPlayer.id; // unplayable: turn ends automatically, like vs AI
+        room.message = `${player.name} drew a card.`;
+      }
     }
   } else if (action.type === "pass") {
     if (room.drawnId === null) throw new Error("Draw a card before passing.");
@@ -325,6 +342,7 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
     if (!card || !canPlay(card, top, room)) throw new Error("That card cannot be played.");
     if (card.color === "wild" && !action.color) throw new Error("Choose a color for the wild card.");
     hand.splice(cardIndex, 1);
+    const wentOut = hand.length === 0; // judged before Hand Switch swaps the arrays
     room.discard.push(card);
     room.activeColor = card.color === "wild" ? action.color! : card.color;
     room.drawnId = null;
@@ -336,7 +354,8 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
       room.hands[otherPlayer.id] = room.hands[playerId];
       room.hands[playerId] = opponentHand;
     }
-    if (hand.length === 0) {
+    const emptiedByDiscardColor = card.value === "discardColor" && room.ruleset === "no-mercy" && room.hands[playerId].length === 0;
+    if (wentOut || emptiedByDiscardColor) {
       room.winner = player.name;
       room.message = `${player.name} wins!`;
     } else {
