@@ -11,10 +11,6 @@ import {
   type BattleshipRoom,
 } from "../../../../lib/battleshipsMultiplayer";
 
-// Rooms live in server memory and the event stream is long-lived, so never cache or statically render this route.
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
 function errorResponse(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
