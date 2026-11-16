@@ -456,7 +456,8 @@ export default function Uno() {
 }
 
   function multiplayerCardIsPlayable(card: UnoCard) {
-    if (!multiplayer?.isYourTurn || multiplayer.winner || multiplayer.drawnId !== null) return false;
+    if (!multiplayer?.isYourTurn || multiplayer.winner) return false;
+    if (multiplayer.drawnId !== null) return card.id === multiplayer.drawnId;
     if (multiplayer.pendingDrawColor !== null) return false;
     if (multiplayer.pendingDraw > 0) {
       const amount = drawAmount(card.value);
