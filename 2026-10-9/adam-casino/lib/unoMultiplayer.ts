@@ -13,6 +13,7 @@ export type UnoPlayer = { id: string; name: string };
 export type UnoRoom = {
   code: string;
   hostId: string;
+  maxPlayers: number;
   players: UnoPlayer[];
   spectators: UnoPlayer[];
   ruleset: UnoRuleset;
@@ -21,6 +22,7 @@ export type UnoRoom = {
   hands: Record<string, UnoCard[]>;
   activeColor: UnoPlayColor;
   turn: string;
+  direction: 1 | -1;
   drawnId: number | null;
   winner: string | null;
   stake: number | null;
@@ -68,6 +70,8 @@ function loadRooms() {
     const savedRooms = JSON.parse(readFileSync(/* turbopackIgnore: true */ roomsFile, "utf8")) as UnoRoom[];
     savedRooms.forEach((room) => {
       room.hostId ??= room.players[0]?.id;
+      room.maxPlayers ??= 2;
+      room.direction ??= 1;
       room.spectators ??= [];
       room.ruleset ??= "regular";
       room.stake ??= null;
@@ -153,14 +157,23 @@ function touch(room: UnoRoom) {
   room.updatedAt = Date.now();
 }
 
-export function createUnoRoom(name: string, ruleset: UnoRuleset = "regular") {
+function nextPlayer(room: UnoRoom, playerId: string, steps = 1) {
+  const index = room.players.findIndex((player) => player.id === playerId);
+  if (index < 0) throw new Error("Player is not in this room.");
+  const offset = room.direction * steps;
+  return room.players[(index + offset + room.players.length * 10) % room.players.length];
+}
+
+export function createUnoRoom(name: string, ruleset: UnoRuleset = "regular", maxPlayers = 2) {
   loadRooms();
   const playerName = requirePlayerName(name);
+  if (!Number.isInteger(maxPlayers) || maxPlayers < 2 || maxPlayers > 8) throw new Error("UNO rooms can have between 2 and 8 players.");
   const playerId = randomUUID();
   const code = Math.random().toString(36).slice(2, 8).toUpperCase();
   const room: UnoRoom = {
     code,
     hostId: playerId,
+    maxPlayers,
     players: [{ id: playerId, name: playerName }],
     spectators: [],
     ruleset,
@@ -169,6 +182,7 @@ export function createUnoRoom(name: string, ruleset: UnoRuleset = "regular") {
     hands: { [playerId]: [] },
     activeColor: "blue",
     turn: playerId,
+    direction: 1,
     drawnId: null,
     winner: null,
     stake: null,
@@ -189,12 +203,12 @@ export function joinUnoRoom(code: string, name: string) {
   const playerName = requirePlayerName(name);
   const room = rooms.get(code.trim().toUpperCase());
   if (!room) throw new Error("Room not found.");
-  if (room.players.length >= 2) throw new Error("That room is full.");
+  if (room.players.length >= room.maxPlayers) throw new Error("That room is full.");
   if (room.deck.length > 0) throw new Error("That game has already started.");
   const playerId = randomUUID();
   room.players.push({ id: playerId, name: playerName });
   room.hands[playerId] = [];
-  room.message = "Choose a stake and confirm when ready. Both players must match.";
+  room.message = "Choose a stake and confirm when ready. All players must match.";
   touch(room);
   saveRooms();
   return { room, playerId, playerToken: createPlayerToken(room.code, playerId) };
@@ -230,11 +244,11 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
   }
   if (action.type === "ready") {
     if (room.players.length < 2) throw new Error("Waiting for another player to join.");
-    const rematch = room.winner !== null && room.settledPlayers.length === 2;
+    const rematch = room.winner !== null && room.settledPlayers.length === room.players.length;
     if (room.deck.length > 0 && !rematch) throw new Error("The game has already started.");
     if (rematch && room.readyPlayers.length === 0) {
       room.hands[room.players[0].id] = [];
-      room.hands[room.players[1].id] = [];
+      room.players.slice(1).forEach((roomPlayer) => { room.hands[roomPlayer.id] = []; });
       room.discard = [];
       room.deck = [];
       room.stake = null;
@@ -243,24 +257,26 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
     if (room.stake !== null && room.stake !== action.stake) throw new Error(`Both players must use the ${room.stake.toFixed(2)} moose buck stake.`);
     room.stake = Math.round(action.stake * 100) / 100;
     if (!room.readyPlayers.includes(playerId)) room.readyPlayers.push(playerId);
-    if (room.readyPlayers.length === 2) {
+    if (room.readyPlayers.length === room.maxPlayers) {
       const deck = makeDeck(room.ruleset);
       const firstCardIndex = deck.findIndex((card) => /^\d$/.test(card.value));
       const [firstCard] = deck.splice(firstCardIndex, 1);
-      room.deck = deck.slice(14);
-      room.hands[room.players[0].id] = deck.slice(0, 7);
-      room.hands[room.players[1].id] = deck.slice(7, 14);
+      room.deck = deck.slice(room.players.length * 7);
+      room.players.forEach((roomPlayer, index) => {
+        room.hands[roomPlayer.id] = deck.slice(index * 7, (index + 1) * 7);
+      });
       room.discard = [firstCard];
       room.activeColor = firstCard.color as UnoPlayColor;
       room.pendingDraw = 0;
       room.pendingDrawColor = null;
       room.drawnId = null;
+      room.direction = 1;
       room.winner = null;
       room.settledPlayers = [];
       room.turn = room.players[0].id;
       room.message = `${room.players[0].name} starts. ${room.players[0].name}'s turn.`;
     } else {
-      room.message = `${room.players.find((player) => player.id === playerId)!.name} is ready. Waiting for the other player to confirm the ${room.stake.toFixed(2)} moose buck stake.`;
+      room.message = `${room.players.find((player) => player.id === playerId)!.name} is ready. Waiting for all players to confirm the ${room.stake.toFixed(2)} moose buck stake.`;
     }
     touch(room);
     saveRooms();
@@ -269,7 +285,7 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
   if (action.type === "settle") {
     if (!room.winner || room.stake === null) throw new Error("The round is not ready to settle.");
     if (!room.settledPlayers.includes(playerId)) room.settledPlayers.push(playerId);
-    if (room.settledPlayers.length === 2) {
+    if (room.settledPlayers.length === room.players.length) {
       room.readyPlayers = [];
       room.stake = null;
     }
@@ -283,7 +299,6 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
   if (room.turn !== playerId) throw new Error("It is not your turn.");
   const hand = room.hands[playerId];
   const top = room.discard[room.discard.length - 1];
-  const otherPlayer = room.players.find((player) => player.id !== playerId)!;
   const player = room.players.find((item) => item.id === playerId)!;
 
   if (action.type === "draw") {
@@ -296,10 +311,10 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
       }
       room.pendingDrawColor = null;
       room.drawnId = null;
-      room.turn = otherPlayer.id;
+      room.turn = nextPlayer(room, playerId).id;
       room.message = `${player.name} drew ${drawn} cards until finding the active color.`;
       if (room.ruleset === "no-mercy" && hand.length >= 25) {
-        room.winner = otherPlayer.name;
+        room.winner = nextPlayer(room, playerId).name;
         room.message = `${player.name} reached 25 cards and was knocked out.`;
       }
       touch(room);
@@ -316,10 +331,10 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
     room.drawnId = null; // always reset so it can never leak to the other player
 
     if (room.ruleset === "no-mercy" && hand.length >= 25) {
-      room.winner = otherPlayer.name;
+      room.winner = nextPlayer(room, playerId).name;
       room.message = `${player.name} reached 25 cards and was knocked out.`;
     } else if (forced || gained === 0) {
-      room.turn = otherPlayer.id;
+      room.turn = nextPlayer(room, playerId).id;
       room.message = gained === 0 ? `${player.name} had nothing left to draw.` : `${player.name} drew ${gained} cards.`;
     } else {
       const drawnCard = hand[hand.length - 1];
@@ -327,14 +342,14 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
         room.drawnId = drawnCard.id; // only now may the player keep it and pass
         room.message = `${player.name} drew a card and may play it or pass.`;
       } else {
-        room.turn = otherPlayer.id; // unplayable: turn ends automatically, like vs AI
+        room.turn = nextPlayer(room, playerId).id; // unplayable: turn ends automatically
         room.message = `${player.name} drew a card.`;
       }
     }
   } else if (action.type === "pass") {
     if (room.drawnId === null) throw new Error("Draw a card before passing.");
     room.drawnId = null;
-    room.turn = otherPlayer.id;
+    room.turn = nextPlayer(room, playerId).id;
     room.message = `${player.name} passed.`;
   } else {
     const cardIndex = hand.findIndex((card) => card.id === action.cardId);
@@ -350,17 +365,19 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
     if (card.value === "drawColor" && room.ruleset === "no-mercy") room.pendingDrawColor = room.activeColor;
     if (card.value === "discardColor" && room.ruleset === "no-mercy") room.hands[playerId] = hand.filter((item) => item.color !== room.activeColor);
     if (card.value === "switch" && room.ruleset === "no-mercy") {
-      const opponentHand = room.hands[otherPlayer.id];
-      room.hands[otherPlayer.id] = room.hands[playerId];
-      room.hands[playerId] = opponentHand;
+      const next = nextPlayer(room, playerId);
+      const nextHand = room.hands[next.id];
+      room.hands[next.id] = room.hands[playerId];
+      room.hands[playerId] = nextHand;
     }
     const emptiedByDiscardColor = card.value === "discardColor" && room.ruleset === "no-mercy" && room.hands[playerId].length === 0;
     if (wentOut || emptiedByDiscardColor) {
       room.winner = player.name;
       room.message = `${player.name} wins!`;
     } else {
-      const skip = card.value === "skip" || card.value === "reverse";
-      room.turn = skip ? playerId : otherPlayer.id;
+      if (card.value === "reverse" && room.players.length > 2) room.direction = room.direction === 1 ? -1 : 1;
+      const steps = card.value === "skip" ? 2 : 1;
+      room.turn = nextPlayer(room, playerId, steps).id;
       room.message = `${player.name} played ${card.color === "wild" ? "a wild card" : card.value}.`;
     }
   }
@@ -383,10 +400,14 @@ export function viewUnoRoom(room: UnoRoom, playerId: string) {
     spectators: room.spectators,
     role: isSpectator ? "spectator" : "player",
     hostId: room.hostId,
+    maxPlayers: room.maxPlayers,
     ruleset: room.ruleset,
     hand: isPlayer ? room.hands[playerId] : [],
     opponent: isPlayer ? opponent : null,
     opponentCardCount: isPlayer && opponent ? room.hands[opponent.id].length : 0,
+    opponents: isPlayer
+      ? room.players.filter((player) => player.id !== playerId).map((player) => ({ ...player, cardCount: room.hands[player.id].length }))
+      : [],
     deckCount: room.deck.length,
     top: room.discard[room.discard.length - 1] ?? null,
     activeColor: room.activeColor,
@@ -398,7 +419,7 @@ export function viewUnoRoom(room: UnoRoom, playerId: string) {
     stake: room.stake,
     isReady: room.readyPlayers.includes(playerId),
     readyCount: room.readyPlayers.length,
-    bothPlayersReady: room.readyPlayers.length === 2,
+    bothPlayersReady: room.readyPlayers.length === room.maxPlayers,
     settlementComplete: room.settledPlayers.includes(playerId),
     settledCount: room.settledPlayers.length,
     message: room.message,

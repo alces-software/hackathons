@@ -58,7 +58,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  let body: { action?: "create" | "join" | "spectate" | "move"; code?: string; playerId?: string; playerToken?: string; name?: string; ruleset?: UnoRuleset; move?: UnoAction };
+  let body: { action?: "create" | "join" | "spectate" | "move"; code?: string; playerId?: string; playerToken?: string; name?: string; ruleset?: UnoRuleset; maxPlayers?: number; move?: UnoAction };
   try {
     body = await request.json() as typeof body;
   } catch {
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
   try {
     if (body.action === "create") {
-      const result = createUnoRoom(body.name ?? "", body.ruleset ?? "regular");
+      const result = createUnoRoom(body.name ?? "", body.ruleset ?? "regular", body.maxPlayers ?? 2);
       return NextResponse.json({ playerId: result.playerId, playerToken: result.playerToken, room: viewUnoRoom(result.room, result.playerId) });
     }
     if (body.action === "join") {
