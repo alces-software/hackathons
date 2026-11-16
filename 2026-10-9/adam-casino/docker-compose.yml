@@ -14,6 +14,7 @@ services:
       CASINO_USERNAME: ${CASINO_USERNAME:-AlcesCasino}
       CASINO_PASSWORD: ${CASINO_PASSWORD:?Set CASINO_PASSWORD in .env}
       UNO_SESSION_SECRET: ${UNO_SESSION_SECRET:?Set UNO_SESSION_SECRET in .env}
+      BATTLESHIPS_ROOMS_FILE: /data/battleships-rooms.json
     ports:
       - "3000:3000"
     volumes:
