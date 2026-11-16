@@ -376,7 +376,7 @@ export function applyUnoAction(room: UnoRoom, playerId: string, action: UnoActio
       room.message = `${player.name} wins!`;
     } else {
       if (card.value === "reverse" && room.players.length > 2) room.direction = room.direction === 1 ? -1 : 1;
-      const steps = card.value === "skip" ? 2 : 1;
+      const steps = card.value === "skip" || (card.value === "reverse" && room.players.length === 2) ? 2 : 1;
       room.turn = nextPlayer(room, playerId, steps).id;
       room.message = `${player.name} played ${card.color === "wild" ? "a wild card" : card.value}.`;
     }
