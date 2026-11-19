@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { rmSync } from "node:fs";
 import { test } from "node:test";
 import {
+  cosmeticIdFromPass,
   createCosmeticPass,
   equippedBadge,
   equippedTitle,
@@ -228,5 +229,23 @@ test("pass only verifies for live signatures", () => {
   const tampered = pass!.replace(/.$/, (c) => (c === "0" ? "1" : "0"));
   assert.equal(verifyCosmeticPass(tampered), null);
   assert.equal(verifyCosmeticPass("garbage"), null);
-  viewCosmeticInventory("signer");
+});
+
+test("stale item ids self-heal: prune drops them and issued ids decode cleanly", () => {
+  // A store saved before a catalog rename: the id is owned+equipped but no longer in the catalog.
+  const now = Date.now();
+  const stale = pruneInventory({ equippedId: "legacy-voyageur-item", equippedBy: { "craps-dice": "legacy-voyageur-item" as never }, owned: [{ itemId: "legacy-voyageur-item", expiresAt: null }] }, now);
+  assert.deepEqual(stale.owned, []);
+  assert.equal(stale.equippedId, null);
+  assert.equal(stale.equippedBy["craps-dice"], null);
+  // Issued passes still live in the store after a rename: ids decode from the signed token
+  grantCosmetic("stale-heal", "aurora-king-dice", 0);
+  setEquippedCosmetic("stale-heal", "aurora-king-dice");
+  const mixed = issueCosmeticPasses("stale-heal");
+  assert.equal(cosmeticIdFromPass(mixed["craps-dice"]), "aurora-king-dice");
+  assert.equal(verifyCosmeticPass(mixed["craps-dice"])?.id, "aurora-king-dice");
+  // Garbage, tampered and empty passes decode to null rather than throwing
+  assert.equal(cosmeticIdFromPass("garbage"), null);
+  assert.equal(cosmeticIdFromPass("garbage.sig"), null);
+  assert.equal(cosmeticIdFromPass(null), null);
 });

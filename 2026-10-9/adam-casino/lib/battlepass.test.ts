@@ -6,13 +6,13 @@ import {
   NELSON_SET_ITEMS,
   PREMIUM_LEVEL,
   VOYAGER_SET_ITEMS,
-  XP_PER_LEVEL,
   awardBattlePassXp,
   claimBattlePassReward,
   passRewardForLevel,
   resetBattlePassForTests,
   revertBattlePassClaim,
   unlockPremiumForTests,
+  LEVEL_THRESHOLDS_FOR_TESTS,
   viewBattlePass,
 } from "./battlepass.ts";
 import { viewCosmeticInventory } from "./cosmetics.ts";
@@ -27,9 +27,7 @@ test("catalog contains every Lord Nelson and Voyager pass item", () => {
   for (const id of VOYAGER_SET_ITEMS) assert.ok(COSMETIC_CATALOG.some((item) => item.id === id), `${id} missing from catalog`);
 });
 
-test("XP ladder grants one level per full 250 XP", () => {
-  resetBattlePassForTests();
-  const view = viewBattlePass("ladder-player");
+test("XP ladder scales up: 250 XP for level 1, rising costs after", () => {  resetBattlePassForTests();  const view = viewBattlePass("ladder-player");
   assert.equal(view.level, 1);
   assert.equal(view.xpIntoLevel, 0);
   assert.equal(view.levelsTotal, BATTLEPASS_LEVELS);
@@ -43,10 +41,10 @@ test("XP ladder grants one level per full 250 XP", () => {
   const partial = viewBattlePass("ladder-player");
   assert.equal(partial.level, 2);
   assert.equal(partial.xpIntoLevel, 10);
-  for (let index = 0; index < 20; index += 1) awardBattlePassXp("ladder-player", 900);
+  for (let index = 0; index < 25; index += 1) awardBattlePassXp("ladder-player", 900);
   const maxed = viewBattlePass("ladder-player");
   assert.equal(maxed.level, BATTLEPASS_LEVELS);
-  assert.equal(maxed.xp, BATTLEPASS_LEVELS * XP_PER_LEVEL);
+  assert.equal(maxed.xp, LEVEL_THRESHOLDS_FOR_TESTS[BATTLEPASS_LEVELS - 1], "XP stops at the cumulative-to-max total");
 });
 
 test("per-settlement XP is capped and zero is ignored", () => {
@@ -103,8 +101,8 @@ test("premium claim of the Lord Nelson set grants all six cosmetics", () => {
   resetBattlePassForTests();
   unlockPremiumForTests("nelson-player");
   assert.ok(viewBattlePass("nelson-player").premiumUnlocked);
-  awardBattlePassXp("nelson-player", 20_000);
-  for (let index = 0; index < 20; index += 1) awardBattlePassXp("nelson-player", 900);
+  awardBattlePassXp("nelson-player", 25_000);
+  for (let index = 0; index < 20; index += 1) awardBattlePassXp("nelson-player", 1_500);
   const rewards = claimBattlePassReward("nelson-player", PREMIUM_LEVEL, "premium");
   const setReward = rewards[0];
   assert.equal(setReward.kind, "premium-set");
@@ -135,7 +133,7 @@ test("premium claim of the Voyager starter set grants badge and title", () => {
 test("premium claim grants a pass-exclusive cosmetic from the ladder", () => {
   resetBattlePassForTests();
   unlockPremiumForTests("premium-ladder");
-  for (let i = 0; i < 5; i += 1) awardBattlePassXp("premium-ladder", 5_000);
+  for (let i = 0; i < 5; i += 1) awardBattlePassXp("premium-ladder", 25_000);
   const rewards = claimBattlePassReward("premium-ladder", 25, "premium");
   const reward = rewards[0];
   assert.equal(reward.kind, "cosmetic");

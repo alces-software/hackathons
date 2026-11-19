@@ -23,7 +23,7 @@ import { dirname, join } from "node:path";
 // the pass page can import them); re-export from there to keep one source of truth.
 import {
   BATTLEPASS_LEVELS,
-  XP_PER_LEVEL,
+  XpPerLevel,
   XP_PER_BUCK,
   PREMIUM_PRICE,
   PREMIUM_LEVEL,
@@ -32,10 +32,28 @@ import {
 // Re-export so existing server imports of these constants keep resolving through this module.
 export {
   BATTLEPASS_LEVELS,
-  XP_PER_LEVEL,
+  XpPerLevel,
   XP_PER_BUCK,
   PREMIUM_PRICE,
   PREMIUM_LEVEL,
+};
+
+/** Cumulative XP needed to START each level: levelThresholds[0] = 0 (level 1) … [LEVELS-1] = max. */
+const LEVEL_THRESHOLDS: number[] = (() => {
+  const thresholds = [0];
+  for (let level = 1; level < BATTLEPASS_LEVELS; level += 1) thresholds.push(thresholds[level - 1] + XpPerLevel(level));
+  return thresholds;
+})();
+const MAX_XP = LEVEL_THRESHOLDS[BATTLEPASS_LEVELS - 1];
+
+// Test/inspection hook: cumulative thresholds per level (XP needed to START each level).
+export const LEVEL_THRESHOLDS_FOR_TESTS = LEVEL_THRESHOLDS;
+
+/** Level for a total-XP value: the last level whose threshold the XP has reached. */
+const levelForXp = (xp: number): number => {
+  let level = 1;
+  while (level < BATTLEPASS_LEVELS && xp >= LEVEL_THRESHOLDS[level]) level += 1;
+  return level;
 };
 
 export type RewardSpec = { mooseBucks?: number; cosmeticId?: string };
@@ -219,7 +237,7 @@ export function awardBattlePassXp(username: string, amount: number) {
   if (xp <= 0 || !username) return;
   loadBattlePasses();
   const state = getBattlePassState(username);
-  state.xp = Math.min(BATTLEPASS_LEVELS * XP_PER_LEVEL, state.xp + Math.min(xp, MAX_XP_PER_SETTLEMENT));
+  state.xp = Math.min(MAX_XP, state.xp + Math.min(xp, MAX_XP_PER_SETTLEMENT));
   battlePasses.set(username, state);
   saveBattlePasses();
 }
@@ -252,7 +270,8 @@ function resolveReward(spec: RewardSpec | PremiumSetReward | null): RewardView |
  */
 export function viewBattlePass(username: string): BattlePassView {
   const state = getBattlePassState(username);
-  const level = Math.min(BATTLEPASS_LEVELS, 1 + Math.floor(state.xp / XP_PER_LEVEL));
+  const level = levelForXp(state.xp);
+  const maxXpIntoLevel = level >= BATTLEPASS_LEVELS ? XpPerLevel(level) : LEVEL_THRESHOLDS[level] - LEVEL_THRESHOLDS[level - 1];
   const tracks: PassLevelView[] = [];
   for (let lvl = 1; lvl <= BATTLEPASS_LEVELS; lvl += 1) {
     const reward = passRewardForLevel(lvl);
@@ -270,8 +289,8 @@ export function viewBattlePass(username: string): BattlePassView {
     xp: state.xp,
     level,
     levelsTotal: BATTLEPASS_LEVELS,
-    xpIntoLevel: level >= BATTLEPASS_LEVELS ? XP_PER_LEVEL : state.xp % XP_PER_LEVEL,
-    xpForNextLevel: XP_PER_LEVEL,
+    xpIntoLevel: state.xp - LEVEL_THRESHOLDS[level - 1],
+    xpForNextLevel: maxXpIntoLevel,
     premiumUnlocked: state.premiumUnlockedAt !== null,
     premiumPrice: PREMIUM_PRICE,
     claimedFree: state.claimedFree,
@@ -292,8 +311,8 @@ export function claimBattlePassReward(username: string, level: number, track: "f
   if (!Number.isInteger(level) || level < 1 || level > BATTLEPASS_LEVELS) throw new Error("That pass level does not exist.");
   loadBattlePasses();
   const state = getBattlePassState(username);
-  const reachedLevel = Math.min(BATTLEPASS_LEVELS, 1 + Math.floor(state.xp / XP_PER_LEVEL));
-  if (level > reachedLevel) throw new Error(`You unlock that level at ${(level - 1) * XP_PER_LEVEL} season XP.`);
+  const reachedLevel = levelForXp(state.xp);
+  if (level > reachedLevel) throw new Error(`You unlock that level at ${LEVEL_THRESHOLDS[level - 1]} season XP.`);
   if (track === "premium") {
     if (state.premiumUnlockedAt === null) throw new Error("Buy the premium pass before claiming its rewards.");
     if (state.claimedPremium.includes(level)) throw new Error("That premium reward is already claimed.");

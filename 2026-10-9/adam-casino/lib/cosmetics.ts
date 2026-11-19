@@ -52,6 +52,19 @@ export function verifyCosmeticPass(pass: string | undefined | null): CosmeticPas
   }
 }
 
+/** The cosmetic id encoded inside a signed pass (signature is not checked here — callers only re-derive the id the server itself just issued). */
+export function cosmeticIdFromPass(pass: string | null | undefined): string | null {
+  if (typeof pass !== "string") return null;
+  const [encoded] = pass.split(".");
+  if (!encoded) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as { id?: unknown };
+    return typeof payload.id === "string" ? payload.id : null;
+  } catch {
+    return null;
+  }
+}
+
 /* ---------- Ownership store (server-side, persisted to .data/cosmetics.json) ---------- */
 
 export type CosmeticEntry = { itemId: string; expiresAt: number | null }; // null expiry = permanent ownership
@@ -72,14 +85,17 @@ function normalizeEquips(equippedBy: CosmeticEquips | undefined): CosmeticEquips
   return normalized;
 }
 
-/** Drop expired rentals and any equipment pointing at something no longer owned. */
+/** Drop expired rentals, equipment pointing at something no longer owned, and ids no longer in the catalog (self-heals stores saved before catalog renames). */
 export function pruneInventory(inventory: CosmeticInventory, now: number): CosmeticInventory {
-  const owned = (inventory.owned ?? []).filter((entry) => entry.expiresAt === null || entry.expiresAt > now);
-  const equippedId = inventory.equippedId && owned.some((entry) => entry.itemId === inventory.equippedId) ? inventory.equippedId : null;
+  const owned = (inventory.owned ?? []).filter((entry) =>
+    (entry.expiresAt === null || entry.expiresAt > now) && findCosmetic(entry.itemId) !== null,
+  );
+  const ownedIds = new Set(owned.map((entry) => entry.itemId));
+  const equippedId = inventory.equippedId && ownedIds.has(inventory.equippedId) ? inventory.equippedId : null;
   const equippedBy = normalizeEquips(inventory.equippedBy);
   for (const slot of SLOT_KEYS) {
     const itemId = equippedBy[slot];
-    equippedBy[slot] = itemId && owned.some((entry) => entry.itemId === itemId) ? itemId : null;
+    equippedBy[slot] = itemId && ownedIds.has(itemId) ? itemId : null;
   }
   equippedBy.badge = equippedId ?? equippedBy.badge ?? null;
   return { equippedId, equippedBy, owned };

@@ -317,11 +317,11 @@ export default function Uno() {
     const credentials = getStoredBankingCredentials();
     if (!credentials) return;
     fetch(`/api/cosmetics/pass?username=${encodeURIComponent(credentials.username)}`, { cache: "no-store" })
-      .then((response) => response.json() as Promise<{ pass?: string | null; passes?: Record<string, string | null> }>)
+      .then((response) => response.json() as Promise<{ pass?: string | null; passes?: Record<string, string | null>; ids?: Record<string, string | null> }>)
       .then((body) => {
         unoCosmeticPassRef.current = body.pass ?? body.passes?.badge ?? null;
         unoTitlePassRef.current = body.passes?.title ?? null;
-        const skinId = body.passes?.["uno-card-skin"] ?? null;
+        const skinId = body.ids?.["uno-card-skin"] ?? null;
         const skin = skinId ? findCosmetic(skinId) : null;
         setCardSkin(skin?.cardStyles as Record<Color, string> | undefined ?? null);
         setHiddenCardStyle(skin?.hiddenStyle ?? null);

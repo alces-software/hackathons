@@ -81,9 +81,9 @@ export default function Blackjack() {
     let cancelled = false;
     fetch(`/api/cosmetics/pass?username=${encodeURIComponent(credentials.username)}`, { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
-      .then((body: { passes?: Record<string, string> } | null) => {
-        if (!body?.passes || cancelled) return;
-        const item = findCosmetic(body.passes["blackjack-table"] ?? "");
+      .then((body: { ids?: Record<string, string | null> } | null) => {
+        if (!body?.ids || cancelled) return;
+        const item = findCosmetic(body.ids["blackjack-table"] ?? "");
         if (item?.tableStyles) setTable(item.tableStyles);
       })
       .catch(() => {});

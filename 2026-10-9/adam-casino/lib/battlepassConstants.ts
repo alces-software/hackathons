@@ -2,8 +2,8 @@
    battle pass store into the browser bundle. Keep in sync with lib/battlepass.ts. */
 
 export const BATTLEPASS_LEVELS = 40;
-/** XP needed per level (flat ladder — level N starts at (N - 1) * XP_PER_LEVEL). */
-export const XP_PER_LEVEL = 250;
+/** Base XP needed to clear level 1; later levels cost more (tiered ladder). */
+export const XpPerLevel = (level: number): number => 250 + Math.floor(Math.pow(Math.max(1, level) - 1, 1.6) / 10) * 25;
 /** XP awarded per moose buck staked on a settled game bet. */
 export const XP_PER_BUCK = 1;
 /** Premium track unlock price, debited through the banking service. */

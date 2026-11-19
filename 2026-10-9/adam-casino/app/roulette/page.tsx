@@ -86,9 +86,9 @@ export default function Roulette() {
     let cancelled = false;
     fetch(`/api/cosmetics/pass?username=${encodeURIComponent(credentials.username)}`, { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
-      .then((body: { passes?: Record<string, string> } | null) => {
-        if (!body?.passes || cancelled) return;
-        const item = findCosmetic(body.passes["roulette-wheel"] ?? "");
+      .then((body: { ids?: Record<string, string | null> } | null) => {
+        if (!body?.ids || cancelled) return;
+        const item = findCosmetic(body.ids["roulette-wheel"] ?? "");
         if (item?.wheelStyles) setWheel(item.wheelStyles);
       })
       .catch(() => {});
