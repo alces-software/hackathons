@@ -27,5 +27,6 @@ USER nextjs
 ENV UNO_ROOMS_FILE=/data/uno-rooms.json
 ENV BATTLESHIPS_ROOMS_FILE=/data/battleships-rooms.json
 ENV COSMETICS_FILE=/data/cosmetics.json
+ENV BATTLEPASS_FILE=/data/battlepass.json
 EXPOSE 3000
 CMD ["node", "server.js"]

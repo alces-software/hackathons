@@ -15,6 +15,7 @@ services:
       CASINO_PASSWORD: ${CASINO_PASSWORD:?Set CASINO_PASSWORD in .env}
       UNO_SESSION_SECRET: ${UNO_SESSION_SECRET:?Set UNO_SESSION_SECRET in .env}
       COSMETICS_FILE: /data/cosmetics.json
+      BATTLEPASS_FILE: /data/battlepass.json
       BATTLESHIPS_ROOMS_FILE: /data/battleships-rooms.json
     ports:
       - "3000:3000"
