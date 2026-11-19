@@ -153,6 +153,8 @@ export function playCard(g: Game, who: Who, card: Card, chosen?: PlayColor): Gam
     const kept = targetHand.filter((item) => item.color !== color);
     next = who === "player" ? { ...next, player: kept } : { ...next, ai: kept };
     text += ` ${actor} discarded all ${colorLabels[color]} cards.`;
+    // Playing the last discardColor for a wiped colour wins, same as any other empty hand.
+    if (kept.length === 0) return { ...next, winner: actor, message: `${actor} discarded all ${colorLabels[color]} cards and went out.` };
   } else if (card.value === "drawColor" && g.ruleset === "no-mercy") {
     next = { ...next, pendingDrawColor: color };
     text += ` ${victim} must draw until finding a ${colorLabels[color]} card.`;
@@ -222,7 +224,8 @@ export function aiMoveTactical(g: Game, tactics: AiTactics = DEFAULT_TACTICS): G
   const colorCounts = new Map<PlayColor, number>(colors.map((color) => [color, g.ai.filter((card) => card.color === color).length]));
   const playerCount = g.player.length;
   const score = (card: Card): number => {
-    if (g.ai.length === 1) return 1_000_000 * (tactics.winOut / 100);
+    if (g.pendingDrawColor === null && g.ai.length === 1) return 1_000_000 * (tactics.winOut / 100);
+    if (canPlay(card, top, g.color, g.pendingDraw, g.ruleset, g.pendingDrawColor) && g.ai.length === 1) return 1_000_000 * (tactics.winOut / 100);
     let value = 0;
     const ownColor = colorCounts.get(card.color as PlayColor) ?? 0;
     if (card.color !== "wild") value += ownColor * 2 * (tactics.colorMomentum / 100);
