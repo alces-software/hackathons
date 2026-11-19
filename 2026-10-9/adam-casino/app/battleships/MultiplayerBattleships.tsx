@@ -224,7 +224,7 @@ export default function MultiplayerBattleships() {
   const [saved, setSaved] = useState<Saved | null>(null);
   const [online, setOnline] = useState(true);
   const [forfeitDeadline, setForfeitDeadline] = useState<number | null>(null);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState<number | null>(null);
 
   // Battle targeting
   const [aim, setAim] = useState<number | null>(null); // square under the pointer
@@ -281,7 +281,7 @@ export default function MultiplayerBattleships() {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, [forfeitDeadline]);
-  const forfeitLeft = forfeitDeadline !== null ? Math.max(0, forfeitDeadline - now) : null;
+  const forfeitLeft = forfeitDeadline !== null && now !== null ? Math.max(0, forfeitDeadline - now) : null;
 
   // Once the opponent has set a stake, match it automatically.
   useEffect(() => {
