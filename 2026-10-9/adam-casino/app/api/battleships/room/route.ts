@@ -4,6 +4,8 @@ import {
   createBattleshipRoom,
   getBattleshipRoom,
   joinBattleshipRoom,
+  markBattleshipConnected,
+  markBattleshipDisconnected,
   spectateBattleshipRoom,
   verifyBattleshipToken,
   viewBattleshipRoom,
@@ -32,12 +34,17 @@ export async function GET(request: Request) {
     let lastWrite = Date.now();
     let timer: ReturnType<typeof setTimeout> | undefined;
     let closed = false;
+    // Idempotent: abort, cancel and error paths can all call this, but presence is released only once.
     const stop = () => {
+      if (closed) return;
       closed = true;
       if (timer) clearTimeout(timer);
+      markBattleshipDisconnected(room.code, id);
     };
     const stream = new ReadableStream({
       start(controller) {
+        // Spectators are ignored by markBattleshipConnected, so this only tracks players.
+        markBattleshipConnected(room.code, id);
         const tick = () => {
           if (closed) return;
           try {

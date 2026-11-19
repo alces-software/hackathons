@@ -35,6 +35,10 @@ type View = {
   stake: number | null;
   settledCount: number;
   message: string;
+  opponentDisconnected: boolean;
+  opponentForfeitInMs: number | null;
+  forfeited: boolean;
+  youForfeited: boolean;
 };
 type LogEntry = { id: number; text: string; side: "you" | "enemy" | "watch"; kind: "hit" | "miss" | "sunk" };
 
@@ -51,6 +55,39 @@ const cellLabel = (cell: number) => `${COLUMNS[cell % SIZE]}${Math.floor(cell / 
 const rowOf = (cell: number) => Math.floor(cell / SIZE);
 const colOf = (cell: number) => cell % SIZE;
 const shots = (board: Shot[]) => ({ fired: board.filter((c) => c !== "water").length, hits: board.filter((c) => c === "hit").length });
+
+/* ---------- Saved session (for reconnecting) ---------- */
+
+const SAVE_KEY = "bs-session";
+type Saved = { code: string; token: string };
+const loadSaved = (): Saved | null => {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw ? (JSON.parse(raw) as Saved) : null;
+  } catch {
+    return null;
+  }
+};
+const writeSaved = (s: Saved) => {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(s));
+    sessionStorage.setItem("bs-active", "1");
+  } catch {
+    /* ignore */
+  }
+};
+const clearSaved = () => {
+  try {
+    localStorage.removeItem(SAVE_KEY);
+    sessionStorage.removeItem("bs-active");
+  } catch {
+    /* ignore */
+  }
+};
+const clock = (ms: number) => {
+  const s = Math.ceil(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
 
 /** Cells a ship would cover when pointing at `cell`, nudged back inside the board. */
 const footprint = (cell: number, length: number, horizontal: boolean) => {
@@ -183,6 +220,12 @@ export default function MultiplayerBattleships() {
   const [busy, setBusy] = useState(false);
   const [balance, setBalance] = useBankingBalance();
 
+  // Reconnection
+  const [saved, setSaved] = useState<Saved | null>(null);
+  const [online, setOnline] = useState(true);
+  const [forfeitDeadline, setForfeitDeadline] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
   // Battle targeting
   const [aim, setAim] = useState<number | null>(null); // square under the pointer
   const [target, setTarget] = useState<number | null>(null); // square you've selected to fire at
@@ -198,9 +241,47 @@ export default function MultiplayerBattleships() {
   useEffect(() => {
     if (!code || !token) return;
     const source = new EventSource(`/api/battleships/room?events=1&code=${encodeURIComponent(code)}&playerToken=${encodeURIComponent(token)}`);
-    source.onmessage = (event) => setView(JSON.parse(event.data) as View);
+    source.onopen = () => setOnline(true);
+    source.onmessage = (event) => {
+      setOnline(true);
+      setView(JSON.parse(event.data) as View);
+    };
+    source.onerror = () => {
+      setOnline(false);
+      // The browser gives up (CLOSED) when the server rejects us, e.g. the room no longer exists.
+      if (source.readyState === EventSource.CLOSED) {
+        clearSaved();
+        setSaved(null);
+        setView(null);
+        setCode("");
+        setToken("");
+        setMessage("That room is no longer available.");
+      }
+    };
     return () => source.close();
   }, [code, token]);
+
+  // On load: remember any saved room, and resume it automatically after a page refresh.
+  useEffect(() => {
+    const s = loadSaved();
+    setSaved(s);
+    if (s && sessionStorage.getItem("bs-active") === "1") {
+      setCode(s.code);
+      setToken(s.token);
+    }
+  }, []);
+
+  // Countdown while the opponent is away.
+  useEffect(() => {
+    setForfeitDeadline(view?.opponentDisconnected && view.opponentForfeitInMs !== null ? Date.now() + view.opponentForfeitInMs : null);
+  }, [view?.opponentDisconnected, view?.opponentForfeitInMs]);
+  useEffect(() => {
+    if (forfeitDeadline === null) return;
+    setNow(Date.now());
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [forfeitDeadline]);
+  const forfeitLeft = forfeitDeadline !== null ? Math.max(0, forfeitDeadline - now) : null;
 
   // Once the opponent has set a stake, match it automatically.
   useEffect(() => {
@@ -319,8 +400,9 @@ export default function MultiplayerBattleships() {
       setCode(result.room.code);
       setView(result.room);
       if (result.playerToken) {
-        sessionStorage.setItem("bs-token", result.playerToken);
-        sessionStorage.setItem("bs-code", result.room.code);
+        const s = { code: result.room.code, token: result.playerToken };
+        writeSaved(s);
+        setSaved(s);
       }
     }
   }
@@ -342,6 +424,19 @@ export default function MultiplayerBattleships() {
   }
   async function spectate() {
     try { await request({ action: "spectate", code, name }); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not spectate room."); }
+  }
+
+  function reconnect() {
+    if (!saved) return;
+    setMessage("");
+    try { sessionStorage.setItem("bs-active", "1"); } catch { /* ignore */ }
+    setCode(saved.code);
+    setToken(saved.token);
+  }
+
+  function forget() {
+    clearSaved();
+    setSaved(null);
   }
 
   /* ----- Firing ----- */
@@ -459,6 +554,8 @@ export default function MultiplayerBattleships() {
   }
 
   function leave() {
+    const midBattle = isPlayer && battleOn;
+    if (midBattle && !window.confirm("Leave the battle? If you're not back within 3 minutes you forfeit and your opponent wins the stake.")) return;
     setView(null);
     setCode("");
     setToken("");
@@ -470,11 +567,18 @@ export default function MultiplayerBattleships() {
     setTarget(null);
     setFiring(null);
     setLog([]);
-    setMessage("");
     settledRef.current = null;
     seenRef.current = "";
-    sessionStorage.removeItem("bs-code");
-    sessionStorage.removeItem("bs-token");
+    if (midBattle) {
+      // Keep the credentials so you can rejoin, but don't auto-resume on refresh.
+      try { sessionStorage.removeItem("bs-active"); } catch { /* ignore */ }
+      setSaved(loadSaved());
+      setMessage("You left the battle. Rejoin within 3 minutes or you forfeit.");
+    } else {
+      clearSaved();
+      setSaved(null);
+      setMessage("");
+    }
   }
 
   const styles = (
@@ -538,6 +642,13 @@ export default function MultiplayerBattleships() {
           <button onClick={() => void spectate()} disabled={!name.trim() || !code} className="rounded-lg border border-emerald-300/50 px-4 py-2 text-sm disabled:opacity-40">Spectate</button>
         </div>
         {message && <p className="mt-3 text-sm text-rose-200">{message}</p>}
+        {saved && (
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+            <span>You have a saved room: <span className="font-mono tracking-widest">{saved.code}</span></span>
+            <button onClick={reconnect} className="rounded-lg bg-amber-300 px-3 py-1.5 font-bold text-[#092f2b]">Rejoin</button>
+            <button onClick={forget} className="text-xs text-amber-100/70 hover:text-white">Forget</button>
+          </div>
+        )}
       </section>
     );
 
@@ -558,10 +669,10 @@ export default function MultiplayerBattleships() {
   let status: Status;
   if (view.winner) {
     status = isSpectator
-      ? { key: "over", icon: "🏆", title: `${view.winner} wins!`, sub: "The enemy fleet has been destroyed.", style: "border-amber-300/50 bg-amber-300/15 text-amber-100" }
+      ? { key: "over", icon: "🏆", title: `${view.winner} wins!`, sub: view.forfeited ? "Won by forfeit: the other player left." : "The enemy fleet has been destroyed.", style: "border-amber-300/50 bg-amber-300/15 text-amber-100" }
       : view.youWon
-        ? { key: "won", icon: "🏆", title: "Victory!", sub: `${opponentName}'s fleet is destroyed. You win ${stakeText} moose bucks profit plus your stake back.`, style: "border-emerald-300/60 bg-emerald-400/15 text-emerald-100" }
-        : { key: "lost", icon: "💥", title: "Defeat", sub: `Your fleet is destroyed. Your ${stakeText} moose buck stake is lost.`, style: "border-rose-300/60 bg-rose-500/15 text-rose-100" };
+        ? { key: "won", icon: "🏆", title: view.forfeited ? "Victory by forfeit" : "Victory!", sub: view.forfeited ? `${opponentName} left the battle. You win ${stakeText} moose bucks profit plus your stake back.` : `${opponentName}'s fleet is destroyed. You win ${stakeText} moose bucks profit plus your stake back.`, style: "border-emerald-300/60 bg-emerald-400/15 text-emerald-100" }
+        : { key: "lost", icon: "💥", title: view.youForfeited ? "Forfeited" : "Defeat", sub: view.youForfeited ? `You were away too long. Your ${stakeText} moose buck stake is lost.` : `Your fleet is destroyed. Your ${stakeText} moose buck stake is lost.`, style: "border-rose-300/60 bg-rose-500/15 text-rose-100" };
   } else if (placing) {
     status = { key: "placing", icon: "⚓", title: "Place your fleet", sub: view.players.length < 2 ? "Waiting for an opponent to join the room." : "Position all four ships, set your stake and ready up.", style: "border-white/20 bg-white/10 text-emerald-50" };
   } else if (waitingForOpponent) {
@@ -761,6 +872,17 @@ export default function MultiplayerBattleships() {
           </button>
         )}
       </div>
+
+      {!online && (
+        <div role="alert" className="mt-3 rounded-xl border border-rose-300/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+          Connection lost, reconnecting…{isPlayer && battleOn ? " If you're gone for more than 3 minutes you forfeit." : ""}
+        </div>
+      )}
+      {isPlayer && battleOn && view.opponentDisconnected && forfeitLeft !== null && (
+        <div role="alert" className="mt-3 rounded-xl border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+          ⚠ {opponentName} has disconnected. If they aren&apos;t back in <strong>{clock(forfeitLeft)}</strong>, you win by forfeit and take the stake.
+        </div>
+      )}
 
       <p className="mt-3 text-sm text-emerald-100/70">{view.message}</p>
       {message && <p className="mt-2 text-sm text-rose-200">{message}</p>}

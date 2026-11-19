@@ -2,6 +2,7 @@ import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { dirname, join } from "node:path";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
+export const BATTLESHIP_GRACE_MS = 3 * 60 * 1000;
 export const BATTLESHIP_SIZE = 8;
 export const BATTLESHIP_FLEET = [
   { name: "Battleship", length: 4 },
@@ -34,12 +35,84 @@ export type BattleshipRoom = {
   round: number;
   message: string;
   updatedAt: number;
+  disconnectedAt: Record<string, number>; // playerId -> when their last connection dropped
+  forfeitedId: string | null;
 };
 
 const rooms = new Map<string, BattleshipRoom>();
 const roomsFile = process.env.BATTLESHIPS_ROOMS_FILE ?? join(process.cwd(), ".data/battleships-rooms.json");
 const secret = process.env.UNO_SESSION_SECRET ?? "local-development-only-change-me";
 let loaded = false;
+
+/* ---------- Presence and forfeit ---------- */
+
+const connections = new Map<string, number>();
+const timers = new Map<string, ReturnType<typeof setTimeout>>();
+const connKey = (code: string, id: string) => `${code}:${id}`;
+const inBattle = (room: BattleshipRoom) => room.readyPlayers.length === 2 && !room.winner;
+
+function scheduleForfeitCheck(room: BattleshipRoom, id: string) {
+  const key = connKey(room.code, id);
+  clearTimeout(timers.get(key));
+  const at = room.disconnectedAt[id];
+  if (at === undefined) return;
+  const wait = Math.max(0, at + BATTLESHIP_GRACE_MS - Date.now()) + 500;
+  timers.set(key, setTimeout(() => { timers.delete(key); checkBattleshipForfeit(room); }, wait));
+}
+
+function forfeit(room: BattleshipRoom, loserId: string) {
+  const loser = room.players.find((p) => p.id === loserId);
+  const winner = room.players.find((p) => p.id !== loserId);
+  if (!loser || !winner) return;
+  room.winner = winner.name;
+  room.winnerId = winner.id;
+  room.forfeitedId = loserId;
+  room.message = `${loser.name} left the battle and forfeited. ${winner.name} wins!`;
+}
+
+/** Ends the round if a player has been gone past the grace period while their opponent is still connected. */
+export function checkBattleshipForfeit(room: BattleshipRoom) {
+  if (!inBattle(room)) return false;
+  const now = Date.now();
+  for (const player of room.players) {
+    const goneAt = room.disconnectedAt[player.id];
+    const other = room.players.find((p) => p.id !== player.id);
+    if (goneAt !== undefined && other && room.disconnectedAt[other.id] === undefined && now - goneAt >= BATTLESHIP_GRACE_MS) {
+      forfeit(room, player.id);
+      touch(room);
+      return true;
+    }
+  }
+  return false;
+}
+
+export function markBattleshipConnected(code: string, id: string) {
+  const room = getBattleshipRoom(code);
+  if (!room || !room.players.some((p) => p.id === id)) return;
+  const key = connKey(room.code, id);
+  connections.set(key, (connections.get(key) ?? 0) + 1);
+  clearTimeout(timers.get(key));
+  timers.delete(key);
+  if (room.disconnectedAt[id] !== undefined) {
+    delete room.disconnectedAt[id];
+    touch(room);
+  }
+  checkBattleshipForfeit(room); // in case the opponent's grace period already ran out
+}
+
+export function markBattleshipDisconnected(code: string, id: string) {
+  const room = getBattleshipRoom(code);
+  if (!room || !room.players.some((p) => p.id === id)) return;
+  const key = connKey(room.code, id);
+  const remaining = (connections.get(key) ?? 1) - 1;
+  if (remaining > 0) { connections.set(key, remaining); return; }
+  connections.delete(key);
+  room.disconnectedAt[id] = Date.now();
+  touch(room);
+  scheduleForfeitCheck(room, id);
+}
+
+/* ---------- Tokens and persistence ---------- */
 
 function nameRequired(value: string) {
   const name = value.trim();
@@ -74,7 +147,15 @@ function load() {
       room.round ??= 0;
       room.lastShot ??= null;
       room.winnerId ??= room.winner ? room.players.find((player) => player.name === room.winner)?.id ?? null : null;
+      room.disconnectedAt ??= {};
+      room.forfeitedId ??= null;
       rooms.set(room.code, room);
+    });
+    // In-memory connections are gone after a restart, so give everyone in a live battle a fresh grace period.
+    rooms.forEach((room) => {
+      if (!inBattle(room)) return;
+      const now = Date.now();
+      room.players.forEach((p) => { room.disconnectedAt[p.id] = now; scheduleForfeitCheck(room, p.id); });
     });
   } catch {
     /* ignore corrupt runtime state */
@@ -126,11 +207,14 @@ function resetRound(room: BattleshipRoom) {
   room.stake = null;
   room.winner = null;
   room.winnerId = null;
+  room.forfeitedId = null;
   room.lastShot = null;
   room.turn = room.players[0].id;
   room.round += 1;
   room.message = "Rematch! Place your fleets, then both players must ready up.";
 }
+
+/* ---------- Rooms ---------- */
 
 export function createBattleshipRoom(rawName: string) {
   load();
@@ -154,6 +238,8 @@ export function createBattleshipRoom(rawName: string) {
     round: 0,
     message: "Waiting for another player to join.",
     updatedAt: Date.now(),
+    disconnectedAt: {},
+    forfeitedId: null,
   };
   rooms.set(code, room);
   save();
@@ -162,7 +248,9 @@ export function createBattleshipRoom(rawName: string) {
 
 export function getBattleshipRoom(code: string) {
   load();
-  return rooms.get(code.trim().toUpperCase());
+  const room = rooms.get(code.trim().toUpperCase());
+  if (room) checkBattleshipForfeit(room);
+  return room;
 }
 
 export function joinBattleshipRoom(code: string, rawName: string) {
@@ -216,6 +304,8 @@ export function applyBattleshipAction(room: BattleshipRoom, id: string, action: 
     if (room.readyPlayers.length === 2) {
       room.turn = room.players[0].id;
       room.message = `Both fleets are ready. ${room.players[0].name} fires first.`;
+      // Anyone already gone when the battle starts begins their grace period now.
+      room.players.forEach((p) => scheduleForfeitCheck(room, p.id));
     } else {
       room.message = `${player.name} is ready with a ${stake.toFixed(2)} moose buck stake. Waiting for the other fleet.`;
     }
@@ -265,6 +355,7 @@ export function viewBattleshipRoom(room: BattleshipRoom, id: string) {
   const battleOn = room.readyPlayers.length === 2 && !room.winner;
   const shotCount = room.players.reduce((total, member) => total + room.shots[member.id].filter((cell) => cell !== "water").length, 0);
   const lastShooter = room.lastShot ? room.players.find((member) => member.id === room.lastShot!.playerId) : undefined;
+  const oppGoneAt = player && opponent ? room.disconnectedAt[opponent.id] : undefined;
   // Only reveal enemy ships that are fully sunk (or every ship once the round is over).
   const enemyFleet = player && opponent
     ? BATTLESHIP_FLEET.map((definition) => {
@@ -310,5 +401,9 @@ export function viewBattleshipRoom(room: BattleshipRoom, id: string) {
     settledCount: room.settledPlayers.length,
     message: room.message,
     updatedAt: room.updatedAt,
+    opponentDisconnected: battleOn && oppGoneAt !== undefined,
+    opponentForfeitInMs: battleOn && oppGoneAt !== undefined ? Math.max(0, oppGoneAt + BATTLESHIP_GRACE_MS - Date.now()) : null,
+    forfeited: room.forfeitedId !== null,
+    youForfeited: room.forfeitedId === id,
   };
 }
