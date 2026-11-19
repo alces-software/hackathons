@@ -15,7 +15,7 @@ type RewardView =
 type PassLevelView = {
   level: number;
   reached: boolean;
-  free: RewardView;
+  free: RewardView | null;
   premium: RewardView | null;
   freeClaimed: boolean;
   premiumClaimed: boolean;
@@ -171,7 +171,7 @@ export default function BattlePassPage() {
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/30 bg-amber-400/[0.08] p-4">
                   <div>
                     <p className="font-serif text-lg font-bold text-amber-200">Premium track</p>
-                    <p className="max-w-md text-xs text-sky-100/60">Extra rewards on every level from 1 up — the Voyager starter set right away, capped by the full Lord Nelson set at level {PREMIUM_LEVEL}: the badge, the title, and a skin for every cosmetic game.</p>
+                    <p className="max-w-md text-xs text-sky-100/60">Cosmetic drops at key levels from 1 up — the Voyager starter set right away, the full Lord Nelson set at level {PREMIUM_LEVEL}: the badge, the title, and a skin for every cosmetic game. Unmarked levels stay blank.</p>
                   </div>
                   <button type="button" disabled={busy} onClick={() => void act({ action: "buy-premium" }, "Premium pass unlocked — the premium track is yours.")} className="rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-bold text-[#071426] hover:bg-amber-300 disabled:opacity-50">
                     Unlock · {pass.premiumPrice.toLocaleString()} moose bucks
@@ -201,7 +201,9 @@ export default function BattlePassPage() {
                           <span className="min-w-0 truncate">
                             <RewardChip reward={row.free} onPreview={setPreview} />
                           </span>
-                          {row.freeClaimed ? (
+                          {row.free === null ? (
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-sky-100/40">Break</span>
+                          ) : row.freeClaimed ? (
                             <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-bold text-emerald-300">Claimed</span>
                           ) : row.reached ? (
                             <button type="button" disabled={busy} onClick={() => void act({ action: "claim", level, track: "free" }, `Level ${level} free reward claimed.`)} className="rounded-lg bg-sky-400 px-2.5 py-1.5 text-xs font-bold text-[#071426] hover:bg-sky-300 disabled:opacity-50">Claim</button>
@@ -246,8 +248,9 @@ export default function BattlePassPage() {
   );
 }
 
-/** Clickable cosmetic reward: opens the full preview modal. */
-function RewardChip({ reward, premium, onPreview }: { reward: RewardView; premium?: boolean; onPreview: (reward: RewardView) => void }) {
+/** Clickable cosmetic reward: opens the full preview modal. A null reward renders a blank-tier dash. */
+function RewardChip({ reward, premium, onPreview }: { reward: RewardView | null; premium?: boolean; onPreview: (reward: RewardView) => void }) {
+  if (reward === null) return <span className="text-sky-100/35">—</span>;
   if (reward.kind === "cosmetic") {
     return (
       <button

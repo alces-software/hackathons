@@ -59,8 +59,7 @@ const levelForXp = (xp: number): number => {
 export type RewardSpec = { mooseBucks?: number; cosmeticId?: string };
 export type PassSetId = "voyager" | "lord-nelson";
 export type PremiumSetReward = { set: PassSetId };
-export type TrackReward = { level: number; free: RewardSpec; premium: PremiumSetReward | RewardSpec | null };
-
+export type TrackReward = { level: number; free: RewardSpec | null; premium: PremiumSetReward | RewardSpec | null };
 export const NELSON_BADGE = "lord-nelson-badge";
 export const NELSON_TITLE = "lord-nelson-title";
 export const NELSON_SKINS = ["lord-nelson-card-skin", "lord-nelson-dice", "lord-nelson-wheel", "lord-nelson-table"] as const;
@@ -100,13 +99,12 @@ const FREE_COSMETIC_LEVELS: Record<number, string> = {
   34: "north-passage-title",
   39: "alces-deck",
 };
-/** Free-track reward at one level; moose-buck payouts credit via the banking service. */
-const freeRewardForLevel = (level: number): RewardSpec =>
-  level === 1 ? { mooseBucks: 50 }
+/** Free-track reward at one level: cosmetics and buck milestones only — blank tiers keep the pass profitable for the casino. */
+const FREE_MONEY_LEVELS: Record<number, number> = { 1: 50, 12: 100, 24: 100, 36: 150, 40: 400 };
+const freeRewardForLevel = (level: number): RewardSpec | null =>
+  FREE_MONEY_LEVELS[level] ? { mooseBucks: FREE_MONEY_LEVELS[level] }
   : FREE_COSMETIC_LEVELS[level] ? { cosmeticId: FREE_COSMETIC_LEVELS[level] }
-  : level % 10 === 0 ? { mooseBucks: 200 }
-  : level % 4 === 0 ? { mooseBucks: 75 }
-  : { mooseBucks: 25 };
+  : null;
 
 /** Pass-exclusive cosmetic granted on the premium track at each level (all live outside the gift shop, never on the free track). */
 const PREMIUM_COSMETIC_LEVELS: Record<number, string> = {
@@ -122,15 +120,16 @@ const PREMIUM_COSMETIC_LEVELS: Record<number, string> = {
   39: "beaverwork-badge",
 };
 
-/** Premium-track reward on every level: sets at 1 and 40, pass-exclusive cosmetics at key levels, moose bucks elsewhere. */
-const premiumRewardForLevel = (level: number): PremiumSetReward | RewardSpec => {
-  if (level === PREMIUM_LEVEL) return premiumSetReward("lord-nelson");
-  if (level === 1) return premiumSetReward("voyager");
-  const cosmetic = PREMIUM_COSMETIC_LEVELS[level];
-  return cosmetic ? { cosmeticId: cosmetic } : { mooseBucks: 40 };
-};
+/** Premium-track reward at one level: set at 1 and 40, pass-exclusive cosmetics at key levels, buck milestones elsewhere, blank in between. */
+const PREMIUM_MONEY_LEVELS: Record<number, number> = { 6: 100, 13: 100, 18: 100, 23: 100, 28: 100, 33: 100, 38: 100 };
+const premiumRewardForLevel = (level: number): PremiumSetReward | RewardSpec | null =>
+  level === PREMIUM_LEVEL ? premiumSetReward("lord-nelson")
+  : level === 1 ? premiumSetReward("voyager")
+  : PREMIUM_COSMETIC_LEVELS[level] ? { cosmeticId: PREMIUM_COSMETIC_LEVELS[level] }
+  : PREMIUM_MONEY_LEVELS[level] ? { mooseBucks: PREMIUM_MONEY_LEVELS[level] }
+  : null;
 
-/** Flat ladder: a free and a premium reward on every level, premium from level 1 upward. */
+/** Ladder: cosmetic milestones and buck checkpoints; levels without either are blank tiers. */
 export function passRewardForLevel(level: number): TrackReward {
   return { level, free: freeRewardForLevel(level), premium: premiumRewardForLevel(level) };
 }
@@ -153,7 +152,7 @@ export type RewardView =
 export type PassLevelView = {
   level: number;
   reached: boolean;
-  free: RewardView;
+  free: RewardView | null;
   premium: RewardView | null;
   freeClaimed: boolean;
   premiumClaimed: boolean;
@@ -278,7 +277,7 @@ export function viewBattlePass(username: string): BattlePassView {
     tracks.push({
       level: lvl,
       reached: lvl <= level,
-      free: resolveReward(reward.free)!,
+      free: resolveReward(reward.free),
       premium: resolveReward(reward.premium),
       freeClaimed: state.claimedFree.includes(lvl),
       premiumClaimed: state.claimedPremium.includes(lvl),
@@ -311,6 +310,9 @@ export function claimBattlePassReward(username: string, level: number, track: "f
   if (!Number.isInteger(level) || level < 1 || level > BATTLEPASS_LEVELS) throw new Error("That pass level does not exist.");
   loadBattlePasses();
   const state = getBattlePassState(username);
+  const reward = passRewardForLevel(level);
+  const spec = track === "free" ? reward.free : reward.premium;
+  if (!spec) throw new Error(`Level ${level} has no ${track}-track reward this season.`);
   const reachedLevel = levelForXp(state.xp);
   if (level > reachedLevel) throw new Error(`You unlock that level at ${LEVEL_THRESHOLDS[level - 1]} season XP.`);
   if (track === "premium") {
@@ -321,12 +323,10 @@ export function claimBattlePassReward(username: string, level: number, track: "f
     if (state.claimedFree.includes(level)) throw new Error("That free reward is already claimed.");
     state.claimedFree = [...state.claimedFree, level].sort((a, b) => a - b);
   }
-  const reward = passRewardForLevel(level);
-  const spec = track === "free" ? reward.free : reward.premium;
   const granted = grantReward(username, spec);
   battlePasses.set(username, state);
   saveBattlePasses();
-  if (spec && granted.length === 0) throw new Error("That reward could not be granted — contact the lodge.");
+  if (granted.length === 0) throw new Error("That reward could not be granted — contact the lodge.");
   return granted;
 }
 

@@ -68,12 +68,14 @@ test("view marks reached levels and claims state", () => {
   const levelOnePremium = view.tracks.find((row) => row.level === 1)?.premium;
   assert.ok(levelOnePremium?.kind === "premium-set", "premium level 1 must be the Voyager set");
   if (levelOnePremium?.kind === "premium-set") assert.equal(levelOnePremium.items.length, VOYAGER_SET_ITEMS.length);
-  // Level 38 is the last moose-buck premium level before the trapper-cap cosmetic at 39 and the set at 40.
-  const premiumKinds = new Set(view.tracks.map((row) => row.premium?.kind).filter(Boolean));
-  // The ladder mixes all three payload shapes (sets, cosmetics, moose bucks) and every level is filled.
-  assert.ok(premiumKinds.size >= 2, "premium ladder must mix sets, cosmetics and buck payouts");
+  // Milestone ladder: premium mixes sets, cosmetics and buck milestones with blank tiers between.
+  const premiumKinds = new Set(view.tracks.map((row) => row.premium?.kind).filter((kind) => kind !== null));
   assert.ok(premiumKinds.has("premium-set"), "premium sets resolve through the view");
-  assert.equal(view.tracks.find((row) => row.level === PREMIUM_LEVEL - 2)?.premium?.kind, "moose-bucks");
+  assert.ok(premiumKinds.has("cosmetic"), "premium cosmetics resolve through the view");
+  assert.ok(premiumKinds.has("moose-bucks"), "premium buck milestones resolve through the view");
+  assert.ok(!view.tracks.find((row) => row.level === 2)?.premium, "premium level 2 is a blank tier");
+  assert.ok(view.tracks.find((row) => row.level === 6)?.premium?.kind === "moose-bucks", "premium level 6 is a buck milestone");
+  assert.ok(view.tracks.find((row) => row.level === 39)?.premium?.kind === "cosmetic", "premium level 39 is the beaverwork badge");
   assert.ok(view.tracks.find((row) => row.level === PREMIUM_LEVEL)?.premium?.kind === "premium-set");
 });
 
@@ -84,7 +86,8 @@ test("free claim works once, rejects duplicates and locked levels", () => {
   assert.equal(rewards[0].kind, "moose-bucks");
   assert.ok("amount" in rewards[0] && rewards[0].amount === 50);
   assert.throws(() => claimBattlePassReward("claims-player", 1, "free"), /already claimed/);
-  assert.throws(() => claimBattlePassReward("claims-player", 9, "free"), /season XP/);
+  assert.throws(() => claimBattlePassReward("claims-player", 5, "free"), /season XP/);
+  assert.throws(() => claimBattlePassReward("claims-player", 9, "free"), /no .*-track reward/);
   const view = viewBattlePass("claims-player");
   assert.ok(view.claimedFree.includes(1));
   assert.ok(view.tracks.find((row) => row.level === 1)?.freeClaimed);
@@ -92,8 +95,8 @@ test("free claim works once, rejects duplicates and locked levels", () => {
 
 test("premium claims stay locked without the premium pass", () => {
   resetBattlePassForTests();
-  awardBattlePassXp("locked-player", 1_000);
-  assert.throws(() => claimBattlePassReward("locked-player", 5, "premium"), /premium pass/i);
+  awardBattlePassXp("locked-player", 1_000); // reaches level 4, a premium cosmetic level
+  assert.throws(() => claimBattlePassReward("locked-player", 4, "premium"), /premium pass/i);
   assert.equal(viewBattlePass("locked-player").claimedPremium.length, 0);
 });
 
@@ -147,15 +150,20 @@ test("premium claim grants a pass-exclusive cosmetic from the ladder", () => {
   assert.ok(PASS_CATALOG.some((item) => item.id === reward.cosmeticId), `${reward.cosmeticId} must be pass-exclusive`);
 });
 
-test("premium ladder rewards all resolve to pass-exclusive items", () => {
+test("premium ladder rewards resolve to pass-exclusive items with blank tiers between", () => {
+  let filled = 0;
   for (let level = 1; level <= BATTLEPASS_LEVELS; level += 1) {
     const reward = passRewardForLevel(level).premium;
-    assert.ok(reward, `premium reward must exist on every level (level ${level})`);
+    if (!reward) continue;
+    filled += 1;
     if (level === BATTLEPASS_LEVELS) continue; // the full Lord Nelson set
     if ("cosmeticId" in reward) {
       assert.ok(PASS_CATALOG.some((item) => item.id === reward.cosmeticId), `${reward.cosmeticId} at level ${level} must be pass-exclusive`);
     }
   }
+  // Sets at 1/40, 10 cosmetics and buck milestones — the rest stay blank so the pass funds itself.
+  assert.ok(filled <= 19, `premium ladder must stay sparse, found ${filled} filled levels`);
+  assert.ok(passRewardForLevel(2).premium === null, "premium level 2 must be a blank tier");
 });
 
 test("premium track opens with the Voyager set at level 1", () => {
@@ -167,7 +175,7 @@ test("free track never repeats a cosmetic across levels", () => {
   const cosmeticLevels: string[] = [];
   for (let level = 1; level <= BATTLEPASS_LEVELS; level += 1) {
     const reward = passRewardForLevel(level).free;
-    if ("cosmeticId" in reward && reward.cosmeticId) cosmeticLevels.push(reward.cosmeticId);
+    if (reward && "cosmeticId" in reward && reward.cosmeticId) cosmeticLevels.push(reward.cosmeticId);
   }
   assert.equal(new Set(cosmeticLevels).size, cosmeticLevels.length, `free cosmetics repeat unexpectedly: ${cosmeticLevels.join(", ")}`);
   // Nothing is shared between the tracks: every free cosmetic id sits outside the premium cosmetic ladder.
@@ -180,11 +188,28 @@ test("free track never repeats a cosmetic across levels", () => {
   }
   const overlap = cosmeticLevels.filter((id) => premiumCosmetics.includes(id));
   assert.ok(overlap.length === 0, `tracks share cosmetics: ${overlap.join(", ")}`);
-  // The moose-buck payout spine holds where it isn't displaced by a cosmetic: 50 open, 75 at %4, 25 elsewhere, and 200 at an unmapped %10 level.
+  // Milestone payouts on the empty levels: 50 at the start, 100 mid, and a blank tier between cosmetics.
   assert.deepEqual(passRewardForLevel(1).free, { mooseBucks: 50 });
   assert.deepEqual(passRewardForLevel(20).free, { cosmeticId: "maple-pips" });
-  assert.deepEqual(passRewardForLevel(4).free, { mooseBucks: 75 });
-  assert.deepEqual(passRewardForLevel(9).free, { mooseBucks: 25 });
+  assert.deepEqual(passRewardForLevel(12).free, { mooseBucks: 100 });
+  assert.deepEqual(passRewardForLevel(8).free, null, "level 8 is a blank free tier");
+});
+
+test("blank tiers can never be claimed (keeps claims intact)", () => {
+  resetBattlePassForTests();
+  awardBattlePassXp("blank-player", 2_000);
+  awardBattlePassXp("blank-player", 2_000);
+  awardBattlePassXp("blank-player", 450); // reaches level 8 (2,100 XP), past the level-6 premium milestone
+  const view = viewBattlePass("blank-player");
+  assert.ok(view.tracks.find((row) => row.level === 9)?.free === null, "level 9 is a blank free tier");
+  assert.throws(() => claimBattlePassReward("blank-player", 9, "free"), /no .*-track reward/);
+  assert.throws(() => claimBattlePassReward("blank-player", 2, "premium"), /no .*-track reward/);
+  // The failed claims burn nothing: both tracks remain claimable at their next real reward.
+  assert.ok(!viewBattlePass("blank-player").claimedFree.includes(9));
+  const money = claimBattlePassReward("blank-player", 12, "free");
+  assert.equal(money.length, 1);
+  assert.equal(money[0].kind, "moose-bucks");
+  assert.ok("amount" in money[0] && money[0].amount === 100);
 });
 
 test("revert makes a claim claimable again", () => {
