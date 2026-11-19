@@ -10,7 +10,7 @@ test(`simulated win rates (player vs tactical AI, ${RUNS} games)`, () => {
   let ai = 0;
   let stalemate = 0;
   for (let i = 0; i < RUNS; i += 1) {
-    const result = simulateGame(newGame(i, i % 2 === 0 ? "player" : "ai", "regular"), DEFAULT_TACTICS);
+    const result = simulateGame(newGame(i, "ai", "regular"), DEFAULT_TACTICS);
     if (result === "You") player += 1;
     else if (result === "AI") ai += 1;
     else stalemate += 1;
@@ -26,7 +26,7 @@ test(`simulated no-mercy win rates (player vs tactical AI, ${RUNS} games)`, () =
   let player = 0;
   let ai = 0;
   for (let i = 0; i < RUNS; i += 1) {
-    const result = simulateGame(newGame(i, i % 2 === 0 ? "player" : "ai", "no-mercy"), DEFAULT_TACTICS);
+    const result = simulateGame(newGame(i, "ai", "no-mercy"), DEFAULT_TACTICS);
     if (result === "You") player += 1;
     else if (result === "AI") ai += 1;
   }
