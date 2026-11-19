@@ -77,9 +77,10 @@ export async function POST(request: Request) {
       return errorResponse(details || `Banking transfer failed with status ${response.status}.`, response.status >= 500 ? 502 : response.status);
     }
 
-    // The Alces Pass earns season XP from settled bets (the stake that started the round).
-    // Best effort: a pass failure never fails the banking transfer it rides on.
-    if (direction === "stake" && game) {
+    // The Alces Pass earns season XP from every bet placed (games stake via the "hold"
+    // direction, which carries the game id). Best effort: a pass failure never fails the
+    // banking transfer it rides on.
+    if ((direction === "stake" || direction === "hold") && game) {
       try {
         awardBattlePassXp(username, amount);
       } catch {
