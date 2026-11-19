@@ -253,14 +253,42 @@ function aiMove(g: Game): Game {
     // Keep the AI turn active so the drawn card is visible before its next move.
     return { ...state, turn: "ai", message: g.pendingDraw > 0 ? "AI drew a playable card to stack..." : "AI drew a playable card..." };
   }
-  // Prefer action cards, then numbers, and keep wilds for when nothing else fits.
-  const rank = (card: Card) => ({ draw10: 9, draw6: 8, draw4: 7, draw2: 6, switch: 5, skip: 4, reverse: 3, wild: 1 } as Partial<Record<Value, number>>)[card.value] ?? 0;
-  const chosen = [...hand].sort((a, b) => rank(b) - rank(a))[0];
+  // Tactical play: take an instant win, ride the colour we hold most of, dump expensive number
+  // cards early, punish the player as they near UNO, and bank wilds for the endgame.
+  const colorCounts = new Map<PlayColor, number>(colors.map((color) => [color, g.ai.filter((card) => card.color === color).length]));
+  const playerCount = g.player.length;
+  const score = (card: Card): number => {
+    if (g.ai.length === 1) return 1_000_000; // the last playable card wins outright
+    let value = 0;
+    const ownColor = colorCounts.get(card.color as PlayColor) ?? 0;
+    if (card.color !== "wild") value += ownColor * 2; // momentum in the colour we hold most of
+    const numeric = Number(card.value);
+    if (Number.isFinite(numeric)) value += numeric * 0.3; // burn high numbers while it is still safe
+    const amount = drawAmount(card.value);
+    if (g.pendingDraw > 0) {
+      value += amount * 10; // keep the stack growing when it has to be answered
+      if (card.color === "wild") value -= 8; // coloured stacks keep our colour and save wilds
+    } else if (amount > 0) {
+      value += playerCount <= 3 ? 18 + amount * 4 : playerCount <= 6 ? 7 + amount : 6;
+    }
+    if (card.value === "skip" || card.value === "reverse") value += playerCount <= 2 ? 14 : 6;
+    if (card.value === "switch") value += 4 + Math.max(0, g.ai.length - playerCount) * 3;
+    if (card.value === "discardColor") value += ownColor >= 3 ? 10 + ownColor * 3 : ownColor === 2 ? 4 : -6;
+    if (card.value === "drawColor") value += 5 + ownColor * 2;
+    if (card.color === "wild" && card.value === "wild") value += playerCount <= 3 ? 20 : -40; // bank wilds until they matter
+    if (card.color === "wild" && card.value === "draw4") value += playerCount <= 3 ? 26 : -25;
+    return value;
+  };
+  const chosen = [...hand].sort((a, b) => score(b) - score(a))[0];
   let wildColor: PlayColor | undefined;
   if (chosen.color === "wild") {
-    const counts = new Map<PlayColor, number>();
-    state.ai.filter((card) => card.id !== chosen.id && card.color !== "wild").forEach((card) => counts.set(card.color as PlayColor, (counts.get(card.color as PlayColor) ?? 0) + 1));
-    wildColor = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? colors[Math.floor(Math.random() * 4)];
+    // Choose the colour we hold most of; break ties toward heavier number cards to keep playing.
+    const weights = new Map<PlayColor, number>();
+    for (const color of colors) {
+      const own = g.ai.filter((card) => card.color === color);
+      weights.set(color, own.length * 10 + own.reduce((sum, card) => sum + (Number(card.value) || 0), 0));
+    }
+    wildColor = [...weights.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? colors[0];
   }
   const played = playCard(state, "ai", chosen, wildColor);
   return played;
