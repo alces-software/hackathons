@@ -8,7 +8,8 @@ export type UnoValue = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
 export type UnoCard = { id: number; color: UnoColor; value: UnoValue };
 export type UnoRuleset = "regular" | "no-mercy";
 export type UnoAction = { type: "play"; cardId: number; color?: UnoPlayColor; targetPlayerId?: string } | { type: "draw" } | { type: "pass" } | { type: "ready"; stake: number } | { type: "settle" } | { type: "configure"; ruleset: UnoRuleset };
-export type UnoPlayer = { id: string; name: string };
+export type UnoTitle = { id: string; label: string; icon: string };
+export type UnoPlayer = { id: string; name: string; badge?: { id: string; icon: string } | null; title?: UnoTitle | null };
 
 export type UnoRoom = {
   code: string;

@@ -1,8 +1,7 @@
 import Link from "next/link";
 import AccountStatus from "./components/AccountStatus";
 
-const games = [
-  { name: "Blackjack", description: "Beat the dealer and get as close to 21 as you can.", icon: "21", accent: "from-sky-300 to-blue-600", href: "/blackjack" },
+const games = [  { name: "Blackjack", description: "Beat the dealer and get as close to 21 as you can.", icon: "21", accent: "from-sky-300 to-blue-600", href: "/blackjack" },
   { name: "Roulette", description: "Place your bets, spin the wheel, and trust your luck.", icon: "0", accent: "from-blue-300 to-indigo-600", href: "/roulette" },
   { name: "UNO", description: "Match colors, stack cards, and be first to shout UNO.", icon: "UNO", accent: "from-indigo-300 to-violet-600", href: "/uno" },
   { name: "Minesweeper", description: "Reveal safe tiles, avoid the mines, and clear the board.", icon: "💣", accent: "from-emerald-300 to-teal-600", href: "/minesweeper" },
@@ -13,6 +12,10 @@ const games = [
   { name: "Craps", description: "Roll the dice, make your point, and beat the seven-out.", icon: "🎲", accent: "from-rose-300 to-red-600", href: "/craps" },
   { name: "Battleships", description: "Hunt the hidden fleet before your ammunition runs out.", icon: "⚓", accent: "from-cyan-300 to-blue-600", href: "/battleships" },
 ];
+
+const shop = { name: "The Gift Shop", description: "Spend your winnings on badges for the lodge — show them off in UNO, Battleships, craps, roulette and blackjack.", icon: "🎁", accent: "from-fuchsia-300 to-pink-600", href: "/shop" };
+const battlePass = { name: "The Alces Pass", description: "Earn season XP from every bet. A free track for everyone — or unlock the premium track and claim the full Lord Nelson set at level 40. Pass cosmetics are exclusive and never sold in the shop.", icon: "⚓", accent: "from-amber-300 to-amber-600", href: "/battlepass" };
+const locker = { name: "Your Locker", description: "Everything you own in one place — equip badges, titles and game skins from the gift shop and the Alces Pass.", icon: "🗄️", accent: "from-emerald-300 to-teal-600", href: "/locker" };
 
 export default function Home() {
   return (
@@ -46,6 +49,18 @@ export default function Home() {
                 <div><h3 className="font-serif text-2xl font-bold">{game.name}</h3><p className="mt-2 text-sm leading-5 text-sky-100/65">{game.description}</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-sky-300 transition group-hover:gap-3">Play now <span aria-hidden="true">→</span></span></div>
               </Link>
             ))}
+            <Link href={shop.href} className="group relative flex min-h-60 flex-col justify-between overflow-hidden rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/[0.08] p-6 shadow-lg shadow-black/10 transition duration-300 hover:-translate-y-1 hover:border-fuchsia-300/60 hover:bg-fuchsia-400/[0.14] hover:shadow-fuchsia-950/40">
+              <div><span aria-hidden="true" className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${shop.accent} text-3xl font-serif font-bold text-white shadow-lg transition duration-300 group-hover:scale-105`}>{shop.icon}</span></div>
+              <div><h3 className="font-serif text-2xl font-bold">{shop.name}</h3><p className="mt-2 text-sm leading-5 text-sky-100/65">{shop.description}</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-fuchsia-300 transition group-hover:gap-3">Browse the shop <span aria-hidden="true">→</span></span></div>
+            </Link>
+            <Link href={battlePass.href} className="group relative flex min-h-60 flex-col justify-between overflow-hidden rounded-2xl border border-amber-300/25 bg-amber-400/[0.08] p-6 shadow-lg shadow-black/10 transition duration-300 hover:-translate-y-1 hover:border-amber-300/60 hover:bg-amber-400/[0.14] hover:shadow-amber-950/40">
+              <div><span aria-hidden="true" className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${battlePass.accent} text-3xl font-serif font-bold text-white shadow-lg transition duration-300 group-hover:scale-105`}>{battlePass.icon}</span></div>
+              <div><h3 className="font-serif text-2xl font-bold">{battlePass.name}</h3><p className="mt-2 text-sm leading-5 text-sky-100/65">{battlePass.description}</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-amber-300 transition group-hover:gap-3">View the pass <span aria-hidden="true">→</span></span></div>
+            </Link>
+            <Link href={locker.href} className="group relative flex min-h-60 flex-col justify-between overflow-hidden rounded-2xl border border-emerald-300/25 bg-emerald-400/[0.08] p-6 shadow-lg shadow-black/10 transition duration-300 hover:-translate-y-1 hover:border-emerald-300/60 hover:bg-emerald-400/[0.14] hover:shadow-emerald-950/40">
+              <div><span aria-hidden="true" className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${locker.accent} text-3xl font-serif font-bold text-white shadow-lg transition duration-300 group-hover:scale-105`}>{locker.icon}</span></div>
+              <div><h3 className="font-serif text-2xl font-bold">{locker.name}</h3><p className="mt-2 text-sm leading-5 text-sky-100/65">{locker.description}</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-emerald-300 transition group-hover:gap-3">Open the locker <span aria-hidden="true">→</span></span></div>
+            </Link>
           </div>
         </div>
       </section>

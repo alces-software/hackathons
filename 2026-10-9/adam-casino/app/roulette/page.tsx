@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
+import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance, getStoredBankingCredentials } from "../../lib/banking";
+import { DEFAULT_WHEEL, findCosmetic, type CosmeticWheelStyles } from "../../lib/cosmeticsCatalog";
 
 const outsideSpots = ["red", "black", "odd", "even"] as const;
 type StakeMap = Record<string, number>;
@@ -59,8 +60,6 @@ function wedge(index: number, inner: number, outer: number) {
 const mod = (value: number, base: number) => ((value % base) + base) % base;
 const smooth = (t: number) => { const x = Math.min(1, Math.max(0, t)); return x * x * (3 - 2 * x); };
 
-const pocketFill = { red: "#b91c1c", black: "#111827", green: "#047857" } as const;
-
 export default function Roulette() {
   const MAX_BET = 250;
   const [balance, setBalance] = useBankingBalance();
@@ -73,11 +72,28 @@ export default function Roulette() {
   const [view, setView] = useState({ wheel: 0, ball: 0, radius: TRACK_R });
   const [eat, setEat] = useState<number | null>(null); // eating animation progress 0..1
   const [ballGone, setBallGone] = useState(false);
+  const [wheel, setWheel] = useState<CosmeticWheelStyles>(DEFAULT_WHEEL);
   const roundRef = useRef<"idle" | "spinning" | "settling" | "eaten">("idle");
   const stakeRef = useRef(0);
   const frame = useRef(0);
 
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
+
+  // Load the equipped wheel skin; pass-based, so a cookie wipe cannot steal ownership.
+  useEffect(() => {
+    const credentials = getStoredBankingCredentials();
+    if (!credentials) return;
+    let cancelled = false;
+    fetch(`/api/cosmetics/pass?username=${encodeURIComponent(credentials.username)}`, { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { passes?: Record<string, string> } | null) => {
+        if (!body?.passes || cancelled) return;
+        const item = findCosmetic(body.passes["roulette-wheel"] ?? "");
+        if (item?.wheelStyles) setWheel(item.wheelStyles);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const totalStaked = round2(Object.values(stakes).reduce((sum, amount) => sum + amount, 0));
 
@@ -245,24 +261,24 @@ export default function Roulette() {
             <div className="flex min-h-80 flex-col items-center justify-center rounded-2xl border border-emerald-300/10 bg-[#0a3a36]/70 p-6">
               <svg viewBox="0 0 340 340" role="img" aria-label="European roulette wheel" className="h-auto w-full max-w-[360px] drop-shadow-[0_12px_30px_rgba(0,0,0,0.45)]">
                 <defs>
-                  <radialGradient id="rw-wood" cx="50%" cy="50%" r="50%"><stop offset="85%" stopColor="#6b4423" /><stop offset="100%" stopColor="#2a1608" /></radialGradient>
-                  <radialGradient id="rw-track" cx="50%" cy="50%" r="50%"><stop offset="80%" stopColor="#0b1d33" /><stop offset="100%" stopColor="#1e3a5f" /></radialGradient>
+                  <radialGradient id="rw-wood" cx="50%" cy="50%" r="50%"><stop offset="85%" stopColor={wheel.woodFrom} /><stop offset="100%" stopColor={wheel.woodTo} /></radialGradient>
+                  <radialGradient id="rw-track" cx="50%" cy="50%" r="50%"><stop offset="80%" stopColor={wheel.trackFrom} /><stop offset="100%" stopColor={wheel.trackTo} /></radialGradient>
                   <radialGradient id="rw-cone" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#d4a017" /><stop offset="55%" stopColor="#7c5a12" /><stop offset="100%" stopColor="#3a2a08" /></radialGradient>
                   <radialGradient id="rw-ball" cx="35%" cy="30%" r="70%"><stop offset="0%" stopColor="#ffffff" /><stop offset="60%" stopColor="#e2e8f0" /><stop offset="100%" stopColor="#94a3b8" /></radialGradient>
                 </defs>
 
                 {/* Fixed bowl: wooden rim, gold edge and the ball track */}
                 <circle cx={C} cy={C} r="166" fill="url(#rw-wood)" />
-                <circle cx={C} cy={C} r="158" fill="none" stroke="#fbbf24" strokeWidth="2.5" opacity="0.85" />
+                <circle cx={C} cy={C} r="158" fill="none" stroke={wheel.accent} strokeWidth="2.5" opacity="0.85" />
                 <circle cx={C} cy={C} r="152" fill="url(#rw-track)" />
                 <circle cx={C} cy={C} r="138" fill="none" stroke="#475569" strokeWidth="0.6" opacity="0.6" />
-                <polygon points={`${C - 7},6 ${C + 7},6 ${C},20`} fill="#fbbf24" />
+                <polygon points={`${C - 7},6 ${C + 7},6 ${C},20`} fill={wheel.accent} />
 
                 {/* Rotating wheel */}
                 <g transform={`rotate(${view.wheel} ${C} ${C})`}>
-                  <circle cx={C} cy={C} r="126" fill="#fbbf24" />
+                  <circle cx={C} cy={C} r="126" fill={wheel.accent} />
                   {wheelOrder.map((value, index) => (
-                    <path key={`pocket-${value}`} d={wedge(index, 102, 125)} fill={pocketFill[numberColor(value)]} />
+                    <path key={`pocket-${value}`} d={wedge(index, 102, 125)} fill={wheel.pockets[numberColor(value)]} />
                   ))}
                   <circle cx={C} cy={C} r="102" fill="#0b1d33" />
                   {wheelOrder.map((value, index) => (
@@ -273,16 +289,16 @@ export default function Roulette() {
                   {wheelOrder.map((value, index) => {
                     const [x0, y0] = polar(102, (index - 0.5) * STEP);
                     const [x1, y1] = polar(126, (index - 0.5) * STEP);
-                    return <line key={`fret-${value}`} x1={x0} y1={y0} x2={x1} y2={y1} stroke="#fbbf24" strokeWidth="1.2" />;
+                    return <line key={`fret-${value}`} x1={x0} y1={y0} x2={x1} y2={y1} stroke={wheel.accent} strokeWidth="1.2" />;
                   })}
-                  <circle cx={C} cy={C} r="76" fill="url(#rw-cone)" stroke="#fbbf24" strokeWidth="1.5" />
+                  <circle cx={C} cy={C} r="76" fill="url(#rw-cone)" stroke={wheel.accent} strokeWidth="1.5" />
                   {[0, 45, 90, 135].map((angle) => (
-                    <line key={angle} x1={C} y1={C - 74} x2={C} y2={C + 74} stroke="#fde68a" strokeWidth="2" opacity="0.55" transform={`rotate(${angle} ${C} ${C})`} />
+                    <line key={angle} x1={C} y1={C - 74} x2={C} y2={C + 74} stroke={wheel.spoke} strokeWidth="2" opacity="0.55" transform={`rotate(${angle} ${C} ${C})`} />
                   ))}
                 </g>
 
                 {/* Static hub that shows the last result */}
-                <circle cx={C} cy={C} r="44" fill="#071426" stroke="#fbbf24" strokeWidth="3" />
+                <circle cx={C} cy={C} r="44" fill="#071426" stroke={wheel.accent} strokeWidth="3" />
                 <text x={C} y={C - 14} textAnchor="middle" fontSize="8" letterSpacing="1.5" fill="#bae6fd" opacity="0.6">RESULT</text>
                 <text x={C} y={C + 12} textAnchor="middle" fontSize="30" fontWeight="900" fill={resultFill}>{result ?? "—"}</text>
 
@@ -299,7 +315,7 @@ export default function Roulette() {
                       <text textAnchor="middle" dominantBaseline="central" fontSize="44">🫎</text>
                     </g>
                     {eat > 0.4 && eat < 0.8 && (
-                      <text x={C} y={C + 68} textAnchor="middle" fontSize="18" fontWeight="900" fill="#fbbf24">CHOMP!</text>
+                      <text x={C} y={C + 68} textAnchor="middle" fontSize="18" fontWeight="900" fill={wheel.accent}>CHOMP!</text>
                     )}
                   </>
                 )}

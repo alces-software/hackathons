@@ -1,27 +1,30 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
+import { bankingLoss, bankingPayout, bankingReturn, bankingStake, getStoredBankingCredentials, syncBankingBalance, useBankingBalance } from "../../lib/banking";
 import type { BattleshipAction, BattleshipShip } from "../../lib/battleshipsMultiplayer";
 
 type Shot = "water" | "hit" | "miss";
 type EnemyShip = { name: string; length: number; sunk: boolean; cells: number[] };
 type LastShot = { byYou: boolean; byName: string; cell: number; hit: boolean; sunkShip: string | null; n: number };
+type TitleChip = { id: string; label: string; icon: string };
 type View = {
   code: string;
   role: "player" | "spectator";
   playerName: string;
-  players: { id: string; name: string }[];
-  spectators: { id: string; name: string }[];
-  opponent: { id: string; name: string } | null;
+  players: { id: string; name: string; badge?: { id: string; icon: string } | null; title?: TitleChip | null }[];
+  spectators: { id: string; name: string; badge?: { id: string; icon: string } | null; title?: TitleChip | null }[];
+  opponent: { id: string; name: string; badge?: { id: string; icon: string } | null; title?: TitleChip | null } | null;
   ownShips: BattleshipShip[];
   ownShots: Shot[];
   opponentShots: Shot[];
   enemyFleet: EnemyShip[];
   revealedEnemyCells: number[];
   turnName: string | null;
+  turnBadge: { id: string; icon: string } | null;
+  turnTitle: TitleChip | null;
   lastShot: LastShot | null;
-  watch: { name: string; targetName: string; shots: Shot[] }[];
+  watch: { name: string; badge?: { id: string; icon: string } | null; title?: TitleChip | null; targetName: string; shots: Shot[] }[];
   opponentShotCount: number;
   opponentHitCount: number;
   opponentFleetPlaced: boolean;
@@ -271,6 +274,22 @@ export default function MultiplayerBattleships() {
     }
   }, []);
 
+  // The equipped badge and title passes (if any), included whenever we enter a room so the
+  // server can decorate us. The server verifies the signatures rather than trusting the client.
+  const cosmeticPassRef = useRef<string | null>(null);
+  const titlePassRef = useRef<string | null>(null);
+  useEffect(() => {
+    const credentials = getStoredBankingCredentials();
+    if (!credentials) return;
+    fetch(`/api/cosmetics/pass?username=${encodeURIComponent(credentials.username)}`, { cache: "no-store" })
+      .then((response) => response.json() as Promise<{ pass?: string | null; passes?: Record<string, string | null> }>)
+      .then((body) => {
+        cosmeticPassRef.current = body.pass ?? body.passes?.badge ?? null;
+        titlePassRef.current = body.passes?.title ?? null;
+      })
+      .catch(() => cosmeticPassRef.current = null);
+  }, []);
+
   // Countdown while the opponent is away.
   useEffect(() => {
     setForfeitDeadline(view?.opponentDisconnected && view.opponentForfeitInMs !== null ? Date.now() + view.opponentForfeitInMs : null);
@@ -391,7 +410,7 @@ export default function MultiplayerBattleships() {
   const previewValid = previewCells.length > 0 && previewCells.every((c) => !ownCells.has(c));
   const previewSet = new Set(previewCells);
 
-  async function request(body: { action: "create" | "join" | "spectate" | "move"; code?: string; playerToken?: string; name?: string; move?: BattleshipAction }) {
+  async function request(body: { action: "create" | "join" | "spectate" | "move"; code?: string; playerToken?: string; name?: string; move?: BattleshipAction; cosmeticPass?: string; titlePass?: string }) {
     const response = await fetch("/api/battleships/room", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const result = (await response.json()) as { error?: string; playerId?: string; playerToken?: string; room?: View };
     if (!response.ok) throw new Error(result.error || "Request failed.");
@@ -417,13 +436,13 @@ export default function MultiplayerBattleships() {
   }
 
   async function create() {
-    try { await request({ action: "create", name }); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not create room."); }
+    try { await request({ action: "create", name, cosmeticPass: cosmeticPassRef.current ?? undefined, titlePass: titlePassRef.current ?? undefined }); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not create room."); }
   }
   async function join() {
-    try { await request({ action: "join", code, playerToken: token, name }); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not join room."); }
+    try { await request({ action: "join", code, playerToken: token, name, cosmeticPass: cosmeticPassRef.current ?? undefined, titlePass: titlePassRef.current ?? undefined }); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not join room."); }
   }
   async function spectate() {
-    try { await request({ action: "spectate", code, name }); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not spectate room."); }
+    try { await request({ action: "spectate", code, name, cosmeticPass: cosmeticPassRef.current ?? undefined, titlePass: titlePassRef.current ?? undefined }); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not spectate room."); }
   }
 
   function reconnect() {
@@ -679,12 +698,14 @@ export default function MultiplayerBattleships() {
     status = { key: "waiting", icon: "⏳", title: "Fleet locked in", sub: `Waiting for ${opponentName} to place their fleet and match the ${stakeText} stake.`, style: "border-amber-300/40 bg-amber-300/10 text-amber-100" };
   } else if (isSpectator) {
     status = view.readyCount === 2
-      ? { key: `spec-${view.turnName}`, icon: "👁", title: `${view.turnName ?? "A player"} is aiming`, sub: "You're watching this battle live.", style: "border-sky-300/30 bg-sky-300/10 text-sky-100" }
+      ? { key: `spec-${view.turnName}`, icon: "👁", title: `${view.turnBadge ? `${view.turnBadge.icon} ` : ""}${view.turnTitle ? `${view.turnTitle.icon} ${view.turnTitle.label} ` : ""}${view.turnName ?? "A player"} is aiming`, sub: "You're watching this battle live.", style: "border-sky-300/30 bg-sky-300/10 text-sky-100" }
       : { key: "spec-wait", icon: "👁", title: "Waiting for the battle", sub: "Both players are still setting up.", style: "border-white/20 bg-white/10 text-emerald-50" };
   } else if (myTurn) {
     status = { key: "my-turn", icon: "🎯", title: "Your turn — fire!", sub: target !== null ? `Target ${cellLabel(target)} selected. Click it again or press Fire.` : "Select a square on the enemy waters.", style: "mp-glow border-sky-300 bg-sky-400/20 text-sky-50" };
   } else {
-    status = { key: "their-turn", icon: "🛡", title: `${opponentName} is aiming…`, sub: "Brace for incoming fire.", style: "mp-glow-rose border-rose-300/70 bg-rose-500/15 text-rose-50" };
+    const opponentBadge = view.opponent?.badge ?? null;
+    const opponentTitle = view.opponent?.title ?? null;
+    status = { key: "their-turn", icon: "🛡", title: `${opponentBadge ? `${opponentBadge.icon} ` : ""}${opponentTitle ? `${opponentTitle.icon} ${opponentTitle.label} ` : ""}${opponentName} is aiming…`, sub: "Brace for incoming fire.", style: "mp-glow-rose border-rose-300/70 bg-rose-500/15 text-rose-50" };
   }
 
   /* ----- Cell renderers ----- */
@@ -854,6 +875,19 @@ export default function MultiplayerBattleships() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs uppercase tracking-wider text-emerald-200/65">
           Room <span className="font-mono tracking-widest text-emerald-100">{view.code}</span> · {view.players.length}/2 players · {view.spectators.length} watching
+          {view.players.some((player) => player.badge || player.title) && (
+            <>
+              ·{" "}
+              {view.players
+                .flatMap((player) => {
+                  const chips: ReactNode[] = [];
+                  if (player.badge) chips.push(<span key={`badge-${player.id}`} title={`${player.name} is wearing a ${player.badge.id} badge`}>{player.badge.icon}</span>);
+                  if (player.title) chips.push(<span key={`title-${player.id}`} title={`${player.name} earned the "${player.title.label}" title`}>{player.title.icon} {player.title.label}</span>);
+                  return chips.length ? [<span key={player.id}>{player.name} {chips}</span>] : [];
+                })
+                .reduce((prev, curr, index) => (index === 0 ? [curr] : [...prev, " · ", curr]), [] as ReactNode[])}
+            </>
+          )}
           {view.stake !== null && <> · Stake {stakeText}</>}
         </p>
         <button onClick={leave} className="rounded-lg border border-red-300/40 px-3 py-2 text-sm text-red-200 hover:bg-red-300/10">Leave room</button>
@@ -896,7 +930,12 @@ export default function MultiplayerBattleships() {
             return (
               <div key={board.name + index} className={boardFrame(active, "sky")}>
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <h3 className="font-bold">{board.name} <span className="text-xs font-normal text-emerald-100/55">firing at {board.targetName}</span></h3>
+                  <h3 className="font-bold">
+                    {board.badge && <span className="mr-1" aria-hidden>{board.badge.icon}</span>}
+                    {board.title && <span className="mr-1 text-xs font-normal text-emerald-100/70" title={`Title: ${board.title.label}`}>{board.title.icon} {board.title.label}</span>}
+                    {board.name}
+                    <span className="text-xs font-normal text-emerald-100/55"> firing at {board.targetName}</span>
+                  </h3>
                   <span className="text-xs text-emerald-100/55">{s.fired > 0 ? `${s.fired} shots · ${s.hits} hits` : "No shots yet"}</span>
                 </div>
                 <Grid renderCell={watchRenderer(board, index)} />

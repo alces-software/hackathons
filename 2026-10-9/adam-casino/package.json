@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test:uno": "UNO_ROOMS_FILE=.data/test-uno-rooms.json node --experimental-strip-types --test lib/unoMultiplayer.test.ts",
-    "test:battleships": "BATTLESHIPS_ROOMS_FILE=.data/test-battleships-rooms.json node --experimental-strip-types --test lib/battleshipsMultiplayer.test.ts"
+    "test:cosmetics": "COSMETICS_FILE=.data/test-cosmetics.json UNO_SESSION_SECRET=test-secret node --experimental-strip-types --test lib/cosmetics.test.ts",
+    "test:battleships": "BATTLESHIPS_ROOMS_FILE=.data/test-battleships-rooms.json node --experimental-strip-types --test lib/battleshipsMultiplayer.test.ts",
+    "test:battlepass": "BATTLEPASS_FILE=.data/test-battlepass.json COSMETICS_FILE=.data/test-cosmetics.json UNO_SESSION_SECRET=test-secret node --experimental-strip-types --test lib/battlepass.test.ts"
   },
   "dependencies": {
     "next": "^16.4.6",

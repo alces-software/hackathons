@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
+import { useEffect, useRef, useState } from "react";
+import { findCosmetic, findCosmeticTitle } from "../../lib/cosmeticsCatalog";
+import { bankingLoss, bankingPayout, bankingReturn, bankingStake, getStoredBankingCredentials, syncBankingBalance, useBankingBalance } from "../../lib/banking";
 import type { UnoAction, UnoCard, UnoPlayColor, UnoRuleset } from "../../lib/unoMultiplayer";
 
 type Color = "red" | "yellow" | "green" | "blue" | "wild";
@@ -30,19 +31,31 @@ type Game = {
   ruleset: Ruleset;
 };
 
+type Badge = { id: string; icon: string };
+type Title = { id: string; label: string; icon: string };
+
+function BadgeIcon({ badge }: { badge?: Badge | null }) {
+  return badge ? <span aria-label={badge.id}>{badge.icon}</span> : null;
+}
+
+function TitleChip({ title }: { title?: Title | null }) {
+  if (!title) return null;
+  return <span className="ml-0.5 rounded-full bg-emerald-300/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-100" title={`Title: ${title.label}`}>{title.icon} {title.label}</span>;
+}
+
 type MultiplayerView = {
   code: string;
   playerName: string;
-  players: { id: string; name: string }[];
-  spectators: { id: string; name: string }[];
+  players: { id: string; name: string; badge?: Badge | null; title?: Title | null }[];
+  spectators: { id: string; name: string; badge?: Badge | null; title?: Title | null }[];
   role: "player" | "spectator";
   hostId: string;
   maxPlayers: number;
   ruleset: UnoRuleset;
   hand: UnoCard[];
-  opponent: { id: string; name: string } | null;
+  opponent: { id: string; name: string; badge?: Badge | null; title?: Title | null } | null;
   opponentCardCount: number;
-  opponents: { id: string; name: string; cardCount: number }[];
+  opponents: { id: string; name: string; badge?: Badge | null; title?: Title | null; cardCount: number }[];
   deckCount: number;
   top: UnoCard | null;
   activeColor: UnoPlayColor;
@@ -70,13 +83,15 @@ const valueLabels: Record<Value, string> = { "0": "0", "1": "1", "2": "2", "3": 
 const valueNames: Record<Value, string> = { "0": "0", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9", skip: "Skip", reverse: "Reverse", draw2: "+2", wild: "", draw4: "+4", draw6: "+6", draw10: "+10", switch: "Hand switch", discardColor: "Discard a color", drawColor: "Draw to a color" };
 
 // Self-contained card colours (no dependency on global CSS).
-const cardStyle: Record<Color, string> = {
+const defaultCardStyle: Record<Color, string> = {
   red: "bg-red-600 text-white",
   yellow: "bg-yellow-400 text-slate-900",
   green: "bg-green-600 text-white",
   blue: "bg-blue-600 text-white",
   wild: "bg-[conic-gradient(#dc2626_0_25%,#facc15_0_50%,#16a34a_0_75%,#2563eb_0_100%)] text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.9)]",
 };
+
+const defaultHiddenCard = "border-2 border-sky-300/50 bg-gradient-to-br from-slate-900 to-red-800 shadow-xl";
 
 const emptyGame: Game = {
   deck: [], player: [], ai: [], discard: [], color: "blue", turn: "player", started: false,
@@ -251,10 +266,10 @@ function aiMove(g: Game): Game {
   return played;
 }
 
-function CardView({ card, hidden = false, onClick, playable = false, dim = false }: { card?: Card; hidden?: boolean; onClick?: () => void; playable?: boolean; dim?: boolean }) {
+function CardView({ card, hidden = false, onClick, playable = false, dim = false, style, hiddenStyle, className }: { card?: Card; hidden?: boolean; onClick?: () => void; playable?: boolean; dim?: boolean; style: Record<Color, string>; hiddenStyle?: string; className?: string }) {
   const size = "flex h-28 w-20 shrink-0 flex-col items-center justify-center rounded-xl sm:h-36 sm:w-24";
-  if (hidden || !card) return <div className={`${size} border-2 border-sky-300/50 bg-gradient-to-br from-slate-900 to-red-800 shadow-xl`}><span className="rounded-full border-2 border-white/50 px-2 py-1 text-xs font-black text-white">UNO</span></div>;
-  const face = `${size} border-4 border-white/80 shadow-xl transition ${cardStyle[card.color]}`;
+  if (hidden || !card) return <div className={`${size} ${hiddenStyle ?? defaultHiddenCard}`}><span className="rounded-full border-2 border-white/50 px-2 py-1 text-xs font-black text-white">UNO</span></div>;
+  const face = `${size} border-4 border-white/80 shadow-xl transition ${style[card.color]}${className ? ` ${className}` : ""}`;
   const content = (
     <>
       <span className="text-3xl font-black sm:text-4xl">{valueLabels[card.value]}</span>
@@ -288,6 +303,33 @@ export default function Uno() {
   const [multiplayerRuleset, setMultiplayerRuleset] = useState<UnoRuleset>("regular");
   const [multiplayerMaxPlayers, setMultiplayerMaxPlayers] = useState(2);
   const [settlingMultiplayer, setSettlingMultiplayer] = useState(false);
+
+  // The equipped card skin (if any), resolved from the client-safe catalog so every card we
+  // render (hand, top of pile, active color) wears the chosen deck. Default palette otherwise.
+  const [cardSkin, setCardSkin] = useState<Record<Color, string> | null>(null);
+  const [hiddenCardStyle, setHiddenCardStyle] = useState<string | null>(null);
+  const cardStyle = cardSkin ?? defaultCardStyle;
+
+  // The equipped badge and title passes (if any), included whenever we create/join/spectate a room.
+  const unoCosmeticPassRef = useRef<string | null>(null);
+  const unoTitlePassRef = useRef<string | null>(null);
+  useEffect(() => {
+    const credentials = getStoredBankingCredentials();
+    if (!credentials) return;
+    fetch(`/api/cosmetics/pass?username=${encodeURIComponent(credentials.username)}`, { cache: "no-store" })
+      .then((response) => response.json() as Promise<{ pass?: string | null; passes?: Record<string, string | null> }>)
+      .then((body) => {
+        unoCosmeticPassRef.current = body.pass ?? body.passes?.badge ?? null;
+        unoTitlePassRef.current = body.passes?.title ?? null;
+        const skinId = body.passes?.["uno-card-skin"] ?? null;
+        const skin = skinId ? findCosmetic(skinId) : null;
+        setCardSkin(skin?.cardStyles as Record<Color, string> | undefined ?? null);
+        setHiddenCardStyle(skin?.hiddenStyle ?? null);
+      })
+      .catch(() => {
+        unoCosmeticPassRef.current = null;
+      });
+  }, []);
 
   const inProgress = g.started && !g.winner;
   const top = g.discard[g.discard.length - 1];
@@ -363,7 +405,7 @@ export default function Uno() {
     setG(newGame(bet, mode, ruleset));
   }
 
-  async function multiplayerRequest(body: { action: "create" | "join" | "spectate" | "move"; code?: string; playerId?: string; playerToken?: string; name?: string; ruleset?: UnoRuleset; maxPlayers?: number; move?: UnoAction }) {
+  async function multiplayerRequest(body: { action: "create" | "join" | "spectate" | "move"; code?: string; playerId?: string; playerToken?: string; name?: string; ruleset?: UnoRuleset; maxPlayers?: number; move?: UnoAction; cosmeticPass?: string; titlePass?: string }) {
     const response = await fetch("/api/uno/room", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const result = await response.json() as { error?: string; playerId?: string; playerToken?: string; room?: MultiplayerView };
     if (!response.ok) throw new Error(result.error || "The multiplayer request failed.");
@@ -403,7 +445,7 @@ export default function Uno() {
   }
 
   async function createMultiplayerRoom() {
-    try {     await multiplayerRequest({ action: "create", name: multiplayerName, ruleset: multiplayerRuleset, maxPlayers: multiplayerMaxPlayers }); setMultiplayerMessage(`Room created for up to ${multiplayerMaxPlayers} players. Share the code with your group.`); } catch (error) { setMultiplayerMessage(error instanceof Error ? error.message : "Could not create the room."); }
+    try { await multiplayerRequest({ action: "create", name: multiplayerName, ruleset: multiplayerRuleset, maxPlayers: multiplayerMaxPlayers, cosmeticPass: unoCosmeticPassRef.current ?? undefined, titlePass: unoTitlePassRef.current ?? undefined }); setMultiplayerMessage(`Room created for up to ${multiplayerMaxPlayers} players. Share the code with your group.`); } catch (error) { setMultiplayerMessage(error instanceof Error ? error.message : "Could not create the room."); }
   }
 
   async function joinMultiplayerRoom() {
@@ -411,11 +453,11 @@ export default function Uno() {
       setMultiplayerMessage("You are already connected to this room.");
       return;
     }
-    try { await multiplayerRequest({ action: "join", code: multiplayerCode, playerToken: multiplayerPlayerToken, name: multiplayerName }); setMultiplayerMessage("Joined the room."); } catch (error) { setMultiplayerMessage(error instanceof Error ? error.message : "Could not join the room."); }
+    try { await multiplayerRequest({ action: "join", code: multiplayerCode, playerToken: multiplayerPlayerToken, name: multiplayerName, cosmeticPass: unoCosmeticPassRef.current ?? undefined, titlePass: unoTitlePassRef.current ?? undefined }); setMultiplayerMessage("Joined the room."); } catch (error) { setMultiplayerMessage(error instanceof Error ? error.message : "Could not join the room."); }
   }
 
   async function spectateMultiplayerRoom() {
-    try { await multiplayerRequest({ action: "spectate", code: multiplayerCode, name: multiplayerName }); setMultiplayerMessage("You are spectating this room."); } catch (error) { setMultiplayerMessage(error instanceof Error ? error.message : "Could not join as a spectator."); }
+    try { await multiplayerRequest({ action: "spectate", code: multiplayerCode, name: multiplayerName, cosmeticPass: unoCosmeticPassRef.current ?? undefined, titlePass: unoTitlePassRef.current ?? undefined }); setMultiplayerMessage("You are spectating this room."); } catch (error) { setMultiplayerMessage(error instanceof Error ? error.message : "Could not join as a spectator."); }
   }
 
   function leaveMultiplayerRoom() {
@@ -577,9 +619,8 @@ function chooseMultiplayerSwitchTarget(targetPlayerId: string) {
             <div><p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-300">Self-hosted multiplayer</p><h2 className="mt-2 font-serif text-2xl font-bold">Play UNO with a friend</h2><p className="mt-2 max-w-xl text-sm text-emerald-100/65">Create a room on this server, share its code, and play regular UNO or UNO No Mercy in real time. Your opponent never receives your hand.</p></div>
             <div className="flex flex-col gap-2 sm:flex-row"><input value={multiplayerName} onChange={(event) => setMultiplayerName(event.target.value)} placeholder="Your name" disabled={!!multiplayer} className="rounded-lg border border-emerald-200/20 bg-slate-950/50 px-3 py-2 text-sm text-white outline-none focus:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-50" /><select value={multiplayerRuleset} onChange={(event) => setMultiplayerRuleset(event.target.value as UnoRuleset)} disabled={!!multiplayer} className="rounded-lg border border-emerald-200/20 bg-slate-900 px-3 py-2 text-sm font-semibold text-white outline-none focus:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"><option value="regular">Regular UNO</option><option value="no-mercy">UNO No Mercy</option></select><select value={multiplayerMaxPlayers} onChange={(event) => setMultiplayerMaxPlayers(Number(event.target.value))} disabled={!!multiplayer} aria-label="Maximum players" className="rounded-lg border border-emerald-200/20 bg-slate-900 px-3 py-2 text-sm font-semibold text-white outline-none focus:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-50">{[2, 3, 4, 5, 6, 7, 8].map((count) => <option key={count} value={count}>{count} players</option>)}</select><button onClick={createMultiplayerRoom} disabled={!!multiplayer || !multiplayerName.trim()} className="rounded-lg bg-emerald-300 px-4 py-2 text-sm font-bold text-[#092f2b] hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-40">Create room</button></div>
           </div>
-          <div className="mt-5 flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row sm:items-center"><input value={multiplayerCode} onChange={(event) => setMultiplayerCode(event.target.value.toUpperCase())} placeholder="ROOM CODE" maxLength={6} disabled={!!multiplayer} className="w-full rounded-lg border border-emerald-200/20 bg-slate-950/50 px-3 py-2 font-mono text-sm uppercase tracking-widest text-white outline-none focus:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-50 sm:w-40" /><button onClick={joinMultiplayerRoom} disabled={!multiplayerCode || !multiplayerName.trim() || !!multiplayer} className="rounded-lg border border-emerald-300/50 px-4 py-2 text-sm font-bold text-emerald-100 hover:bg-emerald-300/10 disabled:cursor-not-allowed disabled:opacity-40">Join room</button><button onClick={() => void spectateMultiplayerRoom()} disabled={!multiplayerCode || !multiplayerName.trim() || !!multiplayer} className="rounded-lg border border-emerald-300/50 px-4 py-2 text-sm font-bold text-emerald-100 hover:bg-emerald-300/10 disabled:cursor-not-allowed disabled:opacity-40">Spectate</button><button onClick={() => void reconnectMultiplayerRoom()} disabled={!!multiplayer} className="rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-emerald-100/75 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40">Reconnect saved room</button>{multiplayer && <><span className="text-sm text-emerald-100/70">You: <strong className="text-emerald-200">{multiplayer.playerName}</strong> · Room <strong className="font-mono tracking-widest text-emerald-200">{multiplayer.code}</strong> · {multiplayer.players.length}/2 players · {multiplayer.spectators.length} watching</span><button onClick={leaveMultiplayerRoom} className="rounded-lg border border-red-300/40 px-4 py-2 text-sm font-semibold text-red-200 hover:bg-red-300/10">Leave room</button></>}</div>
-          {multiplayer && multiplayer.players.length >= 2 && <div className="mt-6 rounded-2xl border border-emerald-300/10 bg-[#071f1d]/80 p-5"><div className="flex items-center justify-between text-sm text-emerald-100/70"><span>{multiplayer.role === "spectator" ? `Spectating · ${multiplayer.spectators.length} watching` : multiplayer.opponents.map((opponent) => `${opponent.name}: ${opponent.cardCount}`).join(" · ")}</span><span>{multiplayer.role === "spectator" ? "Spectator view" : multiplayer.winner ? `${multiplayer.settledCount}/${multiplayer.maxPlayers} settled` : multiplayer.bothPlayersReady ? (multiplayer.isYourTurn ? "Your turn" : `${multiplayer.currentTurn}'s turn`) : `${multiplayer.readyCount}/${multiplayer.maxPlayers} ready`}</span></div><div className="mt-3 rounded-lg border border-emerald-300/15 bg-emerald-950/30 px-3 py-2 text-center text-xs text-emerald-100/80">Turn order: {multiplayer.turnOrder.join(multiplayer.direction === 1 ? " → " : " ← ")} · Current turn: <strong className="text-emerald-200">{multiplayer.currentTurn}</strong></div>{multiplayer.role === "player" && !multiplayer.bothPlayersReady && <div className="mt-5 flex flex-col gap-3 rounded-xl border border-emerald-300/15 bg-slate-950/25 p-4 sm:flex-row sm:items-end"><div><label htmlFor="multiplayer-bet" className="text-xs font-bold uppercase tracking-wider text-emerald-100/65">{multiplayer.winner ? "Rematch stake" : "Stake"}</label>{multiplayer.stake !== null && <p className="mt-1 text-xs text-emerald-200">Room stake: {multiplayer.stake.toFixed(2)} moose bucks</p>}<div className="mt-2 flex items-center gap-2"><input id="multiplayer-bet" type="number" min="1" max="250" value={multiplayerBet || ""} onChange={(event) => setMultiplayerBet(Number(event.target.value) || 0)} disabled={multiplayer.isReady} className="w-32 rounded-lg border border-emerald-200/20 bg-slate-900 px-3 py-2 text-lg font-bold text-white outline-none focus:border-emerald-300" /><span className="text-sm text-emerald-100/65">moose bucks</span></div></div><button onClick={() => void readyMultiplayer()} disabled={multiplayer.isReady} className="rounded-lg bg-emerald-300 px-4 py-2 text-sm font-bold text-[#092f2b] disabled:cursor-not-allowed disabled:opacity-40">{multiplayer.isReady ? "Stake placed" : multiplayer.winner ? "Play rematch" : "Place stake & ready"}</button></div>}<div className="my-5 flex items-center justify-center gap-4"><CardView hidden /><CardView card={multiplayer.top ?? undefined} /><div className={`flex h-12 w-12 items-center justify-center rounded-full text-[10px] font-bold uppercase ${cardStyle[multiplayer.activeColor]}`}>{colorLabels[multiplayer.activeColor]}</div></div>
-            <div className="flex flex-wrap items-end justify-center gap-2">{multiplayer.hand.map((card) => <CardView key={card.id} card={card} onClick={() => playMultiplayerCard(card)} playable={multiplayerCardIsPlayable(card) && !multiplayerPendingWild} dim={!multiplayerCardIsPlayable(card)} />)}</div>
+          <div className="mt-5 flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row sm:items-center"><input value={multiplayerCode} onChange={(event) => setMultiplayerCode(event.target.value.toUpperCase())} placeholder="ROOM CODE" maxLength={6} disabled={!!multiplayer} className="w-full rounded-lg border border-emerald-200/20 bg-slate-950/50 px-3 py-2 font-mono text-sm uppercase tracking-widest text-white outline-none focus:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-50 sm:w-40" /><button onClick={joinMultiplayerRoom} disabled={!multiplayerCode || !multiplayerName.trim() || !!multiplayer} className="rounded-lg border border-emerald-300/50 px-4 py-2 text-sm font-bold text-emerald-100 hover:bg-emerald-300/10 disabled:cursor-not-allowed disabled:opacity-40">Join room</button><button onClick={() => void spectateMultiplayerRoom()} disabled={!multiplayerCode || !multiplayerName.trim() || !!multiplayer} className="rounded-lg border border-emerald-300/50 px-4 py-2 text-sm font-bold text-emerald-100 hover:bg-emerald-300/10 disabled:cursor-not-allowed disabled:opacity-40">Spectate</button><button onClick={() => void reconnectMultiplayerRoom()} disabled={!!multiplayer} className="rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-emerald-100/75 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40">Reconnect saved room</button>{multiplayer && <><span className="text-sm text-emerald-100/70">You: <strong className="text-emerald-200">{multiplayer.playerName}</strong> · Room <strong className="font-mono tracking-widest text-emerald-200">{multiplayer.code}</strong> · {multiplayer.players.length}/2 players · {multiplayer.spectators.map((spectator) => <span key={spectator.id}><BadgeIcon badge={spectator.badge} /> {spectator.name}</span>).reduce((parts, part, index) => (index === 0 ? [part] : [...parts, ", ", part]), [] as React.ReactNode[]) || "nobody"} watching</span><button onClick={leaveMultiplayerRoom} className="rounded-lg border border-red-300/40 px-4 py-2 text-sm font-semibold text-red-200 hover:bg-red-300/10">Leave room</button></>}</div>
+          {multiplayer && multiplayer.players.length >= 2 && <div className="mt-6 rounded-2xl border border-emerald-300/10 bg-[#071f1d]/80 p-5"><div className="flex items-center justify-between text-sm text-emerald-100/70"><span>{multiplayer.role === "spectator" ? <span>Spectating · {multiplayer.spectators.map((spectator) => <span key={spectator.id}><BadgeIcon badge={spectator.badge} /><TitleChip title={spectator.title} /> {spectator.name}</span>).reduce((parts, part, index) => (index === 0 ? [part] : [...parts, ", ", part]), [] as React.ReactNode[]) || "nobody"} watching</span> : multiplayer.opponents.map((opponent) => <span key={opponent.id}><BadgeIcon badge={opponent.badge} /><TitleChip title={opponent.title} /> {opponent.name}: {opponent.cardCount}</span>).reduce((parts, part, index) => (index === 0 ? [part] : [...parts, " · ", part]), [] as React.ReactNode[])}</span><span>{multiplayer.role === "spectator" ? "Spectator view" : multiplayer.winner ? `${multiplayer.settledCount}/${multiplayer.maxPlayers} settled` : multiplayer.bothPlayersReady ? (multiplayer.isYourTurn ? "Your turn" : `${multiplayer.currentTurn}'s turn`) : `${multiplayer.readyCount}/${multiplayer.maxPlayers} ready`}</span></div><div className="mt-3 rounded-lg border border-emerald-300/15 bg-emerald-950/30 px-3 py-2 text-center text-xs text-emerald-100/80">Turn order: {multiplayer.turnOrder.map((name) => { const member = multiplayer.players.find((player) => player.name === name) ?? multiplayer.spectators.find((spectator) => spectator.name === name); return <span key={name}><BadgeIcon badge={member?.badge} /><TitleChip title={member?.title} /> {name}</span>; }).reduce((parts, part, index) => (index === 0 ? [part] : [...parts, multiplayer.direction === 1 ? " → " : " ← ", part]), [] as React.ReactNode[])} · Current turn: <strong className="text-emerald-200"><BadgeIcon badge={(() => { const member = multiplayer.players.find((player) => player.name === multiplayer.currentTurn) ?? multiplayer.spectators.find((spectator) => spectator.name === multiplayer.currentTurn); return member?.badge; })()} /><TitleChip title={(() => { const member = multiplayer.players.find((player) => player.name === multiplayer.currentTurn) ?? multiplayer.spectators.find((spectator) => spectator.name === multiplayer.currentTurn); return member?.title; })()} /> {multiplayer.currentTurn}</strong></div>{multiplayer.role === "player" && !multiplayer.bothPlayersReady && <div className="mt-5 flex flex-col gap-3 rounded-xl border border-emerald-300/15 bg-slate-950/25 p-4 sm:flex-row sm:items-end"><div><label htmlFor="multiplayer-bet" className="text-xs font-bold uppercase tracking-wider text-emerald-100/65">{multiplayer.winner ? "Rematch stake" : "Stake"}</label>{multiplayer.stake !== null && <p className="mt-1 text-xs text-emerald-200">Room stake: {multiplayer.stake.toFixed(2)} moose bucks</p>}<div className="mt-2 flex items-center gap-2"><input id="multiplayer-bet" type="number" min="1" max="250" value={multiplayerBet || ""} onChange={(event) => setMultiplayerBet(Number(event.target.value) || 0)} disabled={multiplayer.isReady} className="w-32 rounded-lg border border-emerald-200/20 bg-slate-900 px-3 py-2 text-lg font-bold text-white outline-none focus:border-emerald-300" /><span className="text-sm text-emerald-100/65">moose bucks</span></div></div><button onClick={() => void readyMultiplayer()} disabled={multiplayer.isReady} className="rounded-lg bg-emerald-300 px-4 py-2 text-sm font-bold text-[#092f2b] disabled:cursor-not-allowed disabled:opacity-40">{multiplayer.isReady ? "Stake placed" : multiplayer.winner ? "Play rematch" : "Place stake & ready"}</button></div>}<div className="my-5 flex items-center justify-center gap-4"><CardView hidden style={cardStyle} hiddenStyle={hiddenCardStyle ?? undefined} /><CardView card={multiplayer.top ?? undefined} style={cardStyle} /><div className={`flex h-12 w-12 items-center justify-center rounded-full text-[10px] font-bold uppercase ${cardStyle[multiplayer.activeColor]}`}>{colorLabels[multiplayer.activeColor]}</div></div>            <div className="flex flex-wrap items-end justify-center gap-2">{multiplayer.hand.map((card) => <CardView key={card.id} card={card} onClick={() => playMultiplayerCard(card)} style={cardStyle} playable={multiplayerCardIsPlayable(card) && !multiplayerPendingWild} dim={!multiplayerCardIsPlayable(card)} />)}</div>
             {multiplayerPendingWild && multiplayer.isYourTurn && (
               <div className="mt-6 text-center" role="group" aria-label="Choose a color for your wild card">
                 <p className="mb-3 text-sm font-semibold text-emerald-100">Choose a color for your {describe(multiplayerPendingWild)}</p>
@@ -603,15 +644,15 @@ function chooseMultiplayerSwitchTarget(targetPlayerId: string) {
             <div>
               <div className="rounded-2xl border border-emerald-300/10 bg-[#0a3a36]/70 p-5 sm:p-8">
             <div className="flex min-h-36 items-center justify-center overflow-hidden">
-              <div className="flex -space-x-12 sm:-space-x-14">{g.ai.slice(0, 10).map((card) => <CardView key={card.id} hidden />)}</div>
+              <div className="flex -space-x-12 sm:-space-x-14">{g.ai.slice(0, 10).map((card) => <CardView key={card.id} hidden style={cardStyle} hiddenStyle={hiddenCardStyle ?? undefined} />)}</div>
               {g.ai.length === 0 && <div className="flex h-28 w-20 items-center justify-center rounded-xl border border-dashed border-sky-200/30 text-sm text-sky-100/50 sm:h-36 sm:w-24">AI</div>}
             </div>
             <div className="my-8 flex flex-wrap items-center justify-center gap-6 border-y border-white/10 py-8">
-              <div className="text-center"><p className="mb-3 text-xs uppercase tracking-widest text-sky-100/55">Draw pile</p><button onClick={drawCard} disabled={(!playerTurn && !localOpponentTurn) || g.drawnId !== null} aria-label="Draw a card" className="group relative block rounded-xl disabled:cursor-not-allowed"><span className="block rounded-xl transition group-enabled:group-hover:-translate-y-1 group-enabled:group-hover:shadow-2xl"><CardView hidden /></span><span className="absolute inset-x-0 -bottom-6 text-xs text-sky-100/55">{g.deck.length} left</span></button></div>
-              <div className="text-center"><p className="mb-3 text-xs uppercase tracking-widest text-sky-100/55">Discard pile</p>{top ? <CardView card={top} /> : <div className="h-28 w-20 rounded-xl border border-dashed border-white/20 sm:h-36 sm:w-24" />}</div>
+              <div className="text-center"><p className="mb-3 text-xs uppercase tracking-widest text-sky-100/55">Draw pile</p><button onClick={drawCard} disabled={(!playerTurn && !localOpponentTurn) || g.drawnId !== null} aria-label="Draw a card" className="group relative block rounded-xl disabled:cursor-not-allowed"><span className="block rounded-xl transition group-enabled:group-hover:-translate-y-1 group-enabled:group-hover:shadow-2xl"><CardView hidden style={cardStyle} hiddenStyle={hiddenCardStyle ?? undefined} /></span><span className="absolute inset-x-0 -bottom-6 text-xs text-sky-100/55">{g.deck.length} left</span></button></div>
+              <div className="text-center"><p className="mb-3 text-xs uppercase tracking-widest text-sky-100/55">Discard pile</p>{top ? <CardView card={top} style={cardStyle} /> : <div className="h-28 w-20 rounded-xl border border-dashed border-white/20 sm:h-36 sm:w-24" />}</div>
               <div className="text-center"><p className="mb-3 text-xs uppercase tracking-widest text-sky-100/55">Active color</p><div className={`flex h-16 w-16 items-center justify-center rounded-full text-xs font-bold uppercase shadow-lg ${cardStyle[g.color]}`}>{colorLabels[g.color]}</div></div>
             </div>
-            <div className="flex min-h-36 flex-wrap items-end justify-center gap-2">{g.player.map((card) => <CardView key={card.id} card={card} onClick={() => handlePlay(card)} playable={isPlayable(card)} dim={playerTurn} />)}</div>
+            <div className="flex min-h-36 flex-wrap items-end justify-center gap-2">{g.player.map((card) => <CardView key={card.id} card={card} style={cardStyle} onClick={() => handlePlay(card)} playable={isPlayable(card)} dim={playerTurn} />)}</div>
             {pendingWild && (
               <div className="mt-6 text-center" role="group" aria-label="Choose a color for your wild card">
                 <p className="mb-3 text-sm font-semibold text-sky-100">Choose a color for your {describe(pendingWild)}</p>

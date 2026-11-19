@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
+import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance, getStoredBankingCredentials } from "../../lib/banking";
+import { findCosmetic, type CosmeticDiceStyles } from "../../lib/cosmeticsCatalog";
 
 type Phase = "come-out" | "point";
+
+const DEFAULT_DIE: CosmeticDiceStyles = { pip: "bg-slate-900", acePip: "bg-rose-600" };
 type Tone = "neutral" | "point" | "win" | "lose";
 type HistoryKind = "roll" | "point" | "win" | "lose";
 type HistoryEntry = { id: number; total: number; kind: HistoryKind };
@@ -43,7 +46,7 @@ const PIPS: Record<number, number[]> = {
 
 type DieMotion = "idle" | "tumble-a" | "tumble-b" | "land";
 
-function Die({ value, motion }: { value: number; motion: DieMotion }) {
+function Die({ value, motion, pipClass, acePipClass }: { value: number; motion: DieMotion; pipClass: string; acePipClass: string }) {
   const pips = PIPS[value] ?? PIPS[1];
   return (
     <div className="relative h-24 w-24 sm:h-28 sm:w-28">
@@ -66,7 +69,7 @@ function Die({ value, motion }: { value: number; motion: DieMotion }) {
             {pips.includes(i) && (
               <span
                 className={`block h-[78%] w-[78%] rounded-full shadow-[inset_0_2px_3px_rgba(0,0,0,0.45)] ${
-                  value === 1 ? "bg-rose-600" : "bg-slate-900"
+                  value === 1 ? acePipClass : pipClass
                 }`}
               />
             )}
@@ -110,6 +113,7 @@ export default function Craps() {
   const [hasRolled, setHasRolled] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [net, setNet] = useState(0);
+  const [diceStyles, setDiceStyles] = useState<CosmeticDiceStyles | null>(null);
 
   const rollingRef = useRef(false);
   const mounted = useRef(true);
@@ -120,6 +124,22 @@ export default function Craps() {
     return () => {
       mounted.current = false;
     };
+  }, []);
+
+  // Load the equipped dice skin; pass-based, so a cookie wipe cannot steal ownership.
+  useEffect(() => {
+    const credentials = getStoredBankingCredentials();
+    if (!credentials) return;
+    let cancelled = false;
+    fetch(`/api/cosmetics/pass?username=${encodeURIComponent(credentials.username)}`, { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { passes?: Record<string, string> } | null) => {
+        if (!body?.passes || cancelled) return;
+        const item = findCosmetic(body.passes["craps-dice"] ?? "");
+        if (item?.diceStyles) setDiceStyles(item.diceStyles);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   const maxAllowed = Math.max(0, Math.min(MAX_BET, Math.floor(balance)));
@@ -359,8 +379,8 @@ export default function Craps() {
                 </div>
 
                 <div className="mb-8 flex gap-6 pt-6">
-                  <Die value={shown[0]} motion={motionA} />
-                  <Die value={shown[1]} motion={motionB} />
+                  <Die value={shown[0]} motion={motionA} pipClass={(diceStyles ?? DEFAULT_DIE).pip} acePipClass={(diceStyles ?? DEFAULT_DIE).acePip} />
+                  <Die value={shown[1]} motion={motionB} pipClass={(diceStyles ?? DEFAULT_DIE).pip} acePipClass={(diceStyles ?? DEFAULT_DIE).acePip} />
                 </div>
 
                 <div className="flex h-8 items-center gap-3 text-sm text-sky-100/70">

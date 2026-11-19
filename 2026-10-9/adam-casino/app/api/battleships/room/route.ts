@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveCosmeticBadge, resolveCosmeticTitle } from "@/lib/cosmetics";
 import {
   applyBattleshipAction,
   createBattleshipRoom,
@@ -18,6 +19,16 @@ function errorResponse(message: string, status = 400) {
 }
 
 const isMember = (room: BattleshipRoom, id: string) => !!id && [...room.players, ...room.spectators].some((member) => member.id === id);
+
+/** Attaches the equipped badge and title of the joining player when valid cosmetic passes are supplied. */
+function decorateBattleshipMember(room: BattleshipRoom, playerId: string, cosmeticPass: string | undefined, titlePass: string | undefined) {
+  const member = [...room.players, ...room.spectators].find((candidate) => candidate.id === playerId);
+  if (!member) return;
+  const badge = resolveCosmeticBadge(cosmeticPass);
+  if (badge) member.badge = { id: badge.id, icon: badge.icon };
+  const title = resolveCosmeticTitle(titlePass);
+  if (title) member.title = { id: title.id, label: title.label, icon: title.icon };
+}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -95,7 +106,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  let body: { action?: "create" | "join" | "spectate" | "move"; code?: string; playerToken?: string; name?: string; move?: BattleshipAction };
+  let body: { action?: "create" | "join" | "spectate" | "move"; code?: string; playerToken?: string; name?: string; move?: BattleshipAction; cosmeticPass?: string; titlePass?: string };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -105,6 +116,7 @@ export async function POST(request: Request) {
   try {
     if (body.action === "create") {
       const result = createBattleshipRoom(body.name ?? "");
+      decorateBattleshipMember(result.room, result.playerId, body.cosmeticPass, body.titlePass);
       return NextResponse.json({ playerId: result.playerId, playerToken: result.playerToken, room: viewBattleshipRoom(result.room, result.playerId) });
     }
 
@@ -113,11 +125,12 @@ export async function POST(request: Request) {
       const existingId = verifyBattleshipToken(body.code ?? "", body.playerToken ?? "");
       if (existing && existingId && isMember(existing, existingId)) return errorResponse("That browser is already connected to this room.", 409);
       const result = joinBattleshipRoom(body.code ?? "", body.name ?? "");
+      decorateBattleshipMember(result.room, result.playerId, body.cosmeticPass, body.titlePass);
       return NextResponse.json({ playerId: result.playerId, playerToken: result.playerToken, room: viewBattleshipRoom(result.room, result.playerId) });
     }
-
     if (body.action === "spectate") {
       const result = spectateBattleshipRoom(body.code ?? "", body.name ?? "");
+      decorateBattleshipMember(result.room, result.playerId, body.cosmeticPass, body.titlePass);
       return NextResponse.json({ playerId: result.playerId, playerToken: result.playerToken, room: viewBattleshipRoom(result.room, result.playerId) });
     }
 

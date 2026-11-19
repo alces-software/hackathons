@@ -17,7 +17,9 @@ export type BattleshipAction =
   | { type: "fire"; cell: number }
   | { type: "ready"; stake: number }
   | { type: "settle" };
-export type BattleshipMember = { id: string; name: string };
+export type BattleshipBadge = { id: string; icon: string };
+export type BattleshipTitle = { id: string; label: string; icon: string };
+export type BattleshipMember = { id: string; name: string; badge?: BattleshipBadge | null; title?: BattleshipTitle | null };
 export type BattleshipRoom = {
   code: string;
   hostId: string;
@@ -383,11 +385,13 @@ export function viewBattleshipRoom(room: BattleshipRoom, id: string) {
     enemyFleet,
     revealedEnemyCells,
     turnName: battleOn ? room.players.find((member) => member.id === room.turn)?.name ?? null : null,
+    turnBadge: battleOn ? room.players.find((member) => member.id === room.turn)?.badge ?? null : null,
+    turnTitle: battleOn ? room.players.find((member) => member.id === room.turn)?.title ?? null : null,
     lastShot: room.lastShot && lastShooter
       ? { byYou: lastShooter.id === id, byName: lastShooter.name, cell: room.lastShot.cell, hit: room.lastShot.hit, sunkShip: room.lastShot.sunkShip, n: shotCount }
       : null,
     watch: spectator
-      ? room.players.map((member, index) => ({ name: member.name, targetName: room.players[1 - index]?.name ?? "Opponent", shots: room.shots[member.id] }))
+      ? room.players.map((member, index) => ({ name: member.name, badge: member.badge ?? null, title: member.title ?? null, targetName: room.players[1 - index]?.name ?? "Opponent", shots: room.shots[member.id] }))
       : [],
     opponentFleetPlaced: player && opponent ? room.ships[opponent.id].length === BATTLESHIP_FLEET.length : false,
     readyCount: room.readyPlayers.length,

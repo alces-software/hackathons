@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { awardBattlePassXp } from "@/lib/battlepass";
 
 type TransferRequest = {
   username?: string;
@@ -74,6 +75,16 @@ export async function POST(request: Request) {
         return errorResponse("The connected banking account credentials were rejected. Disconnect and reconnect with the correct password.", 401);
       }
       return errorResponse(details || `Banking transfer failed with status ${response.status}.`, response.status >= 500 ? 502 : response.status);
+    }
+
+    // The Alces Pass earns season XP from settled bets (the stake that started the round).
+    // Best effort: a pass failure never fails the banking transfer it rides on.
+    if (direction === "stake" && game) {
+      try {
+        awardBattlePassXp(username, amount);
+      } catch {
+        /* XP tracking must never block a settled bet */
+      }
     }
     return new Response(null, { status: 204 });
   } catch {

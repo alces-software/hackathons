@@ -1,8 +1,19 @@
 import { NextResponse } from "next/server";
-import { applyUnoAction, createUnoRoom, getUnoRoom, joinUnoRoom, spectateUnoRoom, verifyPlayerToken, viewUnoRoom, type UnoAction, type UnoRuleset } from "../../../../lib/unoMultiplayer";
+import { resolveCosmeticBadge, resolveCosmeticTitle } from "@/lib/cosmetics";
+import { applyUnoAction, createUnoRoom, getUnoRoom, joinUnoRoom, spectateUnoRoom, verifyPlayerToken, viewUnoRoom, type UnoAction, type UnoPlayer, type UnoRuleset, type UnoRoom } from "../../../../lib/unoMultiplayer";
 
 function errorResponse(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
+}
+
+/** Attaches the equipped badge and title of the joining player when valid cosmetic passes are supplied. */
+function decorateUnoMember(room: UnoRoom, playerId: string, cosmeticPass: string | undefined, titlePass: string | undefined) {
+  const member = [...room.players, ...room.spectators].find((candidate: UnoPlayer) => candidate.id === playerId);
+  if (!member) return;
+  const badge = resolveCosmeticBadge(cosmeticPass);
+  if (badge) member.badge = { id: badge.id, icon: badge.icon };
+  const title = resolveCosmeticTitle(titlePass);
+  if (title) member.title = { id: title.id, label: title.label, icon: title.icon };
 }
 
 export async function GET(request: Request) {
@@ -58,7 +69,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  let body: { action?: "create" | "join" | "spectate" | "move"; code?: string; playerId?: string; playerToken?: string; name?: string; ruleset?: UnoRuleset; maxPlayers?: number; move?: UnoAction };
+  let body: { action?: "create" | "join" | "spectate" | "move"; code?: string; playerId?: string; playerToken?: string; name?: string; ruleset?: UnoRuleset; maxPlayers?: number; move?: UnoAction; cosmeticPass?: string; titlePass?: string };
   try {
     body = await request.json() as typeof body;
   } catch {
@@ -68,6 +79,7 @@ export async function POST(request: Request) {
   try {
     if (body.action === "create") {
       const result = createUnoRoom(body.name ?? "", body.ruleset ?? "regular", body.maxPlayers ?? 2);
+      decorateUnoMember(result.room, result.playerId, body.cosmeticPass, body.titlePass);
       return NextResponse.json({ playerId: result.playerId, playerToken: result.playerToken, room: viewUnoRoom(result.room, result.playerId) });
     }
     if (body.action === "join") {
@@ -77,10 +89,12 @@ export async function POST(request: Request) {
         return errorResponse("That browser is already connected to this room.", 409);
       }
       const result = joinUnoRoom(body.code ?? "", body.name ?? "");
+      decorateUnoMember(result.room, result.playerId, body.cosmeticPass, body.titlePass);
       return NextResponse.json({ playerId: result.playerId, playerToken: result.playerToken, room: viewUnoRoom(result.room, result.playerId) });
     }
     if (body.action === "spectate") {
       const result = spectateUnoRoom(body.code ?? "", body.name ?? "");
+      decorateUnoMember(result.room, result.playerId, body.cosmeticPass, body.titlePass);
       return NextResponse.json({ playerId: result.playerId, playerToken: result.playerToken, room: viewUnoRoom(result.room, result.playerId) });
     }
     if (body.action === "move") {

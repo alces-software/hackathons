@@ -2,7 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
+import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance, getStoredBankingCredentials } from "../../lib/banking";
+import { findCosmetic, type CosmeticTableStyles } from "../../lib/cosmeticsCatalog";
+
+const DEFAULT_TABLE: CosmeticTableStyles = {
+  feltClass: "border-emerald-300/10 bg-[#0a3a36]/70",
+  cardBackClass: "border-2 border-sky-300/50 bg-[radial-gradient(#38bdf822_2px,transparent_2px)] [background-size:12px_12px] [background-color:#123b61]",
+  cardBackIcon: "🫎",
+};
 
 type Suit = "♠" | "♥" | "♦" | "♣";
 type Card = { suit: Suit; value: string; points: number };
@@ -44,8 +51,8 @@ function soft(hand: Card[]) {
   return hand.some((card) => card.value === "A") && score(hand) + 10 <= 21;
 }
 
-function CardView({ card, hidden = false }: { card?: Card; hidden?: boolean }) {
-  if (hidden || !card) return <div className="card-back flex h-28 w-20 shrink-0 items-center justify-center rounded-lg border-2 border-sky-300/50 shadow-xl sm:h-36 sm:w-24"><span className="text-3xl text-sky-300/60">🫎</span></div>;
+function CardView({ card, hidden = false, table }: { card?: Card; hidden?: boolean; table: CosmeticTableStyles }) {
+  if (hidden || !card) return <div className={`${table.cardBackClass} flex h-28 w-20 shrink-0 items-center justify-center rounded-lg shadow-xl sm:h-36 sm:w-24`}><span className="text-3xl opacity-60">{table.cardBackIcon}</span></div>;
   const red = card.suit === "♥" || card.suit === "♦";
   return <div className={`deal-card flex h-28 w-20 shrink-0 flex-col justify-between rounded-lg border border-slate-200 bg-white p-2 text-left shadow-xl sm:h-36 sm:w-24 sm:p-3 ${red ? "text-red-500" : "text-slate-900"}`}><b className="text-xl sm:text-2xl">{card.value}</b><span className="self-center text-3xl sm:text-4xl">{card.suit}</span><b className="rotate-180 text-xl sm:text-2xl">{card.value}</b></div>;
 }
@@ -62,9 +69,26 @@ export default function Blackjack() {
   const [bet, setBet] = useState(25);
   const [eat, setEat] = useState<number | null>(null); // eating animation progress 0..1
   const [balance, setBalance] = useBankingBalance();
+  const [table, setTable] = useState<CosmeticTableStyles>(DEFAULT_TABLE);
   const frame = useRef(0);
 
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
+
+  // Load the equipped table skin; pass-based, so a cookie wipe cannot steal ownership.
+  useEffect(() => {
+    const credentials = getStoredBankingCredentials();
+    if (!credentials) return;
+    let cancelled = false;
+    fetch(`/api/cosmetics/pass?username=${encodeURIComponent(credentials.username)}`, { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { passes?: Record<string, string> } | null) => {
+        if (!body?.passes || cancelled) return;
+        const item = findCosmetic(body.passes["blackjack-table"] ?? "");
+        if (item?.tableStyles) setTable(item.tableStyles);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   async function settle(hand: Card[], house: Card[], stake: number) {
     const playerScore = score(hand);
@@ -294,17 +318,17 @@ export default function Blackjack() {
       <nav className="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-10"><Link href="/" className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400 text-2xl text-[#071426]">🫎</span><span className="font-serif text-xl font-bold">Alces Casino</span></Link><Link href="/" className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15">Exit to lodge</Link></nav>
       <section className="relative mx-auto max-w-6xl px-6 pb-16 pt-10 lg:px-10"><div className="mb-8"><p className="text-xs font-bold uppercase tracking-[0.25em] text-sky-300">Casino table</p><h1 className="mt-2 font-serif text-4xl font-bold sm:text-5xl">Blackjack</h1><p className="mt-2 text-sm text-sky-100/65">Six decks · Dealer stands on soft 17 · Blackjack pays 3:2 · Split matching pairs</p></div>
         <section className="rounded-3xl border border-sky-300/20 bg-[#0b2741]/90 p-5 shadow-2xl sm:p-8"><div className="mb-6 flex flex-col justify-between gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-start"><div><p className="text-xs uppercase tracking-wider text-sky-100/55">Banking balance</p><p className="mt-1 text-2xl font-bold text-sky-200">{balance.toFixed(2)} <span className="text-sm font-normal text-sky-100/55">moose bucks</span></p></div><p className="max-w-sm text-sm text-sky-100/55">Settlements are processed through your connected banking account.</p></div>
-          <div className="grid gap-8 py-2 lg:grid-cols-[1fr_260px]"><div className="rounded-2xl border border-emerald-300/10 bg-[#0a3a36]/70 p-5 sm:p-8"><div className="mb-8"><p className="mb-3 text-xs font-bold uppercase tracking-widest text-emerald-100/65">Dealer {dealerHidden ? "· hidden card" : ""}</p><div className="flex gap-3">{dealer.map((card, index) => <CardView key={`${card.value}${card.suit}${index}`} card={card} hidden={dealerHidden && index === 1} />)}</div>{dealer.length > 0 && !dealerHidden && <p className="mt-3 text-sm text-emerald-100/65">Score: {score(dealer)}</p>}</div><div><p className="mb-3 text-xs font-bold uppercase tracking-widest text-emerald-100/65">You · {player.length > 0 && score(player)}</p><div className="flex gap-3">{player.map((card, index) => {
+          <div className="grid gap-8 py-2 lg:grid-cols-[1fr_260px]"><div className={`rounded-2xl p-5 sm:p-8 ${table.feltClass}`}><div className="mb-8"><p className="mb-3 text-xs font-bold uppercase tracking-widest text-emerald-100/65">Dealer {dealerHidden ? "· hidden card" : ""}</p><div className="flex gap-3">{dealer.map((card, index) => <CardView key={`${card.value}${card.suit}${index}`} card={card} hidden={dealerHidden && index === 1} table={table} />)}</div>{dealer.length > 0 && !dealerHidden && <p className="mt-3 text-sm text-emerald-100/65">Score: {score(dealer)}</p>}</div><div><p className="mb-3 text-xs font-bold uppercase tracking-widest text-emerald-100/65">You · {player.length > 0 && score(player)}</p><div className="flex gap-3">{player.map((card, index) => {
               const isEaten = eat !== null && index === player.length - 1;
               return (
                 <div key={`${card.value}${card.suit}${index}`} className="relative" style={isEaten ? { transform: `scale(${cardScale})`, opacity: cardScale } : undefined}>
-                  <CardView card={card} />
+                  <CardView card={card} table={table} />
                   {isEaten && (
                     <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 text-6xl" style={{ transform: `translate(-50%, -50%) translateX(${mooseOffset}px) scale(${chomp})` }}>🫎</div>
                   )}
                 </div>
               );
-            })}</div>{splitHand && <div className="mt-8 border-t border-white/10 pt-6"><p className="mb-3 text-xs font-bold uppercase tracking-widest text-emerald-100/65">Second hand {splitActive ? "· active" : ""} · {score(splitHand)}</p><div className="flex gap-3">{splitHand.map((card, index) => <CardView key={`${card.value}${card.suit}${index}`} card={card} />)}</div></div>}{eat !== null && eat > 0.4 && eat < 0.8 && <p className="mt-3 text-center text-lg font-black text-amber-400">CHOMP!</p>}</div><p className="mt-8 min-h-6 text-center text-sm font-semibold text-sky-100">{message}</p></div>
+            })}</div>{splitHand && <div className="mt-8 border-t border-white/10 pt-6"><p className="mb-3 text-xs font-bold uppercase tracking-widest text-emerald-100/65">Second hand {splitActive ? "· active" : ""} · {score(splitHand)}</p><div className="flex gap-3">{splitHand.map((card, index) => <CardView key={`${card.value}${card.suit}${index}`} card={card} table={table} />)}</div></div>}{eat !== null && eat > 0.4 && eat < 0.8 && <p className="mt-3 text-center text-lg font-black text-amber-400">CHOMP!</p>}</div><p className="mt-8 min-h-6 text-center text-sm font-semibold text-sky-100">{message}</p></div>
             <div className="space-y-4"><div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4"><label htmlFor="bet" className="text-xs font-bold uppercase tracking-wider text-sky-100/65">Bet amount</label><div className="mt-2 flex items-center gap-2">            <input id="bet" type="number" min="1" max={MAX_BET} value={bet || ""} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setBet(Number(event.target.value) || 0)} disabled={locked} className="w-full rounded-lg border border-sky-200/20 bg-slate-900 px-3 py-2 text-lg font-bold text-white outline-none focus:border-sky-400" /><span className="text-sm text-sky-100/65">moose bucks</span></div><p className="mt-2 text-xs text-sky-100/45">Table limit: {MAX_BET} moose bucks</p></div><div className="grid grid-cols-2 gap-2"><button onClick={deal} disabled={locked} className="col-span-2 rounded-xl bg-sky-400 px-4 py-3 text-sm font-bold text-[#071426] hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-40">{status === "finished" ? "Deal again" : "Deal cards"}</button><button onClick={hit} disabled={status !== "playing"} className="rounded-xl border border-sky-300/40 px-4 py-3 text-sm font-semibold text-sky-100 hover:bg-sky-300/10 disabled:opacity-30">Hit</button><button onClick={() => stand()} disabled={status !== "playing"} className="rounded-xl border border-sky-300/40 px-4 py-3 text-sm font-semibold text-sky-100 hover:bg-sky-300/10 disabled:opacity-30">Stand</button><button onClick={split} disabled={status !== "playing" || splitHand !== null || player.length !== 2 || player[0]?.value !== player[1]?.value} className="rounded-xl border border-emerald-300/40 px-4 py-3 text-sm font-semibold text-emerald-100 hover:bg-emerald-300/10 disabled:opacity-30">Split</button><button onClick={doubleDown} disabled={status !== "playing" || splitHand !== null || player.length !== 2} className="col-span-2 rounded-xl border border-indigo-300/40 px-4 py-3 text-sm font-semibold text-indigo-100 hover:bg-indigo-300/10 disabled:opacity-30">Double down</button>{(status === "playing" || status === "eating") && (
                 <button onClick={eatCard} disabled={status !== "playing" || eat !== null} className="col-span-2 rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40">🫎 Eat a card (forfeit bet)</button>
               )}</div><button onClick={reset} disabled={status === "eating"} className="w-full text-xs text-sky-100/65 hover:text-white disabled:opacity-40">Reset table</button></div></div>
