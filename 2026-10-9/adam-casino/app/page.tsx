@@ -11,6 +11,9 @@ const games = [  { name: "Blackjack", description: "Beat the dealer and get as c
   { name: "Crash", description: "Ride the multiplier higher, then cash out before it crashes.", icon: "↗", accent: "from-orange-300 to-red-600", href: "/crash" },
   { name: "Craps", description: "Roll the dice, make your point, and beat the seven-out.", icon: "🎲", accent: "from-rose-300 to-red-600", href: "/craps" },
   { name: "Battleships", description: "Hunt the hidden fleet before your ammunition runs out.", icon: "⚓", accent: "from-cyan-300 to-blue-600", href: "/battleships" },
+  { name: "Alces Arcade", description: "Skill-style cabinets — whack the moles, sink the hoops, print tickets.", icon: "🕹️", accent: "from-orange-300 to-amber-600", href: "/arcade" },
+  { name: "Whack-a-Mole", description: "Three pops, one mallet. Swing while a moose shows its face.", icon: "🫎", accent: "from-amber-300 to-orange-600", href: "/whack-a-mole" },
+  { name: "Basketball Hoops", description: "Five balls, thirty seconds. Sink the drifting rim for tickets.", icon: "🏀", accent: "from-sky-300 to-orange-600", href: "/basketball" },
 ];
 
 const shop = { name: "The Gift Shop", description: "Spend your winnings on badges for the lodge — show them off in UNO, Battleships, craps, roulette and blackjack.", icon: "🎁", accent: "from-fuchsia-300 to-pink-600", href: "/shop" };

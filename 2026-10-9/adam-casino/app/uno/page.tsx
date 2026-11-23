@@ -6,8 +6,6 @@ import { findCosmetic, findCosmeticTitle } from "../../lib/cosmeticsCatalog";
 import { bankingLoss, bankingPayout, bankingReturn, bankingStake, getStoredBankingCredentials, syncBankingBalance, useBankingBalance } from "../../lib/banking";
 import type { UnoAction, UnoCard, UnoPlayColor, UnoRuleset } from "../../lib/unoMultiplayer";
 
-// The engine + tactical AI live in lib/unoLocal.ts (kept UI-free so they can be simulated in
-// tests); the page renders the states that module produces.
 import {
   aiMoveTactical,
   canPlay,
