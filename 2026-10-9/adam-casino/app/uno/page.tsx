@@ -121,7 +121,10 @@ export default function Uno() {
   const [multiplayerBet, setMultiplayerBet] = useState(25);
   const [multiplayerRuleset, setMultiplayerRuleset] = useState<UnoRuleset>("regular");
   const [multiplayerMaxPlayers, setMultiplayerMaxPlayers] = useState(2);
-  const [settlingMultiplayer, setSettlingMultiplayer] = useState(false);
+  const hasSettledMultiplayerRef = useRef(false);
+  // One banking settlement per finished round: without this the settle effect re-runs on any
+  // state update after a loss (message reset / balance sync) and the bank is credited twice.
+  const settledRoundRef = useRef(false);
 
   // The equipped card skin (if any), resolved from the client-safe catalog so every card we
   // render (hand, top of pile, active color) wears the chosen deck. Default palette otherwise.
@@ -163,10 +166,11 @@ export default function Uno() {
   }, [multiplayerCode, multiplayerPlayerId, multiplayerPlayerToken]);
 
   useEffect(() => {
-    if (!multiplayer?.winner || multiplayer.stake === null || multiplayer.settlementComplete || settlingMultiplayer) return;
+    if (!multiplayer?.winner || multiplayer.stake === null || multiplayer.settlementComplete) return;
+    if (hasSettledMultiplayerRef.current) return;
+    hasSettledMultiplayerRef.current = true;
     const ownPlayer = multiplayer.players.find((player) => player.id === multiplayerPlayerId);
     if (!ownPlayer) return;
-    setSettlingMultiplayer(true);
     const profit = multiplayer.stake * 0.95;
     const settle = ownPlayer.name === multiplayer.winner
       ? bankingReturn(multiplayer.stake).then(() => bankingPayout(profit))
@@ -176,10 +180,11 @@ export default function Uno() {
       if (!response.ok) throw new Error("The server could not record the settlement.");
       setMultiplayer(await response.json() as MultiplayerView);
     }).catch((error) => {
+      // The banking transfers may already have gone through, so a failed settle must never be
+      // retried: another attempt would return and pay out the same stake a second time.
       setMultiplayerMessage(error instanceof Error ? error.message : "The multiplayer settlement failed.");
-      setSettlingMultiplayer(false);
     });
-  }, [multiplayer, multiplayerPlayerId, multiplayerPlayerToken, settlingMultiplayer, setBalance]);
+  }, [multiplayer, multiplayerPlayerId, multiplayerPlayerToken, setBalance]);
 
   useEffect(() => {
     if (!inProgress || g.mode !== "ai" || g.turn !== "ai") return;
@@ -188,7 +193,8 @@ export default function Uno() {
   }, [g, inProgress, aiDelay]);
 
   useEffect(() => {
-    if (!g.winner) return;
+    if (!g.winner || settledRoundRef.current) return;
+    settledRoundRef.current = true;
     const stake = g.stake;
     if (g.winner === "You") {
       const profit = stake * WIN_PROFIT_RATE;
@@ -219,6 +225,7 @@ export default function Uno() {
       setG((current) => ({ ...current, message: error instanceof Error ? error.message : "Could not place the stake." }));
       return;
     }
+    settledRoundRef.current = false;
     setPendingWild(null);
     setPendingWildWho(null);
     setG(newGame(bet, mode, ruleset));
