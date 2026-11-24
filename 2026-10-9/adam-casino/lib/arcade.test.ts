@@ -4,10 +4,13 @@ import {
   HOOPS_BALLS,
   HOOPS_BASKET_PRIZE,
   HOOPS_SENSOR_MARGIN,
-  HOOPS_SWISH_OFFSET,
   HOOPS_SWISH_PRIZE,
+  MOLE_GAP_MIN_MS,
+  MOLE_GOLDEN_STING_MS,
+  MOLE_PAD_NOISE_MS,
   MOLE_POPS,
   MOLE_PRIZES,
+  MOLE_SWING_DELAY_MS,
   judgeHoopsShot,
   judgeMoleEarly,
   judgeMoleTap,
@@ -44,7 +47,7 @@ test("golden moles lose a little more of the tail", () => {
   const spawn = { ...plasticSpawn(1_000, 2_000), kind: "golden" as const };
   const plastic = moleHiddenWindow(plasticSpawn(1_000, 2_000));
   const golden = moleHiddenWindow(spawn);
-  assert.equal(golden.to, plastic.to - 120);
+  assert.equal(golden.to, plastic.to - MOLE_GOLDEN_STING_MS);
   assert.equal(golden.from, plastic.from);
 });
 
@@ -68,10 +71,12 @@ test("mallet lands 90ms after the tap and stung taps knock the mole down but pay
 test("landing right at the hidden window edge flips across the boundary", () => {
   const spawn = plasticSpawn(1_000, 2_000);
   const window = moleHiddenWindow(spawn);
-  // Frozen pad reads 100ms early, so the tap lands exactly on the edge.
-  const atEdge = { moleId: 1, atMs: window.from - 90 + 100 };
+  // A frozen pad reads the landing MOLE_PAD_NOISE_MS/2 early (jitter = 0),
+  // so a tap lands exactly on the edge when it compensates for that.
+  const padBias = MOLE_SWING_DELAY_MS - MOLE_PAD_NOISE_MS / 2;
+  const atEdge = { moleId: 1, atMs: window.from - padBias };
   assert.equal(judgeMoleTap(spawn, atEdge, zeroRng), "whack");
-  const justBefore = { moleId: 1, atMs: window.from - 90 + 99 };
+  const justBefore = { moleId: 1, atMs: window.from - padBias - 1 };
   assert.equal(judgeMoleTap(spawn, justBefore, zeroRng), "air");
 });
 
@@ -102,7 +107,7 @@ test("planMoleRound schedules three pops and caps the payout", () => {
   const plan = planMoleRound(zeroRng);
   assert.equal(plan.spawns.length, MOLE_POPS);
   for (let i = 1; i < plan.spawns.length; i += 1) {
-    assert.ok(plan.spawns[i].upAtMs >= plan.spawns[i - 1].downAtMs + 350, "gap respects MOLE_GAP_MIN_MS");
+    assert.ok(plan.spawns[i].upAtMs >= plan.spawns[i - 1].downAtMs + MOLE_GAP_MIN_MS, "gap respects MOLE_GAP_MIN_MS");
   }
   assert.equal(plan.maximumPayout, maximumMolePayout(1));
   assert.equal(maximumMolePayout(10), 10 * 3 * MOLE_PRIZES.golden);

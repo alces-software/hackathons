@@ -76,6 +76,10 @@ const animationCss = `
 .wm-dust { position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; margin: -4px 0 0 -4px; border-radius: 9999px; background: #b89a6c; pointer-events: none; animation: wm-dust 0.5s ease-out both; }
 
 .wm-mallet { position: absolute; right: -6%; top: -34%; font-size: 2.2rem; transform-origin: 85% 90%; pointer-events: none; z-index: 4; opacity: 0; animation: wm-mallet 0.4s ease-out both; filter: drop-shadow(0 5px 6px rgba(0, 0, 0, 0.5)); }
+.wm-mallet-whiff { animation-name: wm-mallet-whiff; }
+@keyframes wm-mallet-whiff { 0% { opacity: 0; transform: rotate(-75deg) scale(0.9); } 30% { opacity: 1; transform: rotate(-30deg) scale(1); } 60% { opacity: 1; transform: rotate(-55deg) scale(0.98); } 100% { opacity: 0; transform: rotate(-40deg) scale(0.95); } }
+.wm-whoosh { position: absolute; left: 50%; top: 45%; width: 70%; height: 70%; border: 2px dashed rgba(226, 232, 240, 0.55); border-radius: 9999px; pointer-events: none; z-index: 3; opacity: 0; animation: wm-burst 0.45s ease-out both; }
+.wm-label-miss { color: #e2e8f0; }
 .wm-poof { position: absolute; left: 50%; top: 24%; font-size: 1.7rem; pointer-events: none; animation: wm-poof 0.6s ease-out 0.1s both; z-index: 3; opacity: 0; }
 .wm-burst { position: absolute; left: 50%; top: 40%; width: 90%; height: 90%; border: 4px solid #fde68a; border-radius: 9999px; pointer-events: none; z-index: 3; opacity: 0; animation: wm-burst 0.5s ease-out 0.1s both; }
 .wm-label { position: absolute; left: 50%; top: 4%; font-weight: 900; font-size: 1rem; letter-spacing: 0.04em; color: #fde68a; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8); pointer-events: none; z-index: 5; opacity: 0; animation: wm-label 0.9s ease-out 0.1s both; white-space: nowrap; }
@@ -137,7 +141,7 @@ export default function WhackAMole() {
   const [settling, setSettling] = useState(false);
   const [squashed, setSquashed] = useState<Set<number>>(new Set());
   const [poofAt, setPoofAt] = useState<{ hole: number; key: number; golden: boolean } | null>(null);
-  const [swing, setSwing] = useState<{ hole: number; key: number } | null>(null);
+  const [swing, setSwing] = useState<{ hole: number; key: number; whiff: boolean } | null>(null);
   const [now, setNow] = useState(0);
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [celebrate, setCelebrate] = useState<{ id: number; amount: number; confetti: Confetti[] } | null>(null);
@@ -233,7 +237,7 @@ export default function WhackAMole() {
     settledRef.current = false;
     setNow(0);
     setPhase("playing");
-    setMessage("Cabinet live — three pops coming up.");
+    setMessage("Cabinet live — the pops come up quick and uneven now, strike the moment one shows.");
   }
 
   function tap(hole: number) {
@@ -250,7 +254,8 @@ export default function WhackAMole() {
   // Any swing at the board plays the mallet, whether or not a mole was up. Scoring is unchanged.
   function swingAt(hole: number) {
     if (!playing) return;
-    setSwing({ hole, key: ++idRef.current });
+    const whiff = !spawns.some((candidate) => candidate.hole === hole && now >= candidate.upAtMs && now <= candidate.downAtMs + RETREAT_MS && !squashed.has(candidate.id));
+    setSwing({ hole, key: ++idRef.current, whiff });
   }
 
   function moleFor(hole: number) {
@@ -262,7 +267,8 @@ export default function WhackAMole() {
   function pipState(spawn: MoleSpawn | undefined) {
     if (!spawn) return "";
     if (squashed.has(spawn.id)) return "wm-pip-swung";
-    if (now > spawn.downAtMs) return "wm-pip-missed";
+    // Hold the ✕ until the mole has actually retreat-dismounted, matching moleFor.
+    if (now > spawn.downAtMs + RETREAT_MS) return "wm-pip-missed";
     if (now >= spawn.upAtMs) return "wm-pip-live";
     return "";
   }
@@ -276,7 +282,7 @@ export default function WhackAMole() {
         <Link href="/arcade" className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15">← Back to the arcade</Link>
       </nav>
       <section className="relative mx-auto max-w-6xl px-6 pb-16 pt-10 lg:px-10">
-        <div className="mb-8"><p className="text-xs font-bold uppercase tracking-[0.25em] text-sky-300">Arcade cabinet</p><h1 className="mt-2 font-serif text-4xl font-bold sm:text-5xl">Whack-a-Mole</h1><p className="mt-2 text-sm text-sky-100/65">Three pops on a steady rhythm. Time your mallet while they are up and the cabinet prints a slice of your stake back as a ticket.</p></div>
+        <div className="mb-8"><p className="text-xs font-bold uppercase tracking-[0.25em] text-sky-300">Arcade cabinet</p><h1 className="mt-2 font-serif text-4xl font-bold sm:text-5xl">Whack-a-Mole</h1>        <p className="mt-2 text-sm text-sky-100/65">Three pops, quick and uneven. Catch one solidly up and the cabinet prints a slice of your stake back as a ticket.</p></div>
         <section className="rounded-3xl border border-sky-300/20 bg-[#0b2741]/90 p-5 shadow-2xl sm:p-8">
           <div className="mb-6 flex flex-col justify-between gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-start"><div><p className="text-xs uppercase tracking-wider text-sky-100/65">Banking balance</p><p className="mt-1 text-2xl font-bold text-sky-200"><span key={Math.round(balance * 100)} className="wm-bump inline-block">{shownBalance.toFixed(2)}</span> <span className="text-sm font-normal text-sky-100/55">moose bucks</span></p></div><p className="max-w-sm text-sm text-sky-100/55">Settlements are processed through your connected banking account.</p></div>
           <div className="grid gap-8 py-2 lg:grid-cols-[1fr_300px]">
@@ -300,8 +306,7 @@ export default function WhackAMole() {
                     const golden = mole?.spawn.kind === "golden";
                     const moleClass = mole ? (mole.hit ? "wm-down" : mole.retreating ? "wm-retreat" : "") : "";
                     return (
-                      <div key={hole} style={{ "--i": hole } as CSSProperties} className="relative aspect-square" onClick={() => swingAt(hole)}>
-                        <div key={`hole-${round}`} className={`wm-hole absolute inset-0 ${!playing && phase === "idle" ? "wm-idle-shimmer" : ""} ${playing && now < 700 ? "wm-wave" : ""}`}></div>
+                      <div key={hole} style={{ "--i": hole } as CSSProperties} className="relative aspect-square" onClick={() => swingAt(hole)}>                        <div key={`hole-${round}`} className={`wm-hole absolute inset-0 ${!playing && phase === "idle" ? "wm-idle-shimmer" : ""} ${playing && now < 700 ? "wm-wave" : ""}`}></div>
                         {mole && (
                           <>
                             <span key={`ring-${mole.spawn.id}`} className="wm-dust-ring" />
@@ -312,7 +317,7 @@ export default function WhackAMole() {
                               <button
                                 type="button"
                                 aria-label={golden ? "Golden moose up" : "Mole up"}
-                                onClick={() => tap(hole)}
+                                onClick={(event) => { event.stopPropagation(); tap(hole); }}
                                 className={`wm-mole ${moleClass} ${golden ? "wm-golden" : ""}`}
                               >
                                 {golden && <span className="wm-aura" />}
@@ -328,7 +333,13 @@ export default function WhackAMole() {
                             </div>
                           </>
                         )}
-                        {mallet && <span key={`mallet-${mallet.key}`} className="wm-mallet">🔨</span>}
+                        {mallet && <span key={`mallet-${mallet.key}`} className={`wm-mallet ${mallet.whiff ? "wm-mallet-whiff" : ""}`}>🔨</span>}
+                        {mallet?.whiff && (
+                          <span key={`whiff-${mallet.key}`}>
+                            <span className="wm-whoosh" />
+                            <span className="wm-label wm-label-miss">WHOOSH!</span>
+                          </span>
+                        )}
                         {poof && (
                           <span key={poof.key}>
                             <span className="wm-burst" />
@@ -356,7 +367,7 @@ export default function WhackAMole() {
             <div className="space-y-4">
               <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4"><label htmlFor="mole-bet" className="text-xs font-bold uppercase tracking-wider text-sky-100/65">Bet amount</label><div className="mt-2 flex items-center gap-2"><input id="mole-bet" type="number" min="1" max={MOLE_MAX_BET} value={bet || ""} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setBet(Number(event.target.value) || 0)} disabled={playing} className="w-full rounded-lg border border-sky-200/20 bg-slate-900 px-3 py-2 text-lg font-bold text-white outline-none transition focus:border-sky-400 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.25)] disabled:opacity-60" /><span className="text-sm text-sky-100/65">moose bucks</span></div><p className="mt-2 text-xs text-sky-100/45">Cabinet limit: {MOLE_MAX_BET} moose bucks</p></div>
               <button onClick={startRound} disabled={playing || settling} className={`w-full rounded-xl px-4 py-3 text-sm font-bold transition duration-150 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${playing ? "bg-amber-400 text-[#071426]" : "bg-sky-400 text-[#071426] hover:bg-sky-300 wm-pulse"}`}>{playing ? (settling ? "Printing ticket…" : "Round running…") : phase === "over" ? "Play again" : "Insert coins"}</button>
-              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4"><p className="text-xs font-bold uppercase tracking-wider text-sky-100/55">How it works</p><p className="mt-2 text-sm leading-6 text-sky-100/65">One stake buys three pops on a steady rhythm. A plastic mole prints 21% of your stake as a ticket, a golden moose prints 80%. Swing while a pop is solidly up — the pad scores the mallet&apos;s landing, not your click.</p></div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4"><p className="text-xs font-bold uppercase tracking-wider text-sky-100/55">How it works</p>              <p className="mt-2 text-sm leading-6 text-sky-100/65">One stake buys three pops that come up quick and uneven. A plastic mole prints 21% of your stake as a ticket, a golden moose prints 80%. Swing while a pop is solidly up — the pad scores the mallet&apos;s landing, not your click, and pulls out of range as they retreat.</p></div>
               <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4"><p className="text-xs font-bold uppercase tracking-wider text-sky-100/55">Last {history.length || 0} rounds</p>{history.length === 0 ? <p className="mt-2 text-sm text-sky-100/45">No rounds played yet.</p> : <ul className="mt-2 space-y-1.5">{history.map((row) => <li key={row.id} className="wm-slide flex items-center justify-between text-sm"><span className="text-sky-100/70">{row.whacks}/{MOLE_POPS} · bet {row.bet.toFixed(2)}</span><span className={row.returned > row.bet ? "font-bold text-emerald-300" : row.returned > 0 ? "text-amber-300" : "text-rose-300"}>{row.returned > 0 ? `+${row.returned.toFixed(2)}` : "no ticket"}</span></li>)}</ul>}</div>
             </div>
           </div>

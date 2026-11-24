@@ -21,14 +21,14 @@ export function round2(value: number) {
 }
 
 // --- Whack-a-mole ----------------------------------------------------------
-// The stake buys three pops on a steady, learnable rhythm. Whack a pop and it
-// prints a small prize: a quarter of your stake for the plastic moles, 1.4 of
-// it for the golden moose. The mallet is plainly honest, but every window is
-// scored against a hidden pair trimmed inside the visible one — the first
-// instant is sensor-dead ("it wasn't quite up yet"), the tail is stung off
-// ("it was already going down") and golden windows lose a little more still.
-// A swing inside the trim still knocks the mole flat; the machine misses
-// nothing, it just pays nothing.
+// The stake buys three pops on a quick, uneven rhythm. Whack a pop and it
+// prints a small prize: about a fifth of your stake for the plastic moles,
+// four-fifths of it for the golden moose. The mallet is plainly honest, but
+// every window is scored against a hidden pair trimmed inside the visible
+// one — the first instant is sensor-dead ("it wasn't quite up yet"), the
+// tail is stung off ("it was already going down") and golden windows lose a
+// little more still. A swing inside the trim still knocks the mole flat; the
+// machine misses nothing, it just pays nothing.
 
 export const MOLE_POPS = 3;
 export const MOLE_MAX_BET = 50;
@@ -36,23 +36,24 @@ export const MOLE_PRIZES = { mole: 0.21, golden: 0.8 } as const;
 export const MOLE_GOLDEN_RATE = 0.16;
 export const MOLE_SWING_DELAY_MS = 90;
 // Fractions of each visible window the sensor quietly ignores at either end,
-// plus a fixed extra trim on golden windows.
-export const MOLE_DODGE_FRACTION = 0.12;
-export const MOLE_STING_FRACTION = 0.05;
-export const MOLE_GOLDEN_STING_MS = 120;
+// plus a fixed extra trim on golden windows. Together the trims leave a
+// moving whackable core of roughly 40% of each visible window.
+export const MOLE_DODGE_FRACTION = 0.22;
+export const MOLE_STING_FRACTION = 0.16;
+export const MOLE_GOLDEN_STING_MS = 150;
 // The contact pad reads the mallet's landing with this much jitter before
 // scoring, then scores against its own reading — the way a tired arcade
 // machine does (see judgeMoleTap).
-export const MOLE_PAD_NOISE_MS = 200;
+export const MOLE_PAD_NOISE_MS = 260;
 // The moles run on an old motor: occasionally a pop comes up late relative
 // to its scored window, so instant swings get judged as air.
-export const MOLE_STALL_RATE = 0.12;
+export const MOLE_STALL_RATE = 0.2;
 export const MOLE_STALL_MIN_MS = 140;
 export const MOLE_STALL_MAX_MS = 420;
 export const MOLE_MIN_UP_MS = 460;
-export const MOLE_MAX_UP_MS = 1_150;
-export const MOLE_GAP_MIN_MS = 350;
-export const MOLE_GAP_MAX_MS = 900;
+export const MOLE_MAX_UP_MS = 880;
+export const MOLE_GAP_MIN_MS = 280;
+export const MOLE_GAP_MAX_MS = 700;
 
 export type MoleKind = "mole" | "golden";
 
@@ -80,15 +81,15 @@ export type MoleSettlement = {
 export type MolePlan = { spawns: MoleSpawn[]; maximumPayout: number };
 
 // The visible window is honest, but the cabinet scores only inside this
-// slice. Players who swing instantly meet the dead zone, players who wait
-// for the mole to look settled meet the sting, and golden windows punish
-// both ends a touch harder — whichever way you like to time it, part of your
-// coverage is quietly gone.
+// slice, and the slice keeps moving with each pop's length. Players who
+// swing instantly meet the dead zone, players who wait for the mole to look
+// settled meet the sting, and golden windows punish the tail hardest —
+// whichever way you like to time it, part of your coverage is quietly gone.
 export function moleHiddenWindow(spawn: MoleSpawn) {
   const upTime = spawn.downAtMs - spawn.upAtMs;
   const dodge = spawn.upAtMs + Math.max(60, upTime * MOLE_DODGE_FRACTION);
   const stingTrim = Math.max(50, upTime * MOLE_STING_FRACTION) + (spawn.kind === "golden" ? MOLE_GOLDEN_STING_MS : 0);
-  return { from: dodge, to: spawn.downAtMs - stingTrim };
+  return { from: dodge, to: Math.min(spawn.downAtMs - 60, spawn.downAtMs - stingTrim) };
 }
 
 export function judgeMoleTap(spawn: MoleSpawn, tap: MoleTap, rng: Rng = browserRng): "whack" | "sting" | "air" {
