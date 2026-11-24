@@ -9,7 +9,7 @@ import { HOOPS_BALLS, HOOPS_MAX_BET, HOOPS_ROUND_MS, browserRng, judgeHoopsShot,
 type Rim = { x: number; y: number };
 type ShotLog = { offset: number; rim: Rim; made: boolean; swish: boolean; prize: number };
 type HistoryRow = { id: number; bet: number; returned: number; made: number; swishes: number };
-type Shot = { id: number; sx: number; sy: number; mx: number; py: number; ex: number; ey: number; fy: number };
+type Shot = { id: number; sx: number; sy: number; mx: number; py: number; ex: number; ey: number; fy: number; miss: boolean; kx?: number };
 type Confetti = { id: number; dx: number; dy: number; rot: number; delay: number; color: string };
 type ShotMark = { id: number; x: number; y: number; kind: "swish" | "basket" | "brick" };
 
@@ -27,6 +27,16 @@ const animationCss = `
   100% { left: var(--ex); top: var(--fy); transform: translate(-50%, -50%) scale(0.68); opacity: 0; }
 }
 @keyframes bh-spin { to { transform: rotate(540deg); } }
+@keyframes bh-spin-hard { to { transform: rotate(-620deg); } }
+
+/* Bricks stop on the flange at 78% flight, then kick off the side and fall away. */
+@keyframes bh-fly-miss {
+  0%   { left: var(--sx); top: var(--sy); transform: translate(-50%, -50%) scale(1.5); animation-timing-function: cubic-bezier(0.2, 0.75, 0.35, 1); }
+  55%  { left: var(--mx); top: var(--py); transform: translate(-50%, -50%) scale(0.95); animation-timing-function: cubic-bezier(0.5, 0, 0.85, 0.6); }
+  78%  { left: var(--ex); top: var(--ey); transform: translate(-50%, -50%) scale(0.8); }
+  82%  { left: calc(var(--ex) + var(--kx, 0px) * 0.6); top: var(--ey); transform: translate(-50%, -60%) scale(0.75); }
+  100% { left: calc(var(--ex) + var(--kx, 0px)); top: calc(var(--ey) + 16%); transform: translate(-50%, -30%) scale(0.6); opacity: 0; }
+}
 
 /* ---------- rim / net reactions ---------- */
 @keyframes bh-net { 0% { transform: translateX(-50%) scaleY(1); } 25% { transform: translateX(-50%) scaleY(1.9) scaleX(0.9); } 55% { transform: translateX(-50%) scaleY(0.8) scaleX(1.05); } 80% { transform: translateX(-50%) scaleY(1.15); } 100% { transform: translateX(-50%) scaleY(1); } }
@@ -74,10 +84,13 @@ const animationCss = `
 
 .bh-fly { position: absolute; font-size: 1.6rem; line-height: 1; pointer-events: none; z-index: 2; animation: bh-fly ${FLIGHT_MS}ms both; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5)); }
 .bh-fly > span { display: block; animation: bh-spin ${FLIGHT_MS}ms linear both; }
+.bh-fly-miss { animation-name: bh-fly-miss; }
+.bh-fly-miss > span { animation-name: bh-spin-hard; }
 .bh-fly-ghost { z-index: 1; opacity: 0.28; filter: blur(1.5px); }
 .bh-fly-ghost2 { z-index: 1; opacity: 0.14; filter: blur(3px); }
 .bh-poof { position: absolute; pointer-events: none; font-size: 1.7rem; z-index: 3; opacity: 0; animation: bh-poof 0.7s ease-out ${LAND_MS}ms both; }
-
+/* Only makes interact with the net: bricks have their own kick-off cue. */
+.bh-miss .bh-ring, .bh-miss .bh-net-kick, .bh-miss .bh-rim-hit, .bh-miss .bh-poof { display: none; }
 .bh-ball-pip { display: inline-block; font-size: 1.05rem; transition: opacity 0.3s, filter 0.3s; }
 .bh-ball-pip-used { opacity: 0.25; filter: grayscale(1); animation: bh-ball-used 0.4s ease-out both; }
 
@@ -145,6 +158,7 @@ export default function Basketball() {
   const [shots, setShots] = useState<Shot[]>([]);
   const [shotMarks, setShotMarks] = useState<ShotMark[]>([]);
   const [lastLand, setLastLand] = useState<{ x: number; y: number; id: number } | null>(null);
+  const [lastLandMiss, setLastLandMiss] = useState(false);
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [settling, setSettling] = useState(false);
   const [celebrate, setCelebrate] = useState<{ id: number; amount: number; confetti: Confetti[] } | null>(null);
@@ -197,6 +211,7 @@ export default function Basketball() {
     setShots([]);
     setShotMarks([]);
     setLastLand(null);
+    setLastLandMiss(false);
     setCelebrate(null);
     setBaskets(0);
     setSwishes(0);
@@ -236,11 +251,17 @@ export default function Basketball() {
     setSwishes((current) => current + (verdict.swish ? 1 : 0));
     setShotMarks((current) => [...current, { id, x: rimAtShot.x, y: rimAtShot.y - 9, kind: verdict.swish ? "swish" : verdict.made ? "basket" : "brick" }]);
     const peak = Math.max(3, rimAtShot.y - 16);
+    // The arc mirrors the verdict: a make drops through the net, a brick
+    // falls onto the flange and kicks out the side instead.
+    const missKx = Math.sign(drift || 1) * 7;
     setShots((current) => [
       ...current,
-      { id, sx: rimAtShot.x, sy: 94, mx: rimAtShot.x + drift, py: peak, ex: rimAtShot.x, ey: rimAtShot.y + 1, fy: rimAtShot.y + 14 },
+      verdict.made
+        ? { id, sx: rimAtShot.x, sy: 94, mx: rimAtShot.x + drift, py: peak, ex: rimAtShot.x, ey: rimAtShot.y + 1, fy: rimAtShot.y + 14, miss: false }
+        : { id, sx: rimAtShot.x, sy: 94, mx: rimAtShot.x + drift, py: peak, ex: rimAtShot.x, ey: rimAtShot.y - 5, fy: rimAtShot.y - 6, miss: true, kx: missKx },
     ].slice(-4));
-    setLastLand({ x: rimAtShot.x, y: rimAtShot.y - 3, id });
+    setLastLand(verdict.made ? { x: rimAtShot.x, y: rimAtShot.y - 3, id } : null);
+    setLastLandMiss(!verdict.made);
     setBallCount(HOOPS_BALLS - shotLogRef.current.length);
     if (shotLogRef.current.length >= HOOPS_BALLS) setMessage("Five balls up — ride out the clock or cash the ticket early.");
   }
@@ -311,7 +332,7 @@ export default function Basketball() {
           <div className="mb-6 flex flex-col justify-between gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-start"><div><p className="text-xs uppercase tracking-wider text-sky-100/65">Banking balance</p><p className="mt-1 text-2xl font-bold text-orange-200"><span key={Math.round(balance * 100)} className="bh-bump inline-block">{shownBalance.toFixed(2)}</span> <span className="text-sm font-normal text-sky-100/55">moose bucks</span></p></div><p className="max-w-sm text-sm text-sky-100/55">Settlements are processed through your connected banking account.</p></div>
           <div className="grid gap-8 py-2 lg:grid-cols-[1fr_300px]">
             <div>
-              <div key={shake} className={`bh-court relative h-[420px] overflow-hidden rounded-2xl border border-orange-300/20 shadow-[inset_0_0_60px_rgba(0,0,0,0.45)] ${shake ? "bh-shake" : ""}`}>
+              <div key={shake} className={`bh-court relative h-[420px] overflow-hidden rounded-2xl border border-orange-300/20 shadow-[inset_0_0_60px_rgba(0,0,0,0.45)] ${shake ? "bh-shake" : ""} ${lastLandMiss ? "bh-miss" : ""}`}>
                 {live && <div key={round} className={`bh-bar ${urgent ? "bh-bar-urgent" : ""}`} style={{ animationDuration: `${HOOPS_ROUND_MS}ms` }} />}
                 <div ref={courtRef} className="absolute inset-0 cursor-crosshair" onClick={shoot} role="button" tabIndex={-1} aria-label="Basketball court — tap the rim to shoot">
                   <div className={`bh-rim ${live ? "bh-rim-live" : ""} ${lastLand ? "bh-rim-hit" : ""}`} key={`rim-${lastLand?.id ?? 0}`} style={{ left: `${rim.x}%`, top: `${rim.y}%` }}>
@@ -330,12 +351,13 @@ export default function Basketball() {
                   </div>
                   {live && ballCount > 0 && <span key={`cue-${ballCount}`} className="bh-cue" style={{ left: `${rim.x}%`, top: "94%" }}><span>🏀</span></span>}
                   {shots.map((shot) => {
-                    const vars = { "--sx": `${shot.sx}%`, "--sy": `${shot.sy}%`, "--mx": `${shot.mx}%`, "--py": `${shot.py}%`, "--ex": `${shot.ex}%`, "--ey": `${shot.ey}%`, "--fy": `${shot.fy}%` } as CSSProperties;
+                    const vars = { "--sx": `${shot.sx}%`, "--sy": `${shot.sy}%`, "--mx": `${shot.mx}%`, "--py": `${shot.py}%`, "--ex": `${shot.ex}%`, "--ey": `${shot.ey}%`, "--fy": `${shot.fy}%`, "--kx": `${(shot.kx ?? 0) * 4}px` } as CSSProperties;
+                    const flyClass = shot.miss ? "bh-fly bh-fly-miss" : "bh-fly";
                     return (
                       <span key={shot.id}>
-                        <span className="bh-fly bh-fly-ghost2" style={{ ...vars, animationDelay: "0.09s" }}><span>🏀</span></span>
-                        <span className="bh-fly bh-fly-ghost" style={{ ...vars, animationDelay: "0.045s" }}><span>🏀</span></span>
-                        <span className="bh-fly" style={vars}><span>🏀</span></span>
+                        <span className={`${flyClass} bh-fly-ghost2`} style={{ ...vars, animationDelay: "0.09s" }}><span>🏀</span></span>
+                        <span className={`${flyClass} bh-fly-ghost`} style={{ ...vars, animationDelay: "0.045s" }}><span>🏀</span></span>
+                        <span className={flyClass} style={vars}><span>🏀</span></span>
                       </span>
                     );
                   })}

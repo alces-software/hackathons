@@ -181,11 +181,11 @@ export const HOOPS_BALLS = 5;
 export const HOOPS_MAX_BET = 100;
 export const HOOPS_BASKET_PRIZE = 0.16;
 export const HOOPS_SWISH_PRIZE = 0.35;
-// The sensor ring sits this far inside the painted rim. Taps on the painted
-// edge (offset ≈ 1.0) sit above the ring, so the outer sliver of the painted
-// rim still rattles out — the house edge lives in that sliver and in the
-// swish LED's rate gate, not in unreachable geometry.
-export const HOOPS_SENSOR_MARGIN = 0.06;
+// The sensor sits this close to the painted rim's edge — anything the player
+// can aim at inside the painted ring banks; only the outermost sliver reads
+// above the ring and rattles out. The house edge lives in the swish LED's
+// rate gate, not in unreachable geometry.
+export const HOOPS_SENSOR_MARGIN = 0.04;
 // A release reads as a swish when its offset lands inside this ring — the
 // sensor reads the release through noise before scoring (see judgeHoopsShot).
 // The swish band now covers the reachable middle of the hoop mouth: with
