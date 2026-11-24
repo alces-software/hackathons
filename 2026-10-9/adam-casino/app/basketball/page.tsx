@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, MouseEvent } from "react";
 import { bankingLoss, bankingPayout, bankingReturn, bankingStake, syncBankingBalance, useBankingBalance } from "../../lib/banking";
-import { HOOPS_BASKET_PRIZE, HOOPS_BALLS, HOOPS_MAX_BET, HOOPS_ROUND_MS, HOOPS_SWISH_PRIZE, browserRng, releaseOffsetFromTap, round2, settleHoopsRound } from "../../lib/arcade";
+import { HOOPS_BALLS, HOOPS_MAX_BET, HOOPS_ROUND_MS, browserRng, judgeHoopsShot, releaseOffsetFromTap, round2 } from "../../lib/arcade";
 
 type Rim = { x: number; y: number };
-type ShotLog = { offset: number; rim: Rim };
+type ShotLog = { offset: number; rim: Rim; made: boolean; swish: boolean; prize: number };
 type HistoryRow = { id: number; bet: number; returned: number; made: number; swishes: number };
 type Shot = { id: number; sx: number; sy: number; mx: number; py: number; ex: number; ey: number; fy: number };
 type Confetti = { id: number; dx: number; dy: number; rot: number; delay: number; color: string };
+type ShotMark = { id: number; x: number; y: number; kind: "swish" | "basket" | "brick" };
 
 const HOOP_PX = 66;
 const FLIGHT_MS = 900; // ball flight time; the net/ring/sparkle effects are timed off this
@@ -32,6 +33,7 @@ const animationCss = `
 @keyframes bh-rim-hit { 0% { transform: translate(-50%, -50%) scale(1); } 30% { transform: translate(-50%, -46%) scale(1.07); } 60% { transform: translate(-50%, -51%) scale(0.98); } 100% { transform: translate(-50%, -50%) scale(1); } }
 @keyframes bh-ring { 0% { opacity: 0.85; transform: translate(-50%, -50%) scale(0.7); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(2.3); } }
 @keyframes bh-poof { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(0deg); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -190%) scale(1.5) rotate(40deg); } }
+@keyframes bh-mark-pop { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); } 60% { opacity: 1; transform: translate(-50%, -50%) scale(1.25); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
 @keyframes bh-rim-glow { 0%, 100% { box-shadow: 0 0 0 3px rgba(255,255,255,0.12), 0 0 14px rgba(249,115,22,0.35), inset 0 0 12px rgba(0,0,0,0.5); } 50% { box-shadow: 0 0 0 3px rgba(255,255,255,0.18), 0 0 30px rgba(249,115,22,0.7), inset 0 0 12px rgba(0,0,0,0.5); } }
 
 /* ---------- ball in hand ---------- */
@@ -92,9 +94,15 @@ const animationCss = `
 .bh-float { position: absolute; left: 50%; top: 52%; pointer-events: none; z-index: 6; font-weight: 800; font-size: 2.2rem; color: #fde68a; text-shadow: 0 3px 14px rgba(249, 115, 22, 0.8), 0 0 2px #000; opacity: 0; animation: bh-float 1.8s ease-out both; }
 .bh-flash { position: absolute; inset: 0; pointer-events: none; z-index: 5; opacity: 0; animation: bh-flash 0.7s ease-out both; }
 
+.bh-mark { position: absolute; transform: translate(-50%, -50%); pointer-events: none; font-size: 1.1rem; font-weight: 800; z-index: 6; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7); }
+.bh-mark-swish { color: #fde047; }
+.bh-mark-basket { color: #86efac; }
+.bh-mark-brick { color: #f87171; }
+.bh-mark-fresh { animation: bh-mark-pop 0.6s cubic-bezier(0.3, 1.5, 0.5, 1) both; }
+
 @media (prefers-reduced-motion: reduce) {
   .bh-fly, .bh-fly > span, .bh-poof, .bh-ring, .bh-net-kick, .bh-rim-hit, .bh-rim-live, .bh-cue, .bh-cue > span, .bh-fade, .bh-slide,
-  .bh-bump, .bh-shake, .bh-confetti, .bh-float, .bh-flash, .bh-pulse, .bh-clock-urgent, .bh-ball-pip-used { animation-duration: 0.01s; animation-iteration-count: 1; }
+  .bh-bump, .bh-shake, .bh-confetti, .bh-float, .bh-flash, .bh-pulse, .bh-clock-urgent, .bh-ball-pip-used, .bh-mark-fresh { animation-duration: 0.01s; animation-iteration-count: 1; }
   .bh-rim, .bh-cue { transition-duration: 0.01s; }
 }
 `;
@@ -135,12 +143,14 @@ export default function Basketball() {
   const [baskets, setBaskets] = useState(0);
   const [swishes, setSwishes] = useState(0);
   const [shots, setShots] = useState<Shot[]>([]);
+  const [shotMarks, setShotMarks] = useState<ShotMark[]>([]);
   const [lastLand, setLastLand] = useState<{ x: number; y: number; id: number } | null>(null);
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [settling, setSettling] = useState(false);
   const [celebrate, setCelebrate] = useState<{ id: number; amount: number; confetti: Confetti[] } | null>(null);
   const [shake, setShake] = useState(0);
   const settledRef = useRef(true);
+  const liveRef = useRef(false);
   const stakeRef = useRef(0);
   const roundStartRef = useRef(0);
   const shotLogRef = useRef<ShotLog[]>([]);
@@ -183,7 +193,9 @@ export default function Basketball() {
     }
     stakeRef.current = bet;
     shotLogRef.current = [];
+    liveRef.current = true;
     setShots([]);
+    setShotMarks([]);
     setLastLand(null);
     setCelebrate(null);
     setBaskets(0);
@@ -212,11 +224,17 @@ export default function Basketball() {
     const rimCenterY = rimEl ? rimEl.offsetTop + rimEl.offsetHeight / 2 : rect.height * (rim.y / 100);
     const offset = releaseOffsetFromTap(tapX, tapY, rimCenterX, rimCenterY, HOOP_PX / 2);
     const rimAtShot: Rim = { x: (rimCenterX / rect.width) * 100, y: (rimCenterY / rect.height) * 100 };
-    shotLogRef.current = [...shotLogRef.current, { offset, rim: rimAtShot }];
 
     // Visual only: the ball arcs toward the side of the rim you tapped, then drops through.
     const drift = Math.max(-9, Math.min(9, ((tapX - rimCenterX) / rect.width) * 100));
     const id = ++idRef.current;
+    // Judge immediately with the sensor that scores the round, so the live
+    // counters and rim marks match the printed ticket.
+    const verdict = judgeHoopsShot(offset, browserRng);
+    shotLogRef.current = [...shotLogRef.current, { offset, rim: rimAtShot, made: verdict.made, swish: verdict.swish, prize: verdict.prize }];
+    setBaskets((current) => current + (verdict.made && !verdict.swish ? 1 : 0));
+    setSwishes((current) => current + (verdict.swish ? 1 : 0));
+    setShotMarks((current) => [...current, { id, x: rimAtShot.x, y: rimAtShot.y - 9, kind: verdict.swish ? "swish" : verdict.made ? "basket" : "brick" }]);
     const peak = Math.max(3, rimAtShot.y - 16);
     setShots((current) => [
       ...current,
@@ -224,26 +242,22 @@ export default function Basketball() {
     ].slice(-4));
     setLastLand({ x: rimAtShot.x, y: rimAtShot.y - 3, id });
     setBallCount(HOOPS_BALLS - shotLogRef.current.length);
-    if (shotLogRef.current.length >= HOOPS_BALLS) setMessage("Five balls up — ride out the clock while the scorer tabulates…");
+    if (shotLogRef.current.length >= HOOPS_BALLS) setMessage("Five balls up — ride out the clock or cash the ticket early.");
   }
 
   async function finishRound() {
-    if (settledRef.current || !live) return;
+    if (settledRef.current || !liveRef.current) return;
     settledRef.current = true;
+    liveRef.current = false;
     setSettling(true);
     const stakeUsed = stakeRef.current;
-    const courtW = courtRef.current?.offsetWidth ?? 640;
-    const courtH = courtRef.current?.offsetHeight ?? 420;
-    const releases = shotLogRef.current.map((shot) => ({
-      offset: shot.offset,
-      rimCenterX: (shot.rim.x / 100) * courtW,
-      rimCenterY: (shot.rim.y / 100) * courtH,
-      rimRadiusPx: HOOP_PX / 2,
-    }));
-    const settlement = settleHoopsRound(releases, stakeUsed, browserRng);
-    const made = settlement.shots.filter((result) => result.prize > 0).length;
-    const swishCount = settlement.shots.filter((result) => result.prize === HOOPS_SWISH_PRIZE).length;
-    const basketCount = settlement.shots.filter((result) => result.prize === HOOPS_BASKET_PRIZE).length;
+    // Each shot was already judged by the sensor when it was tapped; settling
+    // replays those verdicts instead of re-rolling, so the ticket matches
+    // what the counters showed live.
+    const releases = shotLogRef.current.map((shot) => ({ offset: shot.offset, made: shot.made, swish: shot.swish, prize: shot.prize }));
+    const made = releases.filter((result) => result.made).length;
+    const swishCount = releases.filter((result) => result.swish).length;
+    const settlement = { shots: releases, makes: made, swishes: swishCount, returned: round2(releases.reduce((sum, result) => sum + result.prize, 0) * stakeUsed) };
     try {
       await bankingReturn(stakeUsed);
       if (settlement.returned > stakeUsed) await bankingPayout(round2(settlement.returned - stakeUsed));
@@ -255,8 +269,6 @@ export default function Basketball() {
       setMessage(error instanceof Error ? error.message : "Payout failed.");
       return;
     }
-    setBaskets(basketCount);
-    setSwishes(swishCount);
     setHistory((current) => [{ id: ++idRef.current, bet: stakeUsed, returned: settlement.returned, made, swishes: swishCount }, ...current].slice(0, 10));
     setLive(false);
     setSettling(false);
@@ -328,6 +340,16 @@ export default function Basketball() {
                     );
                   })}
                   {lastLand && <span key={`poof-${lastLand.id}`} className="bh-poof" style={{ left: `${lastLand.x}%`, top: `${lastLand.y}%` }}>✨</span>}
+                  {shotMarks.map((mark, index) => (
+                    <span
+                      key={`mark-${mark.id}`}
+                      className={`bh-mark bh-mark-${mark.kind} ${index === shotMarks.length - 1 ? "bh-mark-fresh" : ""}`}
+                      style={{ left: `${mark.x}%`, top: `${mark.y}%` }}
+                      aria-hidden="true"
+                    >
+                      {mark.kind === "swish" ? "★" : mark.kind === "basket" ? "●" : "✕"}
+                    </span>
+                  ))}
                 </div>
                 {celebrate && (
                   <div key={celebrate.id} className="pointer-events-none absolute inset-0 overflow-hidden">
